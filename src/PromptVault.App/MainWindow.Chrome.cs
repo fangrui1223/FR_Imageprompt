@@ -117,7 +117,7 @@ public partial class MainWindow
     {
         _oldestFirst = !_oldestFirst;
         SortButton.Content = _oldestFirst ? "最早优先  ↕" : "最新优先  ↕";
-        await RefreshAsync();
+        await RefreshAsync(RefreshAnimationKind.ViewSwitch);
     }
 
     private void PinButtonClick(object sender, RoutedEventArgs e)

@@ -307,6 +307,61 @@ public sealed class LibraryRepository
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task PermanentlyDeleteTrashItemsAsync(IEnumerable<long> itemIds, CancellationToken cancellationToken = default)
+    {
+        var ids = itemIds.Distinct().ToArray();
+        if (ids.Length == 0) return;
+
+        var pathsToDelete = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        foreach (var id in ids)
+        {
+            long? assetId = null;
+            var select = connection.CreateCommand();
+            select.Transaction = transaction;
+            select.CommandText = """
+                SELECT a.id, a.original_path, a.thumbnail_path, a.medium_thumbnail_path
+                FROM collection_items ci
+                JOIN image_assets a ON a.id = ci.asset_id
+                WHERE ci.id = $id AND ci.deleted_at IS NOT NULL
+                LIMIT 1;
+                """;
+            select.Parameters.AddWithValue("$id", id);
+            await using (var reader = await select.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
+            {
+                if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false)) continue;
+                assetId = reader.GetInt64(0);
+                AddPath(reader.GetString(1));
+                AddPath(reader.GetString(2));
+                AddPath(reader.GetString(3));
+            }
+
+            var delete = connection.CreateCommand();
+            delete.Transaction = transaction;
+            delete.CommandText = "DELETE FROM image_assets WHERE id = $assetId;";
+            delete.Parameters.AddWithValue("$assetId", assetId.Value);
+            await delete.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        foreach (var relativePath in pathsToDelete) TryDeleteLibraryFile(relativePath);
+
+        void AddPath(string path)
+        {
+            if (!string.IsNullOrWhiteSpace(path)) pathsToDelete.Add(path);
+        }
+    }
+
+    private void TryDeleteLibraryFile(string relativePath)
+    {
+        try
+        {
+            var path = Paths.ToAbsolute(relativePath);
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch { }
+    }
     public async Task MoveToTrashAsync(long itemId, CancellationToken cancellationToken = default)
     {
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);

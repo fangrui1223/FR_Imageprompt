@@ -52,6 +52,25 @@ public sealed class LibraryRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task PermanentlyDeletingTrashRemovesRecordAndFiles()
+    {
+        const string hash = "permanent-delete-hash";
+        var saved = await SaveAsync(hash, "delete forever", "", []);
+        var files = new[]
+        {
+            _repository.Paths.ToAbsolute($"originals/{hash}.png"),
+            _repository.Paths.ToAbsolute($"thumbnails/small/{hash}.jpg"),
+            _repository.Paths.ToAbsolute($"thumbnails/medium/{hash}.jpg")
+        };
+        foreach (var file in files) await File.WriteAllTextAsync(file, "test");
+
+        await _repository.MoveToTrashAsync(saved.ItemId);
+        await _repository.PermanentlyDeleteTrashItemsAsync([saved.ItemId]);
+
+        Assert.Empty(await _repository.SearchAsync(new SearchOptions(IncludeTrash: true)));
+        Assert.All(files, file => Assert.False(File.Exists(file)));
+    }
+    [Fact]
     public async Task DeletingCategoryMovesItemToUnclassified()
     {
         var categoryId = await _repository.AddCategoryAsync("test-category", "test");

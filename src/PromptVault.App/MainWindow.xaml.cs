@@ -45,6 +45,8 @@ public partial class MainWindow : Window
     private GalleryCardViewModel? _dragCandidate;
     private Point _dragStart;
     private ScrollViewer? _rowsScrollViewer;
+    private string _lastRowsSignature = "";
+    private bool _hasRowsSignature;
     private const double GalleryWheelPixelsPerNotch = 180d;
 
     public ObservableCollection<GalleryRow> Rows { get; } = new();
@@ -68,7 +70,7 @@ public partial class MainWindow : Window
         CategoryList.ContextMenu = new System.Windows.Controls.ContextMenu();
         ExternalFolderList.ContextMenu = new System.Windows.Controls.ContextMenu();
         _searchTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(220) };
-        _searchTimer.Tick += async (_, _) => { _searchTimer.Stop(); await RefreshAsync(); };
+        _searchTimer.Tick += async (_, _) => { _searchTimer.Stop(); await RefreshAsync(RefreshAnimationKind.Search); };
         _resizeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(180) };
         _resizeTimer.Tick += (_, _) => { _resizeTimer.Stop(); RegroupIfNeeded(); };
         _subtleStatusTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1200) };
@@ -83,7 +85,7 @@ public partial class MainWindow : Window
             LoadExternalFolders();
             ApplyInitialSnapshot();
             ApplyTransparentMode();
-            await RefreshAsync();
+            await RefreshAsync(RefreshAnimationKind.None);
             RestoreViewerFromSnapshot();
         };
         SizeChanged += (_, _) => { _resizeTimer.Stop(); _resizeTimer.Start(); };
@@ -205,7 +207,7 @@ public partial class MainWindow : Window
         ExternalFolderList.ItemsSource = choices;
     }
 
-    private async Task RefreshAsync()
+    private async Task RefreshAsync(RefreshAnimationKind animationKind = RefreshAnimationKind.ContentChange)
     {
         _loadCancellation?.Cancel();
         _loadCancellation = new CancellationTokenSource();
@@ -229,9 +231,20 @@ public partial class MainWindow : Window
                 result = libraryItems.Select(GalleryEntry.FromLibrary).ToArray();
             }
 
+            var rowsSignature = CreateRowsSignature(result);
+            var hadRowsSignature = _hasRowsSignature;
+            var rowsChanged = !hadRowsSignature || !string.Equals(_lastRowsSignature, rowsSignature, StringComparison.Ordinal);
+            var shouldRebuildRows = animationKind != RefreshAnimationKind.Search || rowsChanged;
+
             _items = result;
+            _lastRowsSignature = rowsSignature;
+            _hasRowsSignature = true;
             _selectedItemIds.RemoveWhere(id => _items.All(item => item.Id != id));
-            BuildRows();
+            if (shouldRebuildRows)
+            {
+                BuildRows();
+                AnimateRowsRefresh(animationKind, rowsChanged, hadRowsSignature);
+            }
             CountText.Text = IsExternalMode ? $"\u5916\u90E8\u6587\u4EF6\u5939 - {_items.Count}" : (_showTrash ? $"\u56DE\u6536\u7AD9 - {_items.Count}" : $"\u56FE\u7247\u6536\u85CF - {_items.Count}");
             UpdateBaseStatus();
             UpdateTrashVisual();
@@ -327,6 +340,33 @@ public partial class MainWindow : Window
         if (pending.Count > 0) AddGalleryRow(pending, ratioSum, availableWidth, false);
     }
 
+    private static string CreateRowsSignature(IReadOnlyList<GalleryEntry> items)
+    {
+        if (items.Count == 0) return "0";
+        var builder = new StringBuilder(items.Count * 12);
+        builder.Append(items.Count);
+        foreach (var item in items)
+        {
+            builder.Append('|');
+            builder.Append(item.Id);
+        }
+        return builder.ToString();
+    }
+
+    private void AnimateRowsRefresh(RefreshAnimationKind animationKind, bool rowsChanged, bool hadRowsSignature)
+    {
+        if (!RowsList.IsLoaded || !hadRowsSignature || !rowsChanged || animationKind == RefreshAnimationKind.None) return;
+        RowsList.BeginAnimation(OpacityProperty, null);
+        var fromOpacity = animationKind == RefreshAnimationKind.Search ? 0.97 : 0.9;
+        var duration = animationKind == RefreshAnimationKind.Search ? 80 : 100;
+        RowsList.Opacity = fromOpacity;
+        RowsList.BeginAnimation(OpacityProperty, new DoubleAnimation(1d, TimeSpan.FromMilliseconds(duration))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+            FillBehavior = FillBehavior.HoldEnd
+        });
+    }
+
     private void AddGalleryRow(IReadOnlyList<GalleryEntry> items, double ratioSum, double availableWidth, bool fill)
     {
         const double horizontalMargin = 14;
@@ -399,7 +439,7 @@ public partial class MainWindow : Window
         }
 
         FinishSelectionOperation();
-        await RefreshAsync();
+        await RefreshAsync(RefreshAnimationKind.ViewSwitch);
     }
 
     private async void ExternalFolderChanged(object sender, SelectionChangedEventArgs e)
@@ -412,7 +452,7 @@ public partial class MainWindow : Window
         CategoryList.SelectedIndex = -1;
         _suppressFilterRefresh = false;
         FinishSelectionOperation();
-        await RefreshAsync();
+        await RefreshAsync(RefreshAnimationKind.ViewSwitch);
     }
 
     private async void TrashClick(object sender, RoutedEventArgs e)
@@ -431,7 +471,7 @@ public partial class MainWindow : Window
         }
 
         UpdateTrashVisual();
-        await RefreshAsync();
+        await RefreshAsync(RefreshAnimationKind.ViewSwitch);
     }
 
     private void CaptureToggleClick(object sender, RoutedEventArgs e)
@@ -729,6 +769,13 @@ public partial class MainWindow : Window
         var trash = new System.Windows.Controls.MenuItem { Header = _showTrash ? "\u4ECE\u56DE\u6536\u7AD9\u6062\u590D" : "\u79FB\u5230\u56DE\u6536\u7AD9", Tag = ids };
         trash.Click += DeleteCardClick;
         menu.Items.Add(trash);
+        if (_showTrash)
+        {
+            menu.Items.Add(new Separator());
+            var permanentDelete = new System.Windows.Controls.MenuItem { Header = "\u6C38\u4E45\u5220\u9664", Tag = ids };
+            permanentDelete.Click += PermanentlyDeleteCardClick;
+            menu.Items.Add(permanentDelete);
+        }
     }
 
     private async void DeleteCardClick(object sender, RoutedEventArgs e)
@@ -743,6 +790,29 @@ public partial class MainWindow : Window
         await ApplyTrashActionAsync(ids);
     }
 
+    private async void PermanentlyDeleteCardClick(object sender, RoutedEventArgs e)
+    {
+        var ids = (sender as FrameworkElement)?.Tag as long[];
+        if (ids is null || ids.Length == 0)
+        {
+            var card = GetCardFromMenuSender(sender);
+            ids = GetOperationTargetEntries(card).Where(x => !x.IsExternal).Select(x => x.Id).ToArray();
+        }
+
+        await PermanentlyDeleteTrashItemsAsync(ids);
+    }
+
+    private async Task PermanentlyDeleteTrashItemsAsync(IReadOnlyList<long> ids)
+    {
+        if (ids.Count == 0) return;
+        var dialog = new PermanentDeleteDialog(ids.Count) { Owner = this };
+        if (dialog.ShowDialog() != true) return;
+
+        await _repository.PermanentlyDeleteTrashItemsAsync(ids);
+        ToastService.Show(this, $"\u5DF2\u6C38\u4E45\u5220\u9664 {ids.Count} \u5F20\u56FE\u7247");
+        FinishSelectionOperation();
+        await RefreshAsync();
+    }
     private async Task ApplyTrashActionAsync(IReadOnlyList<long> ids)
     {
         if (ids.Count == 0) return;
@@ -1006,6 +1076,8 @@ public partial class MainWindow : Window
         }
         return null;
     }
+    private enum RefreshAnimationKind { None, Search, ViewSwitch, ContentChange }
+
     private sealed record CategoryMove(long[] ItemIds, long? CategoryId, string Name);
     private sealed record ExternalCollect(GalleryEntry[] Entries, long? CategoryId);
     private sealed record CategoryChoice(long? Id, string Name);
