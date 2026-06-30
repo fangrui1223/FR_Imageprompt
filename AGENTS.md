@@ -6,6 +6,8 @@
 
 项目名称：FR_Imageprompt / PromptVault
 
+仓库地址：https://github.com/fangrui1223/FR_Imageprompt.git
+
 项目类型：Windows 本地图像提示词收藏工具。
 
 主要技术：
