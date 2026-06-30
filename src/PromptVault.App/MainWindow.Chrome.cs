@@ -11,6 +11,7 @@ public partial class MainWindow
     private bool _oldestFirst;
     private readonly DispatcherTimer _topHideTimer = new() { Interval = TimeSpan.FromMilliseconds(1000) };
     private readonly DispatcherTimer _leftHideTimer = new() { Interval = TimeSpan.FromMilliseconds(1000) };
+    private const double TopPanelMouseSafetyMargin = 4d;
     private bool _leftPanelMenuOpen;
 
     private void OnSourceInitialized(object? sender, EventArgs e)
@@ -19,7 +20,12 @@ public partial class MainWindow
         _topHideTimer.Tick += (_, _) =>
         {
             _topHideTimer.Stop();
-            if (!TopPanel.IsMouseOver) HideTopPanel();
+            if (IsMouseInsideTopPanel())
+            {
+                _topHideTimer.Start();
+                return;
+            }
+            HideTopPanel();
         };
         _leftHideTimer.Tick += (_, _) =>
         {
@@ -32,6 +38,22 @@ public partial class MainWindow
 
     private void TopPanelMouseEnter(object sender, MouseEventArgs e) { _topHideTimer.Stop(); UpdateTopPanelHeight(); AnimateTop(0); }
     private void TopPanelMouseLeave(object sender, MouseEventArgs e) { _topHideTimer.Stop(); _topHideTimer.Start(); }
+
+    private bool IsMouseInsideTopPanel()
+    {
+        if (!TopPanel.IsVisible || TopPanel.ActualWidth <= 0 || TopPanel.ActualHeight <= 0) return false;
+
+        var cursor = System.Windows.Forms.Cursor.Position;
+        var topLeft = TopPanel.PointToScreen(new Point(0, 0));
+        var bottomRight = TopPanel.PointToScreen(new Point(TopPanel.ActualWidth, TopPanel.ActualHeight));
+        var left = Math.Min(topLeft.X, bottomRight.X) - TopPanelMouseSafetyMargin;
+        var right = Math.Max(topLeft.X, bottomRight.X) + TopPanelMouseSafetyMargin;
+        var top = Math.Min(topLeft.Y, bottomRight.Y) - TopPanelMouseSafetyMargin;
+        var bottom = Math.Max(topLeft.Y, bottomRight.Y) + TopPanelMouseSafetyMargin;
+
+        return cursor.X >= left && cursor.X <= right && cursor.Y >= top && cursor.Y <= bottom;
+    }
+
     private void LeftPanelMouseEnter(object sender, MouseEventArgs e) { _leftHideTimer.Stop(); AnimateLeft(0); }
     private void LeftPanelMouseLeave(object sender, MouseEventArgs e)
     {
@@ -82,8 +104,13 @@ public partial class MainWindow
     private void DragAreaMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ChangedButton != MouseButton.Left) return;
+        e.Handled = true;
         if (e.ClickCount == 2) ToggleMaximize();
-        else if (WindowState == WindowState.Normal) DragMove();
+        else if (WindowState == WindowState.Normal)
+        {
+            try { DragMove(); }
+            catch (InvalidOperationException) { }
+        }
     }
 
     private async void SortButtonClick(object sender, RoutedEventArgs e)

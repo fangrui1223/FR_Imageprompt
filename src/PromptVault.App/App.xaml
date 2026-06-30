@@ -57,15 +57,24 @@
       <Setter Property="BorderBrush" Value="#2C4055" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CaretBrush" Value="{StaticResource AccentBrush}" />
-      <Setter Property="Padding" Value="10,7" />
+      <Setter Property="Padding" Value="12,0" />
+      <Setter Property="MinHeight" Value="38" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="TextBox">
             <Border x:Name="TextBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                     BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" SnapsToDevicePixels="True">
-              <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" />
+              <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
+                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
             </Border>
             <ControlTemplate.Triggers>
+              <Trigger Property="AcceptsReturn" Value="True">
+                <Setter Property="Padding" Value="10,8" />
+                <Setter Property="VerticalContentAlignment" Value="Stretch" />
+              </Trigger>
               <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="TextBorder" Property="BorderBrush" Value="#56D6FF" /></Trigger>
               <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5" /></Trigger>
             </ControlTemplate.Triggers>
