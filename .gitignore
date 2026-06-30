@@ -1,0 +1,50 @@
+# Build output
+bin/
+obj/
+TestResults/
+publish/
+
+# Local .NET/NuGet/runtime caches used by Codex runs
+.dotnet/
+.dotnethome/
+.packages/
+.appdata/
+.localappdata/
+
+# Node/pnpm dependencies and caches
+node_modules/
+**/node_modules/
+.pnpm-store/
+
+# Local app data and smoke-test libraries
+PromptVaultLibrary/
+.smoke-library/
+.smoke-external/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Generated model/build artifacts
+artifacts/
+tools/model-pack/local-models/
+
+# IDE/user files
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.bak
+
+# Windows metadata
+Thumbs.db
+Desktop.ini

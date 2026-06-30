@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PromptVault.App/PromptVault.App.csproj" />
+    <Project Path="src/PromptVault.Core/PromptVault.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PromptVault.Tests/PromptVault.Tests.csproj" />
+  </Folder>
+</Solution>

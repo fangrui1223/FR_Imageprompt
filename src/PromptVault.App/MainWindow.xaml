@@ -1,0 +1,188 @@
+<Window x:Class="PromptVault.App.MainWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+ Title="FR_Imageprompt" Width="1380" Height="880" MinWidth="420" MinHeight="520" WindowStyle="None" ResizeMode="CanResize"
+ Background="Transparent" WindowStartupLocation="CenterScreen" SourceInitialized="OnSourceInitialized"
+ PreviewKeyDown="MainWindowPreviewKeyDown" PreviewMouseDown="MainWindowPreviewMouseDown" PreviewMouseMove="MainWindowPreviewMouseMove" PreviewMouseRightButtonUp="MainWindowPreviewMouseRightButtonUp" AllowDrop="True" DragEnter="LibraryDragEnter" DragOver="LibraryDragEnter" DragLeave="LibraryDragLeave" Drop="LibraryDrop">
+ <shell:WindowChrome.WindowChrome>
+  <shell:WindowChrome CaptionHeight="0" CornerRadius="14" GlassFrameThickness="0" ResizeBorderThickness="7" UseAeroCaptionButtons="False"/>
+ </shell:WindowChrome.WindowChrome>
+ <Border x:Name="WindowSurface" Margin="1" CornerRadius="14" ClipToBounds="True" Background="#F20A1019" BorderBrush="#31445A70" BorderThickness="1">
+  <Grid>
+   <Grid x:Name="GalleryLayer" Margin="22,24,22,16">
+    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <Grid Margin="4,0,2,14" Background="Transparent" MouseLeftButtonDown="DragAreaMouseDown" Cursor="SizeAll">
+     <TextBlock x:Name="CountText" FontSize="24" FontWeight="SemiBold" Foreground="{StaticResource PrimaryTextBrush}" Text="图片收藏"/>
+     <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{DynamicResource HeaderHintBrush}" Text="移至顶部搜索 · 左侧分类 · 可拖入图片"/>
+    </Grid>
+    <ListBox Grid.Row="1" x:Name="RowsList" ItemsSource="{Binding Rows}" Background="Transparent" BorderThickness="0" PreviewMouseWheel="RowsListPreviewMouseWheel"
+     ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="False" VirtualizingPanel.ScrollUnit="Pixel"
+     VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+     <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
+     <ListBox.ItemContainerStyle>
+      <Style TargetType="ListBoxItem">
+       <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="0"/>
+       <Setter Property="Margin" Value="0,0,0,14"/><Setter Property="Background" Value="Transparent"/><Setter Property="Focusable" Value="False"/>
+       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><ContentPresenter/></ControlTemplate></Setter.Value></Setter>
+      </Style>
+     </ListBox.ItemContainerStyle>
+     <ListBox.ItemTemplate>
+      <DataTemplate>
+       <ItemsControl ItemsSource="{Binding Items}">
+        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" HorizontalAlignment="Center"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+         <DataTemplate>
+          <Border Margin="7,0" Width="{Binding LayoutWidth}" Height="{Binding CardHeight}" Background="{DynamicResource CardSurfaceBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+           CornerRadius="14" ClipToBounds="True" Cursor="Hand" MouseEnter="CardMouseEnter" MouseLeave="CardMouseLeave"
+           MouseLeftButtonDown="CardMouseDown" MouseMove="CardMouseMove" MouseLeftButtonUp="CardClick" ContextMenuOpening="CardContextMenuOpening"
+           RenderTransformOrigin="0.5,0.5">
+           <Border.RenderTransform><ScaleTransform ScaleX="1" ScaleY="1"/></Border.RenderTransform>
+           <Border.ContextMenu><ContextMenu Background="#F116202D" Foreground="#EEF6FF"><MenuItem Header="移到回收站" Click="DeleteCardClick"/></ContextMenu></Border.ContextMenu>
+           <Grid>
+            <Grid.RowDefinitions><RowDefinition Height="{Binding ImageHeight}"/><RowDefinition Height="42"/></Grid.RowDefinitions>
+            <Border Grid.RowSpan="2" CornerRadius="14" BorderBrush="#56D6FF" BorderThickness="2" Background="#1856D6FF" IsHitTestVisible="False" Panel.ZIndex="2">
+             <Border.Style><Style TargetType="Border"><Setter Property="Opacity" Value="0"/><Style.Triggers><DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter Property="Opacity" Value="1"/></DataTrigger></Style.Triggers></Style></Border.Style>
+            </Border>
+            <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,10,0" Width="30" Height="30" CornerRadius="15" Background="#D856D6FF" BorderBrush="#BDEEFF" BorderThickness="1" IsHitTestVisible="False" Panel.ZIndex="3">
+             <Border.Style><Style TargetType="Border"><Setter Property="Opacity" Value="0"/><Style.Triggers><DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter Property="Opacity" Value="1"/></DataTrigger></Style.Triggers></Style></Border.Style>
+             <TextBlock Text="✓" Foreground="#06131F" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <Border Background="{DynamicResource ImageWellBrush}" ClipToBounds="True">
+             <Image Source="{Binding Thumbnail}" Stretch="Uniform" Loaded="CardImageLoaded" RenderOptions.BitmapScalingMode="LowQuality"/>
+            </Border>
+            <Border Grid.Row="1" Padding="12,0" Background="{DynamicResource CardLabelBrush}">
+             <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0" Text="{Binding CategoryName}" Foreground="{DynamicResource CardTextBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+              <TextBlock Grid.Column="2" Text="{Binding Tags}" Foreground="{DynamicResource CardMetaTextBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+             </Grid>
+            </Border>
+           </Grid>
+          </Border>
+         </DataTemplate>
+        </ItemsControl.ItemTemplate>
+       </ItemsControl>
+      </DataTemplate>
+     </ListBox.ItemTemplate>
+    </ListBox>
+    <TextBlock Grid.Row="2" x:Name="StatusText" Margin="6,10,0,0" Foreground="{DynamicResource StatusHintBrush}" Text="复制或拖入一张图片即可开始收录"/>
+   </Grid>
+
+   <Border x:Name="TopPanel" Height="136" VerticalAlignment="Top" Panel.ZIndex="20" MouseEnter="TopPanelMouseEnter" MouseLeave="TopPanelMouseLeave"
+    BorderBrush="#4A536C86" BorderThickness="0,0,0,1" CornerRadius="14,14,12,12">
+    <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#EF111B28"/><GradientStop Color="#DF1A293A" Offset=".55"/><GradientStop Color="#E90E1723" Offset="1"/></LinearGradientBrush></Border.Background>
+    <Border.Effect><DropShadowEffect BlurRadius="30" ShadowDepth="8" Opacity=".45"/></Border.Effect>
+    <Border.RenderTransform><TranslateTransform x:Name="TopPanelTransform" Y="-128"/></Border.RenderTransform>
+    <Grid Margin="16,10,12,12">
+     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+     <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="DragAreaMouseDown" Cursor="SizeAll">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <StackPanel Grid.Column="0" VerticalAlignment="Top" Margin="0,8,10,0" MouseLeftButtonDown="DragAreaMouseDown" Background="Transparent" Cursor="SizeAll">
+       <TextBlock Text="FR_Imageprompt" FontSize="20" FontWeight="Bold" Foreground="#EEF6FF"/><TextBlock Text="AI IMAGE LIBRARY" FontSize="9" Foreground="#56D6FF"/>
+      </StackPanel>
+      <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10,8,0,0" Background="Transparent">
+       <Button x:Name="PinButton" Width="52" Height="30" Margin="0,0,6,0" Padding="0" Background="Transparent" Content="置顶" Click="PinButtonClick"/>
+       <Button Width="34" Height="30" Margin="0,0,4,0" Padding="0" Background="Transparent" Content="—" Click="MinimizeButtonClick"/>
+       <Button Width="34" Height="30" Margin="0,0,4,0" Padding="0" Background="Transparent" Content="□" Click="MaximizeButtonClick"/>
+       <Button Width="34" Height="30" Margin="0,0,0,0" Padding="0" Background="Transparent" Content="×" Click="CloseButtonClick"/>
+      </StackPanel>
+     </Grid>
+     <WrapPanel x:Name="TopControlsWrap" Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Top" ItemHeight="58" SizeChanged="TopControlsWrapSizeChanged" Margin="0,6,0,0">
+      <Grid Width="190" Height="58" Margin="0,0,8,0"><TextBlock Text="搜索提示词或备注" Margin="10,1,0,0" Foreground="{DynamicResource HeaderHintBrush}"/><TextBox x:Name="SearchBox" Height="42" Margin="0,16,0,0" Background="#75101A26" BorderBrush="#3F526A82" Foreground="#EEF6FF" VerticalContentAlignment="Center" TextChanged="SearchChanged"/></Grid>
+      <Grid Width="135" Height="58" Margin="0,0,8,0"><TextBlock Text="标签筛选" Margin="10,1,0,0" Foreground="{DynamicResource HeaderHintBrush}"/><TextBox x:Name="TagBox" Height="42" Margin="0,16,0,0" Background="#75101A26" BorderBrush="#3F526A82" Foreground="#EEF6FF" VerticalContentAlignment="Center" TextChanged="SearchChanged"/></Grid>
+      <Button x:Name="SortButton" Height="42" MinWidth="104" Margin="0,16,8,0" HorizontalContentAlignment="Left" Background="#C91A2737" BorderBrush="#4A627D" Content="最新优先 ↕" Click="SortButtonClick"/>
+      <Button x:Name="CaptureToggleButton" Height="42" MinWidth="104" Margin="0,16,8,0" Content="收录监听：开" Click="CaptureToggleClick"/>
+      <Button x:Name="TransparentToggleButton" Height="42" MinWidth="78" Margin="0,16,8,0" Content="透明" Click="TransparentToggleClick" ToolTip="Ctrl+M 切换透明模式"/>
+      <Button x:Name="MultiSelectButton" Height="42" MinWidth="68" Margin="0,16,8,0" Content="多选" Click="MultiSelectClick"/>
+      <Button x:Name="DeleteSelectedButton" Height="42" MinWidth="82" Margin="0,16,8,0" Content="删除选中" Click="DeleteSelectedClick" IsEnabled="False"/>
+      <Button x:Name="TrashButton" Height="42" MinWidth="68" Margin="0,16,8,0" Content="回收站" Click="TrashClick"/>
+     </WrapPanel>
+    </Grid>
+   </Border>
+
+   <Border x:Name="LeftPanel" Width="210" HorizontalAlignment="Left" Panel.ZIndex="19" MouseEnter="LeftPanelMouseEnter" MouseLeave="LeftPanelMouseLeave"
+    BorderBrush="#4A536C86" BorderThickness="0,0,1,0" CornerRadius="14,12,12,14">
+    <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#F0111C29"/><GradientStop Color="#DC1B2A3B" Offset=".55"/><GradientStop Color="#EA0D1622" Offset="1"/></LinearGradientBrush></Border.Background>
+    <Border.Effect><DropShadowEffect BlurRadius="34" ShadowDepth="9" Direction="0" Opacity=".5"/></Border.Effect>
+    <Border.RenderTransform><TranslateTransform x:Name="LeftPanelTransform" X="-202"/></Border.RenderTransform>
+    <Grid Margin="16,26,14,18">
+     <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="2*"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+     </Grid.RowDefinitions>
+     <StackPanel Grid.Row="0" Margin="0,0,0,18">
+      <TextBlock Text="图库导航" FontSize="18" FontWeight="SemiBold" Foreground="#EEF6FF"/>
+      <TextBlock Text="素材导航" FontSize="9" Foreground="#56D6FF"/>
+     </StackPanel>
+     <TextBlock Grid.Row="1" Text="图库分类" Margin="2,0,0,8" Foreground="#86A2B9"/>
+     <ListBox Grid.Row="2" x:Name="CategoryList" Background="Transparent" BorderThickness="0" SelectionChanged="FilterChanged" PreviewMouseRightButtonDown="SidebarListPreviewMouseRightButtonDown" ContextMenuOpening="CategoryListContextMenuOpening">
+      <ListBox.ItemContainerStyle>
+       <Style TargetType="ListBoxItem">
+        <Setter Property="Padding" Value="12,9"/><Setter Property="Margin" Value="0,3"/><Setter Property="Foreground" Value="#DCE8F5"/><Setter Property="Background" Value="Transparent"/><Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><Border x:Name="CategoryBorder" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="8"><ContentPresenter/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CategoryBorder" Property="Background" Value="#243A50"/><Setter TargetName="CategoryBorder" Property="BorderBrush" Value="#3D708D"/></Trigger><Trigger Property="IsSelected" Value="True"><Setter TargetName="CategoryBorder" Property="Background" Value="#2A4C65"/><Setter TargetName="CategoryBorder" Property="BorderBrush" Value="#56D6FF"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+       </Style>
+      </ListBox.ItemContainerStyle>
+      <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}"/></DataTemplate></ListBox.ItemTemplate>
+     </ListBox>
+     <TextBlock Grid.Row="3" Text="外部文件夹" Margin="2,14,0,8" Foreground="#86A2B9"/>
+     <ListBox Grid.Row="4" x:Name="ExternalFolderList" Background="Transparent" BorderThickness="0" SelectionChanged="ExternalFolderChanged" PreviewMouseRightButtonDown="SidebarListPreviewMouseRightButtonDown" ContextMenuOpening="ExternalFolderListContextMenuOpening">
+      <ListBox.ItemContainerStyle>
+       <Style TargetType="ListBoxItem">
+        <Setter Property="Padding" Value="12,9"/><Setter Property="Margin" Value="0,3"/><Setter Property="Foreground" Value="#DCE8F5"/><Setter Property="Background" Value="Transparent"/><Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><Border x:Name="ExternalBorder" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="8"><ContentPresenter/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ExternalBorder" Property="Background" Value="#243A50"/><Setter TargetName="ExternalBorder" Property="BorderBrush" Value="#3D708D"/></Trigger><Trigger Property="IsSelected" Value="True"><Setter TargetName="ExternalBorder" Property="Background" Value="#2A4C65"/><Setter TargetName="ExternalBorder" Property="BorderBrush" Value="#56D6FF"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+       </Style>
+      </ListBox.ItemContainerStyle>
+      <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/></DataTemplate></ListBox.ItemTemplate>
+     </ListBox>
+     <StackPanel Grid.Row="5" Margin="0,14,0,0">
+      <Button Content="＋ 新建分类" Click="AddCategoryClick" Margin="0,0,0,8"/>
+      <Button Content="＋ 添加文件夹" Click="AddExternalFolderClick" Margin="0,0,0,8"/>
+      <Button Content="导入 AI 模型包" Click="ImportModelClick" Margin="0,0,0,8"/>
+      <Button Content="打开图库文件夹" Click="OpenLibraryClick"/>
+     </StackPanel>
+    </Grid>   </Border>
+
+   <Border Height="26" VerticalAlignment="Top" Background="#01000000" Panel.ZIndex="18"
+    MouseEnter="TopPanelMouseEnter" MouseLeave="TopPanelMouseLeave"/>
+   <Border Width="26" HorizontalAlignment="Left" Background="#01000000" Panel.ZIndex="18"
+    MouseEnter="LeftPanelMouseEnter" MouseLeave="LeftPanelMouseLeave"/>
+   <Grid x:Name="ImmersiveViewer" Panel.ZIndex="36" Visibility="Collapsed" Background="#FC070C13" ClipToBounds="True">
+    <Image x:Name="ImmersiveImage" Stretch="Uniform" RenderTransformOrigin="0.5,0.5"
+     MouseWheel="ImmersiveMouseWheel" MouseLeftButtonDown="ImmersiveMouseDown" MouseLeftButtonUp="ImmersiveMouseUp" MouseMove="ImmersiveMouseMove">
+     <Image.RenderTransform><TransformGroup><ScaleTransform x:Name="ImmersiveScale" ScaleX="1" ScaleY="1"/><TranslateTransform x:Name="ImmersiveTranslate"/></TransformGroup></Image.RenderTransform>
+    </Image>
+    <Border x:Name="ViewerLeftEdge" Panel.ZIndex="2" Width="58" HorizontalAlignment="Left" Background="#01000000" Cursor="Hand"
+     MouseEnter="ViewerEdgeMouseEnter" MouseLeave="ViewerEdgeMouseLeave" MouseLeftButtonUp="ViewerLeftEdgeClick">
+     <Border x:Name="ViewerLeftGlow" Opacity="0" IsHitTestVisible="False">
+      <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,0"><GradientStop Color="#7856D6FF"/><GradientStop Color="#0056D6FF" Offset="1"/></LinearGradientBrush></Border.Background>
+     </Border>
+    </Border>
+    <Border x:Name="ViewerRightEdge" Panel.ZIndex="2" Width="58" HorizontalAlignment="Right" Background="#01000000" Cursor="Hand"
+     MouseEnter="ViewerEdgeMouseEnter" MouseLeave="ViewerEdgeMouseLeave" MouseLeftButtonUp="ViewerRightEdgeClick">
+     <Border x:Name="ViewerRightGlow" Opacity="0" IsHitTestVisible="False">
+      <Border.Background><LinearGradientBrush StartPoint="1,0" EndPoint="0,0"><GradientStop Color="#7856D6FF"/><GradientStop Color="#0056D6FF" Offset="1"/></LinearGradientBrush></Border.Background>
+     </Border>
+    </Border>
+    <Button x:Name="ViewerCloseButton" Panel.ZIndex="3" HorizontalAlignment="Right" VerticalAlignment="Top" Width="48" Height="42" Margin="0,14,14,0"
+     Padding="0" Opacity="0" Background="#A61B2A3B" Content="×" Click="CloseViewerClick" MouseEnter="ViewerCloseMouseEnter" MouseLeave="ViewerCloseMouseLeave"/>
+   </Grid>
+   <Border x:Name="DropOverlay" Panel.ZIndex="40" Margin="22" Visibility="Collapsed" Opacity="0" IsHitTestVisible="False"
+    Background="#D80D1A26" BorderBrush="#56D6FF" BorderThickness="2" CornerRadius="20" RenderTransformOrigin="0.5,0.5">
+    <Border.RenderTransform><ScaleTransform x:Name="DropOverlayScale" ScaleX="0.98" ScaleY="0.98"/></Border.RenderTransform>
+    <Border.Effect><DropShadowEffect x:Name="DropGlow" Color="#56D6FF" BlurRadius="38" ShadowDepth="0" Opacity="0.9"/></Border.Effect>
+    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+     <TextBlock Text="＋" FontSize="52" HorizontalAlignment="Center" Foreground="#56D6FF"/>
+     <TextBlock Text="释放图片，吸入图库" FontSize="22" FontWeight="SemiBold" Foreground="#EEF6FF"/>
+     <TextBlock Text="支持 PNG · JPEG · WebP · BMP · GIF" Margin="0,8,0,0" HorizontalAlignment="Center" Foreground="#86A2B9"/>
+    </StackPanel>
+   </Border>
+   <Border Height="2" Width="120" VerticalAlignment="Top" HorizontalAlignment="Center" Background="#7056D6FF" CornerRadius="2" Panel.ZIndex="30" IsHitTestVisible="False"/>
+   <Border Width="2" Height="100" HorizontalAlignment="Left" VerticalAlignment="Center" Background="#6056D6FF" CornerRadius="2" Panel.ZIndex="30" IsHitTestVisible="False"/>
+  </Grid>
+ </Border>
+</Window>

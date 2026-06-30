@@ -1,0 +1,15 @@
+{
+    "name":  "promptvault-model-pack-builder",
+    "private":  true,
+    "type":  "module",
+    "dependencies":  {
+                         "@huggingface/transformers":  "^3.7.2"
+                     },
+    "pnpm":  {
+                 "onlyBuiltDependencies":  [
+                                               "onnxruntime-node",
+                                               "protobufjs",
+                                               "sharp"
+                                           ]
+             }
+}

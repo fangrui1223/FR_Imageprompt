@@ -1,0 +1,22 @@
+* text=auto eol=lf
+
+*.slnx text eol=lf
+*.cs text eol=lf
+*.csproj text eol=lf
+*.xaml text eol=lf
+*.props text eol=lf
+*.targets text eol=lf
+*.ps1 text eol=lf
+*.md text eol=lf
+*.mjs text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+
+*.ico binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.onnx binary
+*.zip binary
