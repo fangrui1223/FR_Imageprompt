@@ -65,13 +65,15 @@ public sealed class GalleryCardViewModel : INotifyPropertyChanged
     private BitmapSource? _thumbnail;
     private bool _loading;
     private bool _isSelected;
+    private double _layoutWidth;
+    private double _imageHeight;
 
     public GalleryCardViewModel(GalleryEntry item, LibraryPaths paths, double layoutWidth, double imageHeight, bool isSelected = false)
     {
         Item = item;
         Paths = paths;
-        LayoutWidth = layoutWidth;
-        ImageHeight = imageHeight;
+        _layoutWidth = layoutWidth;
+        _imageHeight = imageHeight;
         _isSelected = isSelected;
     }
 
@@ -82,13 +84,19 @@ public sealed class GalleryCardViewModel : INotifyPropertyChanged
     public string CategoryName => Item.CategoryName;
     public string Tags => Item.Tags;
     public double AspectRatio => Item.Height <= 0 ? 1 : Item.Width / (double)Item.Height;
-    public double LayoutWidth { get; }
-    public double ImageHeight { get; }
+    public double LayoutWidth { get => _layoutWidth; private set { if (Math.Abs(_layoutWidth - value) < 0.1) return; _layoutWidth = value; OnPropertyChanged(); } }
+    public double ImageHeight { get => _imageHeight; private set { if (Math.Abs(_imageHeight - value) < 0.1) return; _imageHeight = value; OnPropertyChanged(); OnPropertyChanged(nameof(CardHeight)); } }
     public double CardHeight => ImageHeight + 42;
     public BitmapSource? Thumbnail { get => _thumbnail; private set { _thumbnail = value; OnPropertyChanged(); } }
     public bool IsSelected { get => _isSelected; set { if (_isSelected == value) return; _isSelected = value; OnPropertyChanged(); } }
     public string OriginalPath => Item.IsExternal ? Item.OriginalPath : Paths.ToAbsolute(Item.OriginalPath);
     public string ThumbnailPath => Item.IsExternal ? Item.ThumbnailPath : Paths.ToAbsolute(Item.ThumbnailPath);
+
+    public void UpdateLayout(double layoutWidth, double imageHeight)
+    {
+        LayoutWidth = layoutWidth;
+        ImageHeight = imageHeight;
+    }
 
     public async Task LoadAsync()
     {

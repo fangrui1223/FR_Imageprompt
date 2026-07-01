@@ -38,6 +38,7 @@ public partial class MainWindow : Window
     private bool _suppressExternalRefresh;
     private bool _multiSelectMode;
     private bool _ignoreNextCardClick;
+    private bool _startupRefreshPending = true;
     private double _layoutWidth;
     private readonly bool _trueTransparentWindow;
     private readonly MainWindowSnapshot? _initialSnapshot;
@@ -81,14 +82,29 @@ public partial class MainWindow : Window
         UpdateSelectionVisual();
         Loaded += async (_, _) =>
         {
-            await LoadCategoriesAsync();
-            LoadExternalFolders();
-            ApplyInitialSnapshot();
-            ApplyTransparentMode();
-            await RefreshAsync(RefreshAnimationKind.None);
-            RestoreViewerFromSnapshot();
+            try
+            {
+                await LoadCategoriesAsync();
+                LoadExternalFolders();
+                ApplyInitialSnapshot();
+                ApplyTransparentMode();
+                await RefreshAsync(RefreshAnimationKind.None);
+                RestoreViewerFromSnapshot();
+            }
+            finally
+            {
+                _startupRefreshPending = false;
+                _searchTimer.Stop();
+                _resizeTimer.Stop();
+            }
         };
-        SizeChanged += (_, _) => { _resizeTimer.Stop(); _resizeTimer.Start(); };
+        SizeChanged += (_, _) =>
+        {
+            if (_startupRefreshPending) return;
+            StabilizeHiddenPanelsForResize();
+            _resizeTimer.Stop();
+            _resizeTimer.Start();
+        };
     }
 
     private bool IsExternalMode => _externalFolderId is not null;
@@ -317,27 +333,45 @@ public partial class MainWindow : Window
 
     private void BuildRows()
     {
-        Rows.Clear();
-        if (_items.Count == 0) return;
-
         var availableWidth = Math.Max(300, ActualWidth - 56);
+        _layoutWidth = availableWidth;
+        ReplaceRows(CreateGalleryRows(_items, availableWidth));
+    }
+
+    private IReadOnlyList<GalleryRow> CreateGalleryRows(IReadOnlyList<GalleryEntry> items, double availableWidth)
+    {
+        var rows = new List<GalleryRow>();
+        if (items.Count == 0) return rows;
+
         const double targetImageHeight = 210;
         const double horizontalMargin = 14;
         var pending = new List<GalleryEntry>();
         var ratioSum = 0d;
 
-        foreach (var item in _items)
+        foreach (var item in items)
         {
             pending.Add(item);
             ratioSum += LayoutRatio(item);
             var projectedWidth = ratioSum * targetImageHeight + pending.Count * horizontalMargin;
             if (projectedWidth < availableWidth && pending.Count < 7) continue;
-            AddGalleryRow(pending, ratioSum, availableWidth, true);
+            rows.Add(CreateGalleryRow(pending, ratioSum, availableWidth, true));
             pending.Clear();
             ratioSum = 0;
         }
 
-        if (pending.Count > 0) AddGalleryRow(pending, ratioSum, availableWidth, false);
+        if (pending.Count > 0) rows.Add(CreateGalleryRow(pending, ratioSum, availableWidth, false));
+        return rows;
+    }
+
+    private void ReplaceRows(IReadOnlyList<GalleryRow> rows)
+    {
+        for (var index = 0; index < rows.Count; index++)
+        {
+            if (index < Rows.Count) Rows[index] = rows[index];
+            else Rows.Add(rows[index]);
+        }
+
+        while (Rows.Count > rows.Count) Rows.RemoveAt(Rows.Count - 1);
     }
 
     private static string CreateRowsSignature(IReadOnlyList<GalleryEntry> items)
@@ -367,7 +401,7 @@ public partial class MainWindow : Window
         });
     }
 
-    private void AddGalleryRow(IReadOnlyList<GalleryEntry> items, double ratioSum, double availableWidth, bool fill)
+    private GalleryRow CreateGalleryRow(IReadOnlyList<GalleryEntry> items, double ratioSum, double availableWidth, bool fill)
     {
         const double horizontalMargin = 14;
         var imageHeight = fill
@@ -379,7 +413,7 @@ public partial class MainWindow : Window
             var width = Math.Max(92, LayoutRatio(item) * imageHeight);
             row.Items.Add(new GalleryCardViewModel(item, _repository.Paths, width, imageHeight, _selectedItemIds.Contains(item.Id)));
         }
-        Rows.Add(row);
+        return row;
     }
 
     private static double LayoutRatio(GalleryEntry item)
@@ -393,7 +427,35 @@ public partial class MainWindow : Window
         var width = Math.Max(300, ActualWidth - 56);
         if (Math.Abs(width - _layoutWidth) < 32) return;
         _layoutWidth = width;
-        BuildRows();
+        var rows = CreateGalleryRows(_items, width);
+        if (TryUpdateRowLayouts(rows)) return;
+        ReplaceRows(rows);
+    }
+
+    private bool TryUpdateRowLayouts(IReadOnlyList<GalleryRow> rows)
+    {
+        if (Rows.Count != rows.Count) return false;
+        for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
+        {
+            var currentItems = Rows[rowIndex].Items;
+            var nextItems = rows[rowIndex].Items;
+            if (currentItems.Count != nextItems.Count) return false;
+            for (var itemIndex = 0; itemIndex < nextItems.Count; itemIndex++)
+            {
+                if (currentItems[itemIndex].Id != nextItems[itemIndex].Id) return false;
+            }
+        }
+
+        for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
+        {
+            var currentItems = Rows[rowIndex].Items;
+            var nextItems = rows[rowIndex].Items;
+            for (var itemIndex = 0; itemIndex < nextItems.Count; itemIndex++)
+            {
+                currentItems[itemIndex].UpdateLayout(nextItems[itemIndex].LayoutWidth, nextItems[itemIndex].ImageHeight);
+            }
+        }
+        return true;
     }
 
     private async Task SaveCaptureAsync(PendingCapture pending, string prompt, string notes, long? category, string tags)
@@ -418,7 +480,12 @@ public partial class MainWindow : Window
         _rowsScrollViewer.ScrollToVerticalOffset(target);
         e.Handled = true;
     }
-    private void SearchChanged(object sender, TextChangedEventArgs e) { _searchTimer.Stop(); _searchTimer.Start(); }
+    private void SearchChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_startupRefreshPending) return;
+        _searchTimer.Stop();
+        _searchTimer.Start();
+    }
 
     private async void FilterChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -577,6 +644,14 @@ public partial class MainWindow : Window
         transform.BeginAnimation(ScaleTransform.ScaleYProperty, animation);
     }
 
+    private static void AnimateDragLift(FrameworkElement? element, bool active)
+    {
+        if (element is null) return;
+        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+        element.BeginAnimation(OpacityProperty, new DoubleAnimation(active ? 0.72 : 1d, TimeSpan.FromMilliseconds(active ? 110 : 150)) { EasingFunction = ease });
+        if (element is Border border) AnimateScale(border, active ? 0.985 : 1d);
+    }
+
     private void CardMouseDown(object sender, MouseButtonEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is not GalleryCardViewModel card) return;
@@ -613,8 +688,18 @@ public partial class MainWindow : Window
         if (paths.Length == 0) return;
         CancelClick(card.Id);
         _ignoreNextCardClick = true;
+        var element = source as FrameworkElement;
         var data = new System.Windows.DataObject(System.Windows.DataFormats.FileDrop, paths);
-        System.Windows.DragDrop.DoDragDrop(source, data, System.Windows.DragDropEffects.Copy);
+        data.SetData(InternalCardDragFormat, true, false);
+        AnimateDragLift(element, true);
+        try
+        {
+            System.Windows.DragDrop.DoDragDrop(source, data, System.Windows.DragDropEffects.Copy);
+        }
+        finally
+        {
+            AnimateDragLift(element, false);
+        }
     }
 
     private async void CardClick(object sender, MouseButtonEventArgs e)

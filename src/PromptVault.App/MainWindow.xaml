@@ -73,7 +73,7 @@
     BorderBrush="#4A536C86" BorderThickness="0,0,0,1" CornerRadius="14,14,12,12">
     <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#EF111B28"/><GradientStop Color="#DF1A293A" Offset=".55"/><GradientStop Color="#E90E1723" Offset="1"/></LinearGradientBrush></Border.Background>
     <Border.Effect><DropShadowEffect BlurRadius="30" ShadowDepth="8" Opacity=".45"/></Border.Effect>
-    <Border.RenderTransform><TranslateTransform x:Name="TopPanelTransform" Y="-128"/></Border.RenderTransform>
+    <Border.RenderTransform><TranslateTransform x:Name="TopPanelTransform" Y="-130"/></Border.RenderTransform>
     <Grid Margin="16,10,12,12">
      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
      <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="DragAreaMouseDown" Cursor="SizeAll">
@@ -105,7 +105,7 @@
     BorderBrush="#4A536C86" BorderThickness="0,0,1,0" CornerRadius="14,12,12,14">
     <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#F0111C29"/><GradientStop Color="#DC1B2A3B" Offset=".55"/><GradientStop Color="#EA0D1622" Offset="1"/></LinearGradientBrush></Border.Background>
     <Border.Effect><DropShadowEffect BlurRadius="34" ShadowDepth="9" Direction="0" Opacity=".5"/></Border.Effect>
-    <Border.RenderTransform><TranslateTransform x:Name="LeftPanelTransform" X="-202"/></Border.RenderTransform>
+    <Border.RenderTransform><TranslateTransform x:Name="LeftPanelTransform" X="-204"/></Border.RenderTransform>
     <Grid Margin="16,26,14,18">
      <Grid.RowDefinitions>
       <RowDefinition Height="Auto"/>
@@ -147,9 +147,9 @@
      </StackPanel>
     </Grid>   </Border>
 
-   <Border Height="26" VerticalAlignment="Top" Background="#01000000" Panel.ZIndex="18"
+   <Border Height="22" VerticalAlignment="Top" Background="#01000000" Panel.ZIndex="18"
     MouseEnter="TopPanelMouseEnter" MouseLeave="TopPanelMouseLeave"/>
-   <Border Width="26" HorizontalAlignment="Left" Background="#01000000" Panel.ZIndex="18"
+   <Border Width="22" HorizontalAlignment="Left" Background="#01000000" Panel.ZIndex="18"
     MouseEnter="LeftPanelMouseEnter" MouseLeave="LeftPanelMouseLeave"/>
    <Grid x:Name="ImmersiveViewer" Panel.ZIndex="36" Visibility="Collapsed" Background="#FC070C13" ClipToBounds="True">
     <Image x:Name="ImmersiveImage" Stretch="Uniform" RenderTransformOrigin="0.5,0.5"

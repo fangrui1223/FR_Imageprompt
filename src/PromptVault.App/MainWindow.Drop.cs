@@ -5,11 +5,24 @@ namespace PromptVault.App;
 
 public partial class MainWindow
 {
+    private const string InternalCardDragFormat = "PromptVault.InternalCardDrag";
     private bool _libraryDragActive;
     private DateTime _libraryLastDragOver;
 
     private void LibraryDragEnter(object sender, System.Windows.DragEventArgs e)
     {
+        if (IsInternalCardDrag(e.Data))
+        {
+            e.Effects = System.Windows.DragDropEffects.Copy;
+            e.Handled = true;
+            if (_libraryDragActive)
+            {
+                _libraryDragActive = false;
+                HideLibraryDropOverlay();
+            }
+            return;
+        }
+
         var source = CaptureWindow.GetDroppedImage(e.Data);
         e.Effects = source is null ? System.Windows.DragDropEffects.None : System.Windows.DragDropEffects.Copy;
         e.Handled = true;
@@ -33,6 +46,15 @@ public partial class MainWindow
 
     private async void LibraryDrop(object sender, System.Windows.DragEventArgs e)
     {
+        if (IsInternalCardDrag(e.Data))
+        {
+            e.Effects = System.Windows.DragDropEffects.Copy;
+            e.Handled = true;
+            _libraryDragActive = false;
+            HideLibraryDropOverlay();
+            return;
+        }
+
         var source = CaptureWindow.GetDroppedImage(e.Data);
         e.Handled = true;
         if (source is null)
@@ -45,6 +67,11 @@ public partial class MainWindow
         _libraryDragActive = false;
         await AnimateLibraryAbsorbAsync();
         await _clipboard.CaptureDroppedImageAsync(source);
+    }
+
+    private static bool IsInternalCardDrag(System.Windows.IDataObject data)
+    {
+        return data.GetDataPresent(InternalCardDragFormat, false);
     }
 
     private void ShowLibraryDropOverlay()
