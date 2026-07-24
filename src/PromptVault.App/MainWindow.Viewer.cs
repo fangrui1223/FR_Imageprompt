@@ -127,20 +127,20 @@ public partial class MainWindow
     private void ViewerEdgeMouseEnter(object sender, MouseEventArgs e)
     {
         var glow = ReferenceEquals(sender, ViewerLeftEdge) ? ViewerLeftGlow : ViewerRightGlow;
-        glow.BeginAnimation(OpacityProperty, new DoubleAnimation(0.7, TimeSpan.FromMilliseconds(160)));
+        glow.BeginAnimation(OpacityProperty, new DoubleAnimation(0.7, VisualModeService.Motion(MotionToken.Fast)));
     }
 
     private void ViewerEdgeMouseLeave(object sender, MouseEventArgs e)
     {
         var glow = ReferenceEquals(sender, ViewerLeftEdge) ? ViewerLeftGlow : ViewerRightGlow;
-        glow.BeginAnimation(OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(220)));
+        glow.BeginAnimation(OpacityProperty, new DoubleAnimation(0, VisualModeService.Motion(MotionToken.Standard)));
     }
 
     private void ViewerCloseMouseEnter(object sender, MouseEventArgs e) =>
-        ViewerCloseButton.BeginAnimation(OpacityProperty, new DoubleAnimation(0.72, TimeSpan.FromMilliseconds(140)));
+        ViewerCloseButton.BeginAnimation(OpacityProperty, new DoubleAnimation(0.72, VisualModeService.Motion(MotionToken.Fast)));
 
     private void ViewerCloseMouseLeave(object sender, MouseEventArgs e) =>
-        ViewerCloseButton.BeginAnimation(OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(220)));
+        ViewerCloseButton.BeginAnimation(OpacityProperty, new DoubleAnimation(0, VisualModeService.Motion(MotionToken.Standard)));
     private void PreviousViewerClick(object sender, RoutedEventArgs e) => NavigateViewer(-1);
     private void NextViewerClick(object sender, RoutedEventArgs e) => NavigateViewer(1);
     private void CloseViewerClick(object sender, RoutedEventArgs e) => CloseImmersiveViewer();
@@ -162,20 +162,28 @@ public partial class MainWindow
         HideLeftPanel();
         TopPanel.Visibility = Visibility.Collapsed;
         LeftPanel.Visibility = Visibility.Collapsed;
-        FadeGalleryLayer(0, 160, false);
+        FadeGalleryLayer(0, MotionToken.Fast, false);
     }
 
     private void LeaveTransparentViewerBackdrop()
     {
         TopPanel.Visibility = Visibility.Visible;
         LeftPanel.Visibility = Visibility.Visible;
-        FadeGalleryLayer(1, 220, true);
+        FadeGalleryLayer(1, MotionToken.Standard, true);
     }
 
-    private void FadeGalleryLayer(double targetOpacity, int milliseconds, bool hitTestWhenDone)
+    private void FadeGalleryLayer(double targetOpacity, MotionToken motion, bool hitTestWhenDone)
     {
         if (targetOpacity <= 0) GalleryLayer.IsHitTestVisible = false;
-        var animation = new DoubleAnimation(targetOpacity, TimeSpan.FromMilliseconds(milliseconds))
+        var duration = VisualModeService.Motion(motion);
+        if (duration == TimeSpan.Zero)
+        {
+            GalleryLayer.BeginAnimation(OpacityProperty, null);
+            GalleryLayer.Opacity = targetOpacity;
+            GalleryLayer.IsHitTestVisible = hitTestWhenDone;
+            return;
+        }
+        var animation = new DoubleAnimation(targetOpacity, duration)
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
             FillBehavior = FillBehavior.HoldEnd

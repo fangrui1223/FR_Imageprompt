@@ -81,6 +81,7 @@ public partial class MainWindow : Window
         _externalIndex = externalIndex;
         _externalIndex.IndexChanged += ExternalFolderIndexChanged;
         DataContext = this;
+        VisualModeService.Apply(transparentWindow, settings.ReducedMotionEnabled);
         InitializeComponent();
         CategoryList.ContextMenu = new System.Windows.Controls.ContextMenu();
         ExternalFolderList.ContextMenu = new System.Windows.Controls.ContextMenu();
@@ -1172,7 +1173,7 @@ public partial class MainWindow : Window
     {
         if (border?.RenderTransform is not ScaleTransform transform) return;
         if (transform.IsFrozen) { transform = transform.Clone(); border.RenderTransform = transform; }
-        var animation = new DoubleAnimation(to, TimeSpan.FromMilliseconds(120)) { EasingFunction = new QuadraticEase() };
+        var animation = new DoubleAnimation(to, VisualModeService.Motion(MotionToken.Micro)) { EasingFunction = new QuadraticEase() };
         transform.BeginAnimation(ScaleTransform.ScaleXProperty, animation);
         transform.BeginAnimation(ScaleTransform.ScaleYProperty, animation);
     }
@@ -1181,7 +1182,7 @@ public partial class MainWindow : Window
     {
         if (element is null) return;
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
-        element.BeginAnimation(OpacityProperty, new DoubleAnimation(active ? 0.72 : 1d, TimeSpan.FromMilliseconds(active ? 110 : 150)) { EasingFunction = ease });
+        element.BeginAnimation(OpacityProperty, new DoubleAnimation(active ? 0.72 : 1d, VisualModeService.Motion(MotionToken.Fast)) { EasingFunction = ease });
         if (element is Border border) AnimateScale(border, active ? 0.985 : 1d);
     }
 

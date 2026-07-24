@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Effects;
+using PromptVault.App.Services;
 
 namespace PromptVault.App;
 
@@ -23,24 +23,16 @@ public partial class MainWindow
     private void ApplyTransparentMode()
     {
         var transparent = _transparentMode;
-        System.Windows.Application.Current.Resources["CardSurfaceBrush"] = Brush(transparent ? Colors.Transparent : Color.FromRgb(18, 26, 37));
-        System.Windows.Application.Current.Resources["CardBorderBrush"] = Brush(transparent ? Colors.Transparent : Color.FromRgb(38, 57, 77));
-        System.Windows.Application.Current.Resources["ImageWellBrush"] = Brush(transparent ? Colors.Transparent : Color.FromRgb(7, 11, 17));
-        System.Windows.Application.Current.Resources["CardLabelBrush"] = Brush(transparent ? Colors.Transparent : Color.FromArgb(225, 16, 24, 35));
-        System.Windows.Application.Current.Resources["CardTextBrush"] = Brush(transparent ? Colors.Transparent : Color.FromRgb(238, 246, 255));
-        System.Windows.Application.Current.Resources["CardMetaTextBrush"] = Brush(transparent ? Colors.Transparent : Color.FromRgb(130, 146, 166));
-        System.Windows.Application.Current.Resources["HeaderHintBrush"] = Brush(transparent ? Colors.Transparent : Color.FromRgb(83, 103, 125));
-        System.Windows.Application.Current.Resources["StatusHintBrush"] = Brush(transparent ? Colors.Transparent : Color.FromRgb(130, 146, 166));
-
-        WindowSurface.Background = transparent ? Brushes.Transparent : Brush(Color.FromArgb(242, 10, 16, 25));
-        WindowSurface.BorderBrush = transparent ? Brushes.Transparent : Brush(Color.FromArgb(49, 68, 90, 112));
-        TopPanel.Background = transparent ? Brushes.Transparent : CreateTopPanelBrush();
-        TopPanel.BorderBrush = transparent ? Brushes.Transparent : Brush(Color.FromArgb(74, 83, 108, 134));
-        TopPanel.Effect = transparent ? null : new DropShadowEffect { BlurRadius = 30, ShadowDepth = 8, Opacity = 0.45 };
-        LeftPanel.Background = transparent ? Brushes.Transparent : CreateLeftPanelBrush();
-        LeftPanel.BorderBrush = transparent ? Brushes.Transparent : Brush(Color.FromArgb(74, 83, 108, 134));
-        LeftPanel.Effect = transparent ? null : new DropShadowEffect { BlurRadius = 34, ShadowDepth = 9, Direction = 0, Opacity = 0.5 };
-        ImmersiveViewer.Background = transparent ? Brushes.Transparent : Brush(Color.FromArgb(252, 7, 12, 19));
+        VisualModeService.Apply(transparent, _settings.ReducedMotionEnabled);
+        WindowSurface.Background = VisualModeService.ResourceBrush("WindowSurfaceBrush");
+        WindowSurface.BorderBrush = VisualModeService.ResourceBrush("WindowBorderBrush");
+        TopPanel.Background = VisualModeService.ResourceBrush("TopPanelBrush");
+        TopPanel.BorderBrush = transparent ? Brushes.Transparent : VisualModeService.ResourceBrush("HairlineBrush");
+        TopPanel.Effect = VisualModeService.ResourceEffect("FloatingPanelShadow");
+        LeftPanel.Background = VisualModeService.ResourceBrush("LeftPanelBrush");
+        LeftPanel.BorderBrush = transparent ? Brushes.Transparent : VisualModeService.ResourceBrush("HairlineBrush");
+        LeftPanel.Effect = VisualModeService.ResourceEffect("SidePanelShadow");
+        ImmersiveViewer.Background = VisualModeService.ResourceBrush("ImmersiveBackdropBrush");
         StatusText.Opacity = transparent ? 0 : 1;
 
         ApplyTextBoxChrome(SearchBox, transparent);
@@ -61,8 +53,8 @@ public partial class MainWindow
         {
             ApplyTransparentButtonChrome(TopPanel, true);
             ApplyTransparentButtonChrome(LeftPanel, true);
-            TransparentToggleButton.Background = Brush(Color.FromArgb(120, 86, 214, 255));
-            TransparentToggleButton.BorderBrush = Brush(Color.FromRgb(86, 214, 255));
+            TransparentToggleButton.Background = VisualModeService.ResourceBrush("AccentSoftBrush");
+            TransparentToggleButton.BorderBrush = VisualModeService.ResourceBrush("AccentBrush");
         }
     }
 
@@ -96,30 +88,14 @@ public partial class MainWindow
         e.Handled = true;
     }
 
-    private static System.Windows.Media.Brush Brush(Color color) => new SolidColorBrush(color);
-
     private static void ApplyTextBoxChrome(TextBox textBox, bool transparent)
     {
-        textBox.Background = transparent ? Brushes.Transparent : Brush(Color.FromArgb(117, 16, 26, 38));
-        textBox.BorderBrush = transparent ? Brushes.Transparent : Brush(Color.FromRgb(63, 82, 106));
-    }
-
-    private static System.Windows.Media.Brush CreateTopPanelBrush()
-    {
-        var brush = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(1, 1) };
-        brush.GradientStops.Add(new GradientStop(Color.FromArgb(239, 17, 27, 40), 0));
-        brush.GradientStops.Add(new GradientStop(Color.FromArgb(223, 26, 41, 58), 0.55));
-        brush.GradientStops.Add(new GradientStop(Color.FromArgb(233, 14, 23, 35), 1));
-        return brush;
-    }
-
-    private static System.Windows.Media.Brush CreateLeftPanelBrush()
-    {
-        var brush = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(1, 1) };
-        brush.GradientStops.Add(new GradientStop(Color.FromArgb(240, 17, 28, 41), 0));
-        brush.GradientStops.Add(new GradientStop(Color.FromArgb(220, 27, 42, 59), 0.55));
-        brush.GradientStops.Add(new GradientStop(Color.FromArgb(234, 13, 22, 34), 1));
-        return brush;
+        textBox.Background = transparent
+            ? Brushes.Transparent
+            : VisualModeService.ResourceBrush("TextFieldBrush");
+        textBox.BorderBrush = transparent
+            ? Brushes.Transparent
+            : VisualModeService.ResourceBrush("TextFieldBorderBrush");
     }
 
     private static void ApplyTransparentButtonChrome(DependencyObject root, bool transparent)
@@ -129,9 +105,13 @@ public partial class MainWindow
             var child = VisualTreeHelper.GetChild(root, i);
             if (child is Button button)
             {
-                button.Background = transparent ? Brushes.Transparent : Brush(Color.FromRgb(29, 42, 59));
-                button.BorderBrush = transparent ? Brushes.Transparent : Brush(Color.FromRgb(53, 74, 97));
-                button.Foreground = Brush(Color.FromRgb(238, 246, 255));
+                button.Background = transparent
+                    ? Brushes.Transparent
+                    : VisualModeService.ResourceBrush("ButtonSurfaceBrush");
+                button.BorderBrush = transparent
+                    ? Brushes.Transparent
+                    : VisualModeService.ResourceBrush("ButtonBorderBrush");
+                button.Foreground = VisualModeService.ResourceBrush("PrimaryTextBrush");
             }
             ApplyTransparentButtonChrome(child, transparent);
         }

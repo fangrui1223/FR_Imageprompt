@@ -9,6 +9,7 @@ public sealed class AppSettings
     public string LibraryRoot { get; set; } = "";
     public bool OldestFirst { get; set; }
     public bool CaptureListeningEnabled { get; set; } = true;
+    public bool ReducedMotionEnabled { get; set; }
     public List<ExternalFolderSetting> ExternalFolders { get; set; } = [];
     [JsonIgnore] public string? RecoveryNotice { get; private set; }
     [JsonIgnore] public string? RecoveryBackupPath { get; private set; }

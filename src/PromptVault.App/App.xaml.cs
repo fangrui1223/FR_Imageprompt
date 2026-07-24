@@ -21,6 +21,7 @@ public partial class App : System.Windows.Application
         try
         {
             _settings = AppSettings.Load(GetOptionValue(e.Args, "--settings"));
+            VisualModeService.Apply(transparent: false, _settings.ReducedMotionEnabled);
             if (!string.IsNullOrWhiteSpace(_settings.RecoveryNotice))
             {
                 MessageBox.Show(

@@ -190,7 +190,7 @@ public partial class MainWindow
     private void AnimateLeft(double value) => LeftPanelTransform.BeginAnimation(
         System.Windows.Media.TranslateTransform.XProperty, PanelAnimation(value));
 
-    private static DoubleAnimation PanelAnimation(double value) => new(value, TimeSpan.FromMilliseconds(180))
+    private static DoubleAnimation PanelAnimation(double value) => new(value, VisualModeService.Motion(MotionToken.Panel))
     {
         EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
         FillBehavior = FillBehavior.HoldEnd

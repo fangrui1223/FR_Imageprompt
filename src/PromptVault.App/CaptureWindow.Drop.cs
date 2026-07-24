@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Media.Animation;
+using PromptVault.App.Services;
 
 namespace PromptVault.App;
 
@@ -59,15 +60,15 @@ public partial class CaptureWindow
         PreviewDropScale.ScaleX = 0.92;
         PreviewDropScale.ScaleY = 0.92;
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
-        PreviewDropGlow.BeginAnimation(OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(170)) { EasingFunction = ease });
-        PreviewDropScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleXProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(230)) { EasingFunction = ease });
-        PreviewDropScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleYProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(230)) { EasingFunction = ease });
-        PreviewGlowEffect.BeginAnimation(System.Windows.Media.Effects.DropShadowEffect.BlurRadiusProperty, new DoubleAnimation(10, 38, TimeSpan.FromMilliseconds(260)) { EasingFunction = ease });
+        PreviewDropGlow.BeginAnimation(OpacityProperty, new DoubleAnimation(1, VisualModeService.Motion(MotionToken.Fast)) { EasingFunction = ease });
+        PreviewDropScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleXProperty, new DoubleAnimation(1, VisualModeService.Motion(MotionToken.Standard)) { EasingFunction = ease });
+        PreviewDropScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleYProperty, new DoubleAnimation(1, VisualModeService.Motion(MotionToken.Standard)) { EasingFunction = ease });
+        PreviewGlowEffect.BeginAnimation(System.Windows.Media.Effects.DropShadowEffect.BlurRadiusProperty, new DoubleAnimation(10, 38, VisualModeService.Motion(MotionToken.Slow)) { EasingFunction = ease });
     }
 
     private void HidePreviewDropGlow()
     {
-        var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(140));
+        var fade = new DoubleAnimation(0, VisualModeService.Motion(MotionToken.Fast));
         fade.Completed += (_, _) =>
         {
             if (!_previewDragActive) PreviewDropGlow.Visibility = Visibility.Collapsed;
@@ -78,11 +79,12 @@ public partial class CaptureWindow
     private async Task AnimatePreviewAbsorbAsync()
     {
         var ease = new CubicEase { EasingMode = EasingMode.EaseIn };
-        PreviewDropScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleXProperty, new DoubleAnimation(0.7, TimeSpan.FromMilliseconds(210)) { EasingFunction = ease });
-        PreviewDropScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleYProperty, new DoubleAnimation(0.7, TimeSpan.FromMilliseconds(210)) { EasingFunction = ease });
-        PreviewGlowEffect.BeginAnimation(System.Windows.Media.Effects.DropShadowEffect.BlurRadiusProperty, new DoubleAnimation(38, 3, TimeSpan.FromMilliseconds(210)) { EasingFunction = ease });
-        PreviewDropGlow.BeginAnimation(OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(230)) { EasingFunction = ease });
-        await Task.Delay(230);
+        var duration = VisualModeService.Motion(MotionToken.Standard);
+        PreviewDropScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleXProperty, new DoubleAnimation(0.7, duration) { EasingFunction = ease });
+        PreviewDropScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleYProperty, new DoubleAnimation(0.7, duration) { EasingFunction = ease });
+        PreviewGlowEffect.BeginAnimation(System.Windows.Media.Effects.DropShadowEffect.BlurRadiusProperty, new DoubleAnimation(38, 3, duration) { EasingFunction = ease });
+        PreviewDropGlow.BeginAnimation(OpacityProperty, new DoubleAnimation(0, duration) { EasingFunction = ease });
+        await Task.Delay(duration);
         PreviewDropGlow.Visibility = Visibility.Collapsed;
     }
 

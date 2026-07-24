@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Media.Animation;
+using PromptVault.App.Services;
 
 namespace PromptVault.App;
 
@@ -81,15 +82,15 @@ public partial class MainWindow
         DropOverlayScale.ScaleX = 0.94;
         DropOverlayScale.ScaleY = 0.94;
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
-        DropOverlay.BeginAnimation(OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(180)) { EasingFunction = ease });
-        DropOverlayScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleXProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(240)) { EasingFunction = ease });
-        DropOverlayScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleYProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(240)) { EasingFunction = ease });
-        DropGlow.BeginAnimation(System.Windows.Media.Effects.DropShadowEffect.BlurRadiusProperty, new DoubleAnimation(12, 44, TimeSpan.FromMilliseconds(280)) { EasingFunction = ease });
+        DropOverlay.BeginAnimation(OpacityProperty, new DoubleAnimation(1, VisualModeService.Motion(MotionToken.Panel)) { EasingFunction = ease });
+        DropOverlayScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleXProperty, new DoubleAnimation(1, VisualModeService.Motion(MotionToken.Slow)) { EasingFunction = ease });
+        DropOverlayScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleYProperty, new DoubleAnimation(1, VisualModeService.Motion(MotionToken.Slow)) { EasingFunction = ease });
+        DropGlow.BeginAnimation(System.Windows.Media.Effects.DropShadowEffect.BlurRadiusProperty, new DoubleAnimation(12, 44, VisualModeService.Motion(MotionToken.Slow)) { EasingFunction = ease });
     }
 
     private void HideLibraryDropOverlay()
     {
-        var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(140));
+        var fade = new DoubleAnimation(0, VisualModeService.Motion(MotionToken.Fast));
         fade.Completed += (_, _) =>
         {
             if (!_libraryDragActive) DropOverlay.Visibility = Visibility.Collapsed;
@@ -100,11 +101,12 @@ public partial class MainWindow
     private async Task AnimateLibraryAbsorbAsync()
     {
         var ease = new CubicEase { EasingMode = EasingMode.EaseIn };
-        DropOverlayScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleXProperty, new DoubleAnimation(0.72, TimeSpan.FromMilliseconds(210)) { EasingFunction = ease });
-        DropOverlayScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleYProperty, new DoubleAnimation(0.72, TimeSpan.FromMilliseconds(210)) { EasingFunction = ease });
-        DropGlow.BeginAnimation(System.Windows.Media.Effects.DropShadowEffect.BlurRadiusProperty, new DoubleAnimation(44, 4, TimeSpan.FromMilliseconds(210)) { EasingFunction = ease });
-        DropOverlay.BeginAnimation(OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(230)) { EasingFunction = ease });
-        await Task.Delay(230);
+        var duration = VisualModeService.Motion(MotionToken.Standard);
+        DropOverlayScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleXProperty, new DoubleAnimation(0.72, duration) { EasingFunction = ease });
+        DropOverlayScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleYProperty, new DoubleAnimation(0.72, duration) { EasingFunction = ease });
+        DropGlow.BeginAnimation(System.Windows.Media.Effects.DropShadowEffect.BlurRadiusProperty, new DoubleAnimation(44, 4, duration) { EasingFunction = ease });
+        DropOverlay.BeginAnimation(OpacityProperty, new DoubleAnimation(0, duration) { EasingFunction = ease });
+        await Task.Delay(duration);
         DropOverlay.Visibility = Visibility.Collapsed;
     }
 }

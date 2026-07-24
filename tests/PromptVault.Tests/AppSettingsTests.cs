@@ -32,4 +32,39 @@ public sealed class AppSettingsTests
             try { if (Directory.Exists(root)) Directory.Delete(root, true); } catch { }
         }
     }
+
+    [Fact]
+    public void ReducedMotionPreferenceRoundTripsInIsolatedSettings()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "PromptVaultSettingsTests", Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(root, "settings.json");
+        try
+        {
+            var settings = AppSettings.Load(path);
+            settings.LibraryRoot = "D:\\SyntheticLibrary";
+            settings.CaptureListeningEnabled = false;
+            settings.ReducedMotionEnabled = true;
+            settings.Save();
+
+            var reloaded = AppSettings.Load(path);
+
+            Assert.True(reloaded.ReducedMotionEnabled);
+            Assert.False(reloaded.CaptureListeningEnabled);
+            Assert.Equal("D:\\SyntheticLibrary", reloaded.LibraryRoot);
+        }
+        finally
+        {
+            try { if (Directory.Exists(root)) Directory.Delete(root, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void ReducedMotionResolvesEveryVisualDurationToZero()
+    {
+        foreach (var token in Enum.GetValues<MotionToken>())
+        {
+            Assert.Equal(TimeSpan.Zero, VisualModeService.ResolveDuration(token, reducedMotion: true));
+            Assert.True(VisualModeService.ResolveDuration(token, reducedMotion: false) > TimeSpan.Zero);
+        }
+    }
 }
