@@ -57,8 +57,9 @@ public sealed class LocalAiClassifier
                 .ToArray();
             return new AiSuggestion(suggestions, BuildTagSuggestions(tagScores, manifest, null), true);
         }
-        catch
+        catch (Exception ex)
         {
+            AppLog.Warning("ai-classifier", "Local AI classification failed; fallback suggestions were used.", ex);
             return Fallback(imagePath, categories);
         }
     }
@@ -161,8 +162,9 @@ public sealed class LocalAiClassifier
             options.AppendExecutionProvider_DML(0);
             return new InferenceSession(modelPath, options, null);
         }
-        catch
+        catch (Exception ex)
         {
+            AppLog.Warning("ai-directml", "DirectML session creation failed; CPU inference will be used.", ex);
             return new InferenceSession(modelPath);
         }
     }

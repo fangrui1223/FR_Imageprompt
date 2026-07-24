@@ -1,0 +1,77 @@
+{
+  "StartedAtUtc": "2026-07-24T09:02:00.3225759+00:00",
+  "Machine": {
+    "Os": "Microsoft Windows NT 10.0.26200.0",
+    "LogicalProcessors": 32,
+    "AvailableMemoryBytes": 100516380672,
+    "Dotnet": "10.0.9"
+  },
+  "Iterations": 12,
+  "Scales": [
+    {
+      "ItemCount": 30000,
+      "SeedMs": 19765.155,
+      "RepositoryInitialize": {
+        "Name": "repository-initialize",
+        "ResultCount": 0,
+        "MeanMs": 13.756,
+        "P50Ms": 13.561,
+        "P95Ms": 14.707,
+        "MaximumMs": 14.707
+      },
+      "SearchBackend": "fts5-trigram",
+      "DatabaseBytes": 26038272,
+      "RetainedImageCount": 1200,
+      "Scenarios": [
+        {
+          "Name": "gallery-first-page-1000",
+          "ResultCount": 1000,
+          "MeanMs": 13.508,
+          "P50Ms": 13.366,
+          "P95Ms": 14.049,
+          "MaximumMs": 14.049
+        },
+        {
+          "Name": "text-search-chinese-fragment",
+          "ResultCount": 200,
+          "MeanMs": 7.557,
+          "P50Ms": 7.483,
+          "P95Ms": 7.998,
+          "MaximumMs": 7.998
+        },
+        {
+          "Name": "text-search-english-fragment",
+          "ResultCount": 200,
+          "MeanMs": 33.104,
+          "P50Ms": 32.993,
+          "P95Ms": 35.25,
+          "MaximumMs": 35.25
+        },
+        {
+          "Name": "category-filter",
+          "ResultCount": 200,
+          "MeanMs": 5.907,
+          "P50Ms": 5.848,
+          "P95Ms": 6.317,
+          "MaximumMs": 6.317
+        },
+        {
+          "Name": "tag-filter",
+          "ResultCount": 200,
+          "MeanMs": 15.047,
+          "P50Ms": 14.972,
+          "P95Ms": 15.784,
+          "MaximumMs": 15.784
+        },
+        {
+          "Name": "gallery-keyset-page-1000",
+          "ResultCount": 1000,
+          "MeanMs": 14.347,
+          "P50Ms": 13.794,
+          "P95Ms": 19.475,
+          "MaximumMs": 19.475
+        }
+      ]
+    }
+  ]
+}

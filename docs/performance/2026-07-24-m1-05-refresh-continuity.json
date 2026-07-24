@@ -1,0 +1,163 @@
+{
+  "milestone": "M1-05",
+  "date": "2026-07-24",
+  "environment": {
+    "libraryItems": 30000,
+    "independentImagePaths": 1200,
+    "sourceImage": "800x600 JPEG",
+    "displayPhysicalPixels": "3840x2560",
+    "displayLogicalViewport": "2560x1707",
+    "windowsScalePercent": 150,
+    "thumbnailCacheBudgetMiB": 384,
+    "captureListeningEnabled": false,
+    "settingsMode": "explicit isolated --settings"
+  },
+  "dataLayerP95Milliseconds": {
+    "repositoryInitialize": 16.46,
+    "firstPage1000": 15.24,
+    "chineseSearch": 8.76,
+    "englishSearch": 41.66,
+    "categoryFilter": 7.41,
+    "tagFilter": 19.61,
+    "deepKeysetPage": 17.54,
+    "source": "docs/performance/2026-07-24-m1-05-ui-data.json"
+  },
+  "finalRefreshScenarios": [
+    {
+      "name": "search-cinematic",
+      "previousItems": 240,
+      "displayedRowsWhilePreparing": 35,
+      "nextItems": 240,
+      "queryMilliseconds": 12.386,
+      "preparationMilliseconds": 79.588,
+      "applyMilliseconds": 8.106,
+      "totalMilliseconds": 101.144,
+      "reusedRows": 0,
+      "reusedCards": 9,
+      "preparedCards": 33,
+      "firstViewportCards": 42,
+      "readyFirstViewportCards": 42,
+      "rowsOpacityDuringQuery": 1.0,
+      "rowsOpacityBeforeApply": 1.0,
+      "rowsOpacityAfterApply": 1.0
+    },
+    {
+      "name": "category-person-with-search",
+      "previousItems": 240,
+      "displayedRowsWhilePreparing": 35,
+      "nextItems": 240,
+      "queryMilliseconds": 10.557,
+      "preparationMilliseconds": 87.524,
+      "applyMilliseconds": 3.6,
+      "totalMilliseconds": 102.46,
+      "reusedRows": 0,
+      "reusedCards": 10,
+      "preparedCards": 32,
+      "firstViewportCards": 42,
+      "readyFirstViewportCards": 42,
+      "rowsOpacityDuringQuery": 1.0,
+      "rowsOpacityBeforeApply": 1.0,
+      "rowsOpacityAfterApply": 1.0
+    },
+    {
+      "name": "category-scene-cold",
+      "previousItems": 240,
+      "displayedRowsWhilePreparing": 36,
+      "nextItems": 240,
+      "queryMilliseconds": 9.549,
+      "preparationMilliseconds": 95.385,
+      "applyMilliseconds": 3.374,
+      "totalMilliseconds": 108.536,
+      "reusedRows": 0,
+      "reusedCards": 0,
+      "preparedCards": 42,
+      "firstViewportCards": 42,
+      "readyFirstViewportCards": 42,
+      "rowsOpacityDuringQuery": 1.0,
+      "rowsOpacityBeforeApply": 1.0,
+      "rowsOpacityAfterApply": 1.0
+    },
+    {
+      "name": "category-product-cold-frame-capture",
+      "previousItems": 240,
+      "nextItems": 240,
+      "queryMilliseconds": 10.062,
+      "preparationMilliseconds": 96.375,
+      "applyMilliseconds": 3.415,
+      "totalMilliseconds": 110.081,
+      "reusedRows": 0,
+      "reusedCards": 0,
+      "preparedCards": 42,
+      "firstViewportCards": 42,
+      "readyFirstViewportCards": 42,
+      "rowsOpacityDuringQuery": 1.0,
+      "rowsOpacityBeforeApply": 1.0,
+      "rowsOpacityAfterApply": 1.0
+    }
+  ],
+  "additionalObservations": {
+    "warmSearchTotalMilliseconds": 68.747,
+    "warmSearchReusedCards": 19,
+    "warmCategoryTotalMilliseconds": 56.784,
+    "warmCategoryReusedCards": 22,
+    "emptySearchTotalMilliseconds": 10.428,
+    "emptySearchUi": "没有匹配的图片",
+    "quickMaximizeThenAppend": {
+      "loadedItemsBeforeScroll": 240,
+      "loadedItemsAfterFirstAppend": 480,
+      "firstViewportColumns": 7,
+      "appendedViewportColumns": 7,
+      "staleNarrowLayoutObserved": false
+    },
+    "dedicatedFastScrollFrameSample": {
+      "frameCount": 34,
+      "p95Milliseconds": 33.342,
+      "p99Milliseconds": 35.542,
+      "maximumMilliseconds": 35.542,
+      "thumbnailRequests": 178,
+      "thumbnailDecodes": 178,
+      "maximumDecodeConcurrency": 4,
+      "cachedMiB": 380.859
+    }
+  },
+  "frameByFrameContinuityCheck": {
+    "captureRegion": {
+      "left": 205,
+      "top": 60,
+      "width": 2350,
+      "height": 1500
+    },
+    "durationMilliseconds": 15037,
+    "capturedFrames": 208,
+    "averageFramesPerSecond": 13.83,
+    "oldGalleryFrames": 81,
+    "transitionSampleFrames": 2,
+    "newGalleryFrames": 125,
+    "baselineColoredPixelRatio": 0.191779,
+    "minimumColoredPixelRatio": 0.191779,
+    "medianColoredPixelRatio": 0.198437,
+    "maximumColoredPixelRatio": 0.198437,
+    "minimumMeanLuma": 39.369,
+    "medianMeanLuma": 40.447,
+    "maximumFrameToFrameColoredPixelRatioDrop": 0.0,
+    "nearBlackColoredPixelRatioThreshold": 0.067123,
+    "nearBlackFrames": 0,
+    "minimumFrameVisualInspection": "old gallery remained fully visible",
+    "temporaryRawFramesRetained": false
+  },
+  "acceptance": {
+    "wholeListOpacityAnimationRemoved": true,
+    "oldGalleryHeldUntilFirstViewportReady": true,
+    "firstViewportReadyBeforeApply": true,
+    "stableIdCardReuseVerified": true,
+    "emptyResultHasExplicitState": true,
+    "wholeOrNearBlackFrames": 0,
+    "continuousCategorySwitchVisibleFlash": false,
+    "m105Accepted": true
+  },
+  "followUpForM107": [
+    "A disjoint cold category switch prepares 42 first-viewport thumbnails and currently takes 108.536-110.081ms end to end.",
+    "The dedicated fast-scroll sample measured P95 33.342ms and P99 35.542ms, still above the strict global frame targets.",
+    "Keep the M1-05 continuity contract while reducing preparation and frame time; do not reintroduce whole-list fades."
+  ]
+}

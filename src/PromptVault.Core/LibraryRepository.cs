@@ -1,11 +1,13 @@
 using Microsoft.Data.Sqlite;
+using System.Diagnostics;
+using System.Text;
 
 namespace PromptVault.Core;
 
-public sealed class LibraryRepository
+public sealed partial class LibraryRepository
 {
     private readonly string _connectionString;
-    private bool _ftsAvailable;
+    private SearchIndexBackend _searchIndexBackend;
 
     public LibraryRepository(LibraryPaths paths)
     {
@@ -30,14 +32,22 @@ public sealed class LibraryRepository
     }
 
     public LibraryPaths Paths { get; }
+    public DatabaseMigrationResult? LastMigration { get; private set; }
+    public bool FullTextSearchAvailable => _searchIndexBackend == SearchIndexBackend.Trigram;
+    public event EventHandler<RepositoryDiagnostic>? Diagnostic;
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         Paths.EnsureCreated();
+        var databaseExisted = File.Exists(Paths.Database) && new FileInfo(Paths.Database).Length > 0;
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await ExecuteAsync(connection, "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=3000;", cancellationToken);
-        await ExecuteAsync(connection, SchemaSql, cancellationToken);
-        _ftsAvailable = await TryInitializeFtsAsync(connection, cancellationToken).ConfigureAwait(false);
+        LastMigration = await DatabaseMigrations.ApplyAsync(
+            connection,
+            Paths,
+            databaseExisted,
+            cancellationToken).ConfigureAwait(false);
+        _searchIndexBackend = await InitializeSearchIndexAsync(connection, cancellationToken).ConfigureAwait(false);
         await SeedCategoriesAsync(connection, cancellationToken).ConfigureAwait(false);
         await PurgeTrashAsync(30, cancellationToken).ConfigureAwait(false);
     }
@@ -205,56 +215,182 @@ public sealed class LibraryRepository
         return new SaveResult(itemId, wasDuplicate);
     }
 
-    public async Task<IReadOnlyList<GalleryItem>> SearchAsync(SearchOptions options, CancellationToken cancellationToken = default)
+    public async Task<GallerySearchPage> SearchPageAsync(
+        SearchOptions options,
+        CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(options);
+        if (options.Source != GallerySourceKind.Library)
+        {
+            throw new ArgumentException(
+                "LibraryRepository can only query the managed library source.",
+                nameof(options));
+        }
+
+        if (options.CategoryId.HasValue && options.UncategorizedOnly)
+        {
+            throw new ArgumentException(
+                "A category and the unclassified-only filter cannot be used together.",
+                nameof(options));
+        }
+
+        var searchPlan = CreateSearchPlan(options.Query);
+        try
+        {
+            return await SearchPageCoreAsync(options, searchPlan, cancellationToken).ConfigureAwait(false);
+        }
+        catch (SqliteException ex) when (
+            searchPlan.Mode == SearchTextMode.Trigram
+            && IsSearchIndexFailure(ex))
+        {
+            _searchIndexBackend = SearchIndexBackend.None;
+            Trace.TraceWarning($"PromptVault full-text search failed and switched to LIKE fallback: {ex}");
+            Diagnostic?.Invoke(this, new RepositoryDiagnostic(
+                "search-index",
+                "全文搜索索引暂不可用，已自动切换到兼容搜索；结果不会丢失，但大图库搜索可能稍慢。",
+                ex));
+            return await SearchPageCoreAsync(
+                options,
+                CreateSearchPlan(options.Query),
+                cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<GallerySearchPage> SearchPageCoreAsync(
+        SearchOptions options,
+        SearchPlan searchPlan,
+        CancellationToken cancellationToken)
+    {
+        var tagTerms = ParseTagText(options.Tag);
+        var baseConditions = BuildSearchConditions(options, tagTerms, searchPlan, includeCursor: false);
+        var pageConditions = BuildSearchConditions(options, tagTerms, searchPlan, includeCursor: true);
+        var pageSize = Math.Clamp(options.PageSize, 1, 1000);
+
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
-        var conditions = new List<string> { options.IncludeTrash ? "ci.deleted_at IS NOT NULL" : "ci.deleted_at IS NULL" };
-        if (options.CategoryId.HasValue) conditions.Add("ci.category_id = $category");
-                var tagTerms = ParseTagText(options.Tag);
-        for (var i = 0; i < tagTerms.Length; i++)
+        await using var transaction =
+            (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+
+        var count = connection.CreateCommand();
+        count.Transaction = transaction;
+        count.CommandText = $"""
+            SELECT COUNT(*)
+            FROM collection_items ci
+            JOIN image_assets a ON a.id = ci.asset_id
+            WHERE {string.Join(" AND ", baseConditions)};
+            """;
+        AddSearchParameters(count, options, tagTerms, searchPlan, includeCursor: false);
+        var totalCount = Convert.ToInt64(
+            await count.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) ?? 0L);
+
+        var direction = options.Sort == GallerySortOrder.OldestFirst ? "ASC" : "DESC";
+        var command = BuildGalleryCommand(
+            connection,
+            $"WHERE {string.Join(" AND ", pageConditions)}",
+            $"ORDER BY ci.created_at {direction}, ci.id {direction} LIMIT $pageLimit",
+            transaction);
+        AddSearchParameters(command, options, tagTerms, searchPlan, includeCursor: true);
+        command.Parameters.AddWithValue("$pageLimit", pageSize + 1);
+
+        var results = new List<GalleryItem>(pageSize + 1);
+        await using (var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
+        {
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                results.Add(ReadGalleryItem(reader));
+            }
+        }
+
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+
+        GalleryPageCursor? nextCursor = null;
+        if (results.Count > pageSize)
+        {
+            results.RemoveAt(results.Count - 1);
+            var last = results[^1];
+            nextCursor = new GalleryPageCursor(last.CreatedAt, last.Id);
+        }
+
+        return new GallerySearchPage(totalCount, results, nextCursor);
+    }
+
+    private static List<string> BuildSearchConditions(
+        SearchOptions options,
+        IReadOnlyList<string> tagTerms,
+        SearchPlan searchPlan,
+        bool includeCursor)
+    {
+        var conditions = new List<string>
+        {
+            options.Trash == GalleryTrashScope.Trash
+                ? "ci.deleted_at IS NOT NULL"
+                : "ci.deleted_at IS NULL"
+        };
+
+        if (options.CategoryId.HasValue)
+        {
+            conditions.Add("ci.category_id = $category");
+        }
+        else if (options.UncategorizedOnly)
+        {
+            conditions.Add("ci.category_id IS NULL");
+        }
+
+        for (var i = 0; i < tagTerms.Count; i++)
         {
             conditions.Add($"EXISTS(SELECT 1 FROM item_tags fit JOIN tags ft ON ft.id = fit.tag_id WHERE fit.item_id = ci.id AND ft.name LIKE $tag{i} ESCAPE '\\' COLLATE NOCASE)");
         }
+
         if (!string.IsNullOrWhiteSpace(options.Query))
         {
-            var useFts = ShouldUseFts(options.Query);
-            conditions.Add(!useFts
-                ? "(ci.prompt LIKE $like OR ci.notes LIKE $like)"
+            conditions.Add(searchPlan.Mode != SearchTextMode.Trigram
+                ? "(ci.prompt LIKE $like ESCAPE '\\' OR ci.notes LIKE $like ESCAPE '\\')"
                 : "ci.id IN (SELECT rowid FROM item_fts WHERE item_fts MATCH $query)");
         }
 
-        var order = options.OldestFirst ? "ci.created_at ASC" : "ci.created_at DESC";
-        var command = BuildGalleryCommand(connection, "WHERE " + string.Join(" AND ", conditions), $"ORDER BY {order} LIMIT $limit OFFSET $offset");
-        if (options.CategoryId.HasValue) command.Parameters.AddWithValue("$category", options.CategoryId.Value);
-        for (var i = 0; i < tagTerms.Length; i++) command.Parameters.AddWithValue($"$tag{i}", $"%{EscapeLike(tagTerms[i])}%");
+        if (includeCursor && options.Cursor is not null)
+        {
+            var comparison = options.Sort == GallerySortOrder.OldestFirst ? ">" : "<";
+            conditions.Add(
+                $"(ci.created_at {comparison} $cursorCreated OR (ci.created_at = $cursorCreated AND ci.id {comparison} $cursorId))");
+        }
+
+        return conditions;
+    }
+
+    private static void AddSearchParameters(
+        SqliteCommand command,
+        SearchOptions options,
+        IReadOnlyList<string> tagTerms,
+        SearchPlan searchPlan,
+        bool includeCursor)
+    {
+        if (options.CategoryId.HasValue)
+        {
+            command.Parameters.AddWithValue("$category", options.CategoryId.Value);
+        }
+
+        for (var i = 0; i < tagTerms.Count; i++)
+        {
+            command.Parameters.AddWithValue($"$tag{i}", $"%{EscapeLike(tagTerms[i])}%");
+        }
+
         if (!string.IsNullOrWhiteSpace(options.Query))
         {
-            var query = options.Query.Trim();
-            if (ShouldUseFts(query))
+            if (searchPlan.Mode == SearchTextMode.Trigram)
             {
-                command.Parameters.AddWithValue("$query", $"\"{query.Replace("\"", "\"\"")}\"");
+                command.Parameters.AddWithValue("$query", searchPlan.Parameter);
             }
             else
             {
-                command.Parameters.AddWithValue("$like", $"%{query}%");
+                command.Parameters.AddWithValue("$like", $"%{EscapeLike(searchPlan.Parameter)}%");
             }
         }
-        command.Parameters.AddWithValue("$limit", Math.Clamp(options.Limit, 1, 5000));
-        command.Parameters.AddWithValue("$offset", Math.Max(0, options.Offset));
 
-        var results = new List<GalleryItem>();
-        try
+        if (includeCursor && options.Cursor is not null)
         {
-            await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false)) results.Add(ReadGalleryItem(reader));
+            command.Parameters.AddWithValue("$cursorCreated", options.Cursor.CreatedAt.ToString("O"));
+            command.Parameters.AddWithValue("$cursorId", options.Cursor.Id);
         }
-        catch (SqliteException) when (!string.IsNullOrWhiteSpace(options.Query) && ShouldUseFts(options.Query))
-        {
-            _ftsAvailable = false;
-            return await SearchAsync(options, cancellationToken).ConfigureAwait(false);
-        }
-
-        return results;
     }
 
 
@@ -307,17 +443,23 @@ public sealed class LibraryRepository
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task PermanentlyDeleteTrashItemsAsync(IEnumerable<long> itemIds, CancellationToken cancellationToken = default)
+    public async Task<TrashPurgeResult> PermanentlyDeleteTrashItemsAsync(
+        IEnumerable<long> itemIds,
+        CancellationToken cancellationToken = default)
     {
         var ids = itemIds.Distinct().ToArray();
-        if (ids.Length == 0) return;
+        if (ids.Length == 0) return new TrashPurgeResult(0, 0, []);
 
         var pathsToDelete = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var deletedAssets = 0;
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
         foreach (var id in ids)
         {
             long? assetId = null;
+            string? originalPath = null;
+            string? smallPath = null;
+            string? mediumPath = null;
             var select = connection.CreateCommand();
             select.Transaction = transaction;
             select.CommandText = """
@@ -332,35 +474,70 @@ public sealed class LibraryRepository
             {
                 if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false)) continue;
                 assetId = reader.GetInt64(0);
-                AddPath(reader.GetString(1));
-                AddPath(reader.GetString(2));
-                AddPath(reader.GetString(3));
+                originalPath = reader.GetString(1);
+                smallPath = reader.GetString(2);
+                mediumPath = reader.GetString(3);
             }
 
-            var delete = connection.CreateCommand();
-            delete.Transaction = transaction;
-            delete.CommandText = "DELETE FROM image_assets WHERE id = $assetId;";
-            delete.Parameters.AddWithValue("$assetId", assetId.Value);
-            await delete.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            var deleteItem = connection.CreateCommand();
+            deleteItem.Transaction = transaction;
+            deleteItem.CommandText = "DELETE FROM collection_items WHERE id = $id AND deleted_at IS NOT NULL;";
+            deleteItem.Parameters.AddWithValue("$id", id);
+            if (await deleteItem.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) == 0) continue;
+
+            var deleteAsset = connection.CreateCommand();
+            deleteAsset.Transaction = transaction;
+            deleteAsset.CommandText = """
+                DELETE FROM image_assets
+                WHERE id = $assetId
+                  AND NOT EXISTS(SELECT 1 FROM collection_items WHERE asset_id = $assetId);
+                """;
+            deleteAsset.Parameters.AddWithValue("$assetId", assetId.Value);
+            if (await deleteAsset.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) == 1)
+            {
+                deletedAssets++;
+                AddPath(originalPath);
+                AddPath(smallPath);
+                AddPath(mediumPath);
+            }
         }
 
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-        foreach (var relativePath in pathsToDelete) TryDeleteLibraryFile(relativePath);
+        var fileResult = DeleteLibraryFiles(pathsToDelete);
+        return new TrashPurgeResult(deletedAssets, fileResult.DeletedFiles, fileResult.Failures);
 
-        void AddPath(string path)
+        void AddPath(string? path)
         {
             if (!string.IsNullOrWhiteSpace(path)) pathsToDelete.Add(path);
         }
     }
 
-    private void TryDeleteLibraryFile(string relativePath)
+    private (int DeletedFiles, IReadOnlyList<FileDeletionFailure> Failures) DeleteLibraryFiles(
+        IEnumerable<string> relativePaths)
     {
-        try
+        var deletedFiles = 0;
+        var failures = new List<FileDeletionFailure>();
+        foreach (var relativePath in relativePaths)
         {
-            var path = Paths.ToAbsolute(relativePath);
-            if (File.Exists(path)) File.Delete(path);
+            try
+            {
+                var path = Paths.ToAbsolute(relativePath);
+                if (!File.Exists(path)) continue;
+                File.Delete(path);
+                deletedFiles++;
+            }
+            catch (Exception ex)
+            {
+                failures.Add(new FileDeletionFailure(relativePath, ex.Message));
+                Trace.TraceWarning($"PromptVault file cleanup failed for '{relativePath}': {ex}");
+                Diagnostic?.Invoke(this, new RepositoryDiagnostic(
+                    "file-cleanup",
+                    $"图库文件清理失败：{relativePath}",
+                    ex));
+            }
         }
-        catch { }
+
+        return (deletedFiles, failures);
     }
     public async Task MoveToTrashAsync(long itemId, CancellationToken cancellationToken = default)
     {
@@ -382,13 +559,114 @@ public sealed class LibraryRepository
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task PurgeTrashAsync(int retentionDays, CancellationToken cancellationToken = default)
+    public async Task<TrashPurgeResult> PurgeTrashAsync(
+        int retentionDays,
+        CancellationToken cancellationToken = default)
     {
+        if (retentionDays < 0) throw new ArgumentOutOfRangeException(nameof(retentionDays));
+        var cutoff = DateTimeOffset.UtcNow.AddDays(-retentionDays).ToString("O");
+        var assets = new List<(long Id, string Original, string Small, string Medium)>();
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
-        var command = connection.CreateCommand();
-        command.CommandText = "DELETE FROM collection_items WHERE deleted_at IS NOT NULL AND deleted_at < $cutoff;";
-        command.Parameters.AddWithValue("$cutoff", DateTimeOffset.UtcNow.AddDays(-retentionDays).ToString("O"));
-        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction =
+            (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+
+        var select = connection.CreateCommand();
+        select.Transaction = transaction;
+        select.CommandText = """
+            SELECT a.id, a.original_path, a.thumbnail_path, a.medium_thumbnail_path
+            FROM image_assets a
+            WHERE EXISTS(
+                SELECT 1
+                FROM collection_items expired
+                WHERE expired.asset_id = a.id
+                  AND expired.deleted_at IS NOT NULL
+                  AND expired.deleted_at < $cutoff)
+              AND NOT EXISTS(
+                SELECT 1
+                FROM collection_items retained
+                WHERE retained.asset_id = a.id
+                  AND (retained.deleted_at IS NULL OR retained.deleted_at >= $cutoff));
+            """;
+        select.Parameters.AddWithValue("$cutoff", cutoff);
+        await using (var reader = await select.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
+        {
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                assets.Add((reader.GetInt64(0), reader.GetString(1), reader.GetString(2), reader.GetString(3)));
+            }
+        }
+
+        var delete = connection.CreateCommand();
+        delete.Transaction = transaction;
+        delete.CommandText = "DELETE FROM image_assets WHERE id = $id;";
+        var idParameter = delete.Parameters.Add("$id", SqliteType.Integer);
+        var deletedAssets = 0;
+        foreach (var asset in assets)
+        {
+            idParameter.Value = asset.Id;
+            deletedAssets += await delete.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        var paths = assets.SelectMany(asset => new[] { asset.Original, asset.Small, asset.Medium });
+        var fileResult = DeleteLibraryFiles(paths);
+        return new TrashPurgeResult(deletedAssets, fileResult.DeletedFiles, fileResult.Failures);
+    }
+
+    public async Task<OrphanedFileReport> InspectOrphanedFilesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var referencedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var missingFiles = new List<string>();
+        var assetsWithoutItems = new List<long>();
+        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+
+        var assets = connection.CreateCommand();
+        assets.CommandText = """
+            SELECT a.id, a.original_path, a.thumbnail_path, a.medium_thumbnail_path,
+                   EXISTS(SELECT 1 FROM collection_items ci WHERE ci.asset_id = a.id)
+            FROM image_assets a;
+            """;
+        await using (var reader = await assets.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
+        {
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var assetId = reader.GetInt64(0);
+                if (!reader.GetBoolean(4)) assetsWithoutItems.Add(assetId);
+                for (var column = 1; column <= 3; column++)
+                {
+                    var relativePath = reader.GetString(column);
+                    try
+                    {
+                        var absolutePath = Paths.ToAbsolute(relativePath);
+                        referencedFiles.Add(absolutePath);
+                        if (!File.Exists(absolutePath)) missingFiles.Add(relativePath);
+                    }
+                    catch (Exception ex) when (ex is InvalidDataException or ArgumentException or NotSupportedException)
+                    {
+                        missingFiles.Add(relativePath);
+                    }
+                }
+            }
+        }
+
+        var unreferencedFiles = new List<string>();
+        foreach (var directory in new[] { Paths.Originals, Paths.SmallThumbnails, Paths.MediumThumbnails })
+        {
+            if (!Directory.Exists(directory)) continue;
+            foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var absolutePath = Path.GetFullPath(file);
+                if (!referencedFiles.Contains(absolutePath)) unreferencedFiles.Add(absolutePath);
+            }
+        }
+
+        return new OrphanedFileReport(
+            unreferencedFiles.Order(StringComparer.OrdinalIgnoreCase).ToArray(),
+            missingFiles.Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase).ToArray(),
+            assetsWithoutItems.Order().ToArray());
     }
 
     private async Task<SqliteConnection> OpenAsync(CancellationToken cancellationToken)
@@ -401,29 +679,36 @@ public sealed class LibraryRepository
         return connection;
     }
 
-    private static SqliteCommand BuildGalleryCommand(SqliteConnection connection, string where, string tail)
+    private static SqliteCommand BuildGalleryCommand(
+        SqliteConnection connection,
+        string where,
+        string tail,
+        SqliteTransaction? transaction = null)
     {
         var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = $"""
-            SELECT ci.id, a.hash, a.original_path, a.thumbnail_path, a.width, a.height, a.format,
+            SELECT ci.id, a.hash, a.original_path, a.thumbnail_path, a.medium_thumbnail_path, a.width, a.height, a.format,
                    ci.prompt, ci.notes, ci.category_id, COALESCE(c.name, char(26410,20998,31867)),
-                   COALESCE(GROUP_CONCAT(t.name, ', '), ''), ci.created_at, ci.deleted_at
+                   COALESCE((
+                       SELECT GROUP_CONCAT(t.name, ', ')
+                       FROM item_tags it
+                       JOIN tags t ON t.id = it.tag_id
+                       WHERE it.item_id = ci.id
+                   ), ''), ci.created_at, ci.deleted_at
             FROM collection_items ci
             JOIN image_assets a ON a.id = ci.asset_id
             LEFT JOIN categories c ON c.id = ci.category_id
-            LEFT JOIN item_tags it ON it.item_id = ci.id
-            LEFT JOIN tags t ON t.id = it.tag_id
             {where}
-            GROUP BY ci.id
             {tail};
             """;
         return command;
     }
 
     private static GalleryItem ReadGalleryItem(SqliteDataReader reader) => new(
-        reader.GetInt64(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetInt32(4), reader.GetInt32(5),
-        reader.GetString(6), reader.GetString(7), reader.GetString(8), reader.IsDBNull(9) ? null : reader.GetInt64(9), reader.GetString(10),
-        reader.GetString(11), DateTimeOffset.Parse(reader.GetString(12)), reader.IsDBNull(13) ? null : DateTimeOffset.Parse(reader.GetString(13)));
+        reader.GetInt64(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetString(4), reader.GetInt32(5), reader.GetInt32(6),
+        reader.GetString(7), reader.GetString(8), reader.GetString(9), reader.IsDBNull(10) ? null : reader.GetInt64(10), reader.GetString(11),
+        reader.GetString(12), DateTimeOffset.Parse(reader.GetString(13)), reader.IsDBNull(14) ? null : DateTimeOffset.Parse(reader.GetString(14)));
 
     private static void AddItemParameters(SqliteCommand command, long id, SaveItemInput input)
     {
@@ -464,28 +749,106 @@ public sealed class LibraryRepository
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<bool> TryInitializeFtsAsync(SqliteConnection connection, CancellationToken cancellationToken)
+    private async Task<SearchIndexBackend> InitializeSearchIndexAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
     {
         try
         {
-            await ExecuteAsync(connection, FtsTrigramSql, cancellationToken).ConfigureAwait(false);
-            return true;
+            var state = await ReadSearchIndexStateAsync(connection, cancellationToken).ConfigureAwait(false);
+            if (state.SchemaVersion == SearchIndexSchemaVersion
+                && string.Equals(state.Backend, SearchIndexBackend.Trigram.ToString(), StringComparison.OrdinalIgnoreCase)
+                && await HasCompleteSearchIndexAsync(connection, cancellationToken).ConfigureAwait(false))
+            {
+                return SearchIndexBackend.Trigram;
+            }
+
+            await RebuildSearchIndexAsync(connection, cancellationToken).ConfigureAwait(false);
+            return SearchIndexBackend.Trigram;
         }
-        catch (SqliteException)
+        catch (SqliteException ex)
         {
-            try
-            {
-                await ExecuteAsync(connection, FtsUnicodeSql, cancellationToken).ConfigureAwait(false);
-                return true;
-            }
-            catch (SqliteException)
-            {
-                return false;
-            }
+            Trace.TraceWarning($"PromptVault full-text index initialization failed; LIKE fallback will be used: {ex}");
+            Diagnostic?.Invoke(this, new RepositoryDiagnostic(
+                "search-index",
+                "全文搜索索引无法启用，已自动切换到兼容搜索；结果不会丢失，但大图库搜索可能稍慢。",
+                ex));
+            return SearchIndexBackend.None;
         }
     }
 
-    private bool ShouldUseFts(string? query) => false;
+    private static async Task<SearchIndexState> ReadSearchIndexStateAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT schema_version, backend
+            FROM search_index_state
+            WHERE id = 1;
+            """;
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        return await reader.ReadAsync(cancellationToken).ConfigureAwait(false)
+            ? new SearchIndexState(reader.GetInt32(0), reader.GetString(1))
+            : new SearchIndexState(0, "");
+    }
+
+    private static async Task<bool> HasCompleteSearchIndexAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT COUNT(*)
+            FROM sqlite_master
+            WHERE (type = 'table' AND name = 'item_fts')
+               OR (type = 'trigger' AND name IN ('item_fts_ai', 'item_fts_ad', 'item_fts_au'));
+            """;
+        return Convert.ToInt32(
+            await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) ?? 0) == 4;
+    }
+
+    private static async Task RebuildSearchIndexAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        await using var transaction =
+            (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = RebuildFtsTrigramSql;
+            command.Parameters.AddWithValue("$schemaVersion", SearchIndexSchemaVersion);
+            command.Parameters.AddWithValue("$backend", SearchIndexBackend.Trigram.ToString());
+            command.Parameters.AddWithValue("$rebuiltAt", DateTimeOffset.UtcNow.ToString("O"));
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(CancellationToken.None).ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    private SearchPlan CreateSearchPlan(string? query)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return new SearchPlan(SearchTextMode.None, "");
+
+        var trimmed = query.Trim();
+        var canUseTrigram = _searchIndexBackend == SearchIndexBackend.Trigram
+            && trimmed.EnumerateRunes().Count() >= 3
+            && trimmed.All(character => char.IsLetterOrDigit(character) || character == ' ');
+        return canUseTrigram
+            ? new SearchPlan(SearchTextMode.Trigram, $"\"{trimmed.Replace("\"", "\"\"")}\"")
+            : new SearchPlan(SearchTextMode.Like, trimmed);
+    }
+
+    private static bool IsSearchIndexFailure(SqliteException exception) =>
+        exception.Message.Contains("item_fts", StringComparison.OrdinalIgnoreCase)
+        || exception.Message.Contains("fts5", StringComparison.OrdinalIgnoreCase)
+        || exception.Message.Contains("MATCH", StringComparison.OrdinalIgnoreCase);
 
     private static string[] ParseTagText(string? value) => string.IsNullOrWhiteSpace(value)
         ? []
@@ -515,51 +878,43 @@ public sealed class LibraryRepository
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private const string SchemaSql = """
-        CREATE TABLE IF NOT EXISTS schema_info(version INTEGER NOT NULL);
-        INSERT INTO schema_info(version) SELECT 1 WHERE NOT EXISTS(SELECT 1 FROM schema_info);
-        CREATE TABLE IF NOT EXISTS image_assets(
-            id INTEGER PRIMARY KEY, hash TEXT NOT NULL UNIQUE, original_path TEXT NOT NULL,
-            thumbnail_path TEXT NOT NULL, medium_thumbnail_path TEXT NOT NULL,
-            width INTEGER NOT NULL, height INTEGER NOT NULL, format TEXT NOT NULL, created_at TEXT NOT NULL);
-        CREATE TABLE IF NOT EXISTS categories(
-            id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE COLLATE NOCASE, ai_description TEXT NOT NULL DEFAULT '',
-            sort_order INTEGER NOT NULL DEFAULT 0, is_enabled INTEGER NOT NULL DEFAULT 1);
-        CREATE TABLE IF NOT EXISTS collection_items(
-            id INTEGER PRIMARY KEY, asset_id INTEGER NOT NULL UNIQUE REFERENCES image_assets(id) ON DELETE CASCADE,
-            prompt TEXT NOT NULL, notes TEXT NOT NULL DEFAULT '', category_id INTEGER NULL REFERENCES categories(id) ON DELETE SET NULL,
-            created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT NULL);
-        CREATE TABLE IF NOT EXISTS tags(id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE COLLATE NOCASE);
-        CREATE TABLE IF NOT EXISTS item_tags(
-            item_id INTEGER NOT NULL REFERENCES collection_items(id) ON DELETE CASCADE,
-            tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
-            source TEXT NOT NULL DEFAULT 'user', confidence REAL NULL, PRIMARY KEY(item_id, tag_id));
-        CREATE INDEX IF NOT EXISTS ix_items_category ON collection_items(category_id, deleted_at);
-        CREATE INDEX IF NOT EXISTS ix_items_created ON collection_items(created_at DESC, deleted_at);
-        CREATE INDEX IF NOT EXISTS ix_item_tags_tag ON item_tags(tag_id, item_id);
-        """;
+    private const int SearchIndexSchemaVersion = 1;
 
-    private const string FtsTrigramSql = """
-        CREATE VIRTUAL TABLE IF NOT EXISTS item_fts USING fts5(prompt, notes, content='collection_items', content_rowid='id', tokenize='trigram');
-        CREATE TRIGGER IF NOT EXISTS item_fts_ai AFTER INSERT ON collection_items BEGIN
+    private const string RebuildFtsTrigramSql = """
+        DROP TRIGGER IF EXISTS item_fts_ai;
+        DROP TRIGGER IF EXISTS item_fts_ad;
+        DROP TRIGGER IF EXISTS item_fts_au;
+        DROP TABLE IF EXISTS item_fts;
+        CREATE VIRTUAL TABLE item_fts USING fts5(prompt, notes, content='collection_items', content_rowid='id', tokenize='trigram');
+        CREATE TRIGGER item_fts_ai AFTER INSERT ON collection_items BEGIN
           INSERT INTO item_fts(rowid,prompt,notes) VALUES(new.id,new.prompt,new.notes); END;
-        CREATE TRIGGER IF NOT EXISTS item_fts_ad AFTER DELETE ON collection_items BEGIN
+        CREATE TRIGGER item_fts_ad AFTER DELETE ON collection_items BEGIN
           INSERT INTO item_fts(item_fts,rowid,prompt,notes) VALUES('delete',old.id,old.prompt,old.notes); END;
-        CREATE TRIGGER IF NOT EXISTS item_fts_au AFTER UPDATE ON collection_items BEGIN
+        CREATE TRIGGER item_fts_au AFTER UPDATE ON collection_items BEGIN
           INSERT INTO item_fts(item_fts,rowid,prompt,notes) VALUES('delete',old.id,old.prompt,old.notes);
           INSERT INTO item_fts(rowid,prompt,notes) VALUES(new.id,new.prompt,new.notes); END;
         INSERT INTO item_fts(item_fts) VALUES('rebuild');
+        UPDATE search_index_state
+        SET schema_version = $schemaVersion,
+            backend = $backend,
+            rebuilt_at = $rebuiltAt,
+            rebuild_count = rebuild_count + 1
+        WHERE id = 1;
         """;
 
-    private const string FtsUnicodeSql = """
-        CREATE VIRTUAL TABLE IF NOT EXISTS item_fts USING fts5(prompt, notes, content='collection_items', content_rowid='id', tokenize='unicode61');
-        CREATE TRIGGER IF NOT EXISTS item_fts_ai AFTER INSERT ON collection_items BEGIN
-          INSERT INTO item_fts(rowid,prompt,notes) VALUES(new.id,new.prompt,new.notes); END;
-        CREATE TRIGGER IF NOT EXISTS item_fts_ad AFTER DELETE ON collection_items BEGIN
-          INSERT INTO item_fts(item_fts,rowid,prompt,notes) VALUES('delete',old.id,old.prompt,old.notes); END;
-        CREATE TRIGGER IF NOT EXISTS item_fts_au AFTER UPDATE ON collection_items BEGIN
-          INSERT INTO item_fts(item_fts,rowid,prompt,notes) VALUES('delete',old.id,old.prompt,old.notes);
-          INSERT INTO item_fts(rowid,prompt,notes) VALUES(new.id,new.prompt,new.notes); END;
-        INSERT INTO item_fts(item_fts) VALUES('rebuild');
-        """;
+    private enum SearchIndexBackend
+    {
+        None,
+        Trigram
+    }
+
+    private enum SearchTextMode
+    {
+        None,
+        Like,
+        Trigram
+    }
+
+    private sealed record SearchIndexState(int SchemaVersion, string Backend);
+    private sealed record SearchPlan(SearchTextMode Mode, string Parameter);
 }

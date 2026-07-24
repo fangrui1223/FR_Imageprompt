@@ -1,0 +1,153 @@
+{
+  "StartedAtUtc": "2026-07-24T04:32:47.3232079+00:00",
+  "Machine": {
+    "Os": "Microsoft Windows NT 10.0.26200.0",
+    "LogicalProcessors": 32,
+    "AvailableMemoryBytes": 100516380672,
+    "Dotnet": "10.0.9"
+  },
+  "Iterations": 12,
+  "Scales": [
+    {
+      "ItemCount": 600,
+      "SeedMs": 31.365,
+      "RepositoryInitialize": {
+        "Name": "repository-initialize",
+        "ResultCount": 0,
+        "MeanMs": 5.565,
+        "P50Ms": 5.602,
+        "P95Ms": 6.118,
+        "MaximumMs": 6.118
+      },
+      "DatabaseBytes": 524288,
+      "Scenarios": [
+        {
+          "Name": "gallery-load-5000",
+          "ResultCount": 600,
+          "MeanMs": 2.432,
+          "P50Ms": 2.372,
+          "P95Ms": 2.837,
+          "MaximumMs": 2.837
+        },
+        {
+          "Name": "text-search",
+          "ResultCount": 85,
+          "MeanMs": 0.454,
+          "P50Ms": 0.432,
+          "P95Ms": 0.676,
+          "MaximumMs": 0.676
+        },
+        {
+          "Name": "category-filter",
+          "ResultCount": 100,
+          "MeanMs": 0.443,
+          "P50Ms": 0.423,
+          "P95Ms": 0.632,
+          "MaximumMs": 0.632
+        },
+        {
+          "Name": "tag-filter",
+          "ResultCount": 150,
+          "MeanMs": 0.845,
+          "P50Ms": 0.774,
+          "P95Ms": 1.516,
+          "MaximumMs": 1.516
+        }
+      ]
+    },
+    {
+      "ItemCount": 5000,
+      "SeedMs": 178.644,
+      "RepositoryInitialize": {
+        "Name": "repository-initialize",
+        "ResultCount": 0,
+        "MeanMs": 18.298,
+        "P50Ms": 18.909,
+        "P95Ms": 19.519,
+        "MaximumMs": 19.519
+      },
+      "DatabaseBytes": 3579904,
+      "Scenarios": [
+        {
+          "Name": "gallery-load-5000",
+          "ResultCount": 5000,
+          "MeanMs": 27.007,
+          "P50Ms": 26.094,
+          "P95Ms": 31.042,
+          "MaximumMs": 31.042
+        },
+        {
+          "Name": "text-search",
+          "ResultCount": 200,
+          "MeanMs": 2.36,
+          "P50Ms": 2.329,
+          "P95Ms": 2.668,
+          "MaximumMs": 2.668
+        },
+        {
+          "Name": "category-filter",
+          "ResultCount": 200,
+          "MeanMs": 2.06,
+          "P50Ms": 2.058,
+          "P95Ms": 2.132,
+          "MaximumMs": 2.132
+        },
+        {
+          "Name": "tag-filter",
+          "ResultCount": 200,
+          "MeanMs": 4.031,
+          "P50Ms": 4.004,
+          "P95Ms": 4.138,
+          "MaximumMs": 4.138
+        }
+      ]
+    },
+    {
+      "ItemCount": 30000,
+      "SeedMs": 1582.701,
+      "RepositoryInitialize": {
+        "Name": "repository-initialize",
+        "ResultCount": 0,
+        "MeanMs": 129.571,
+        "P50Ms": 128.914,
+        "P95Ms": 133.931,
+        "MaximumMs": 133.931
+      },
+      "DatabaseBytes": 22245376,
+      "Scenarios": [
+        {
+          "Name": "gallery-load-5000",
+          "ResultCount": 5000,
+          "MeanMs": 87.367,
+          "P50Ms": 80.022,
+          "P95Ms": 161.481,
+          "MaximumMs": 161.481
+        },
+        {
+          "Name": "text-search",
+          "ResultCount": 200,
+          "MeanMs": 15.705,
+          "P50Ms": 15.642,
+          "P95Ms": 16.142,
+          "MaximumMs": 16.142
+        },
+        {
+          "Name": "category-filter",
+          "ResultCount": 200,
+          "MeanMs": 13.898,
+          "P50Ms": 13.848,
+          "P95Ms": 14.167,
+          "MaximumMs": 14.167
+        },
+        {
+          "Name": "tag-filter",
+          "ResultCount": 200,
+          "MeanMs": 25.889,
+          "P50Ms": 25.86,
+          "P95Ms": 26.153,
+          "MaximumMs": 26.153
+        }
+      ]
+    }
+  ]
+}

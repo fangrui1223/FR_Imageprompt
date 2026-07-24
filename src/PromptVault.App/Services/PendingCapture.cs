@@ -26,6 +26,13 @@ public sealed class PendingCapture : IDisposable
 
     private static void TryDelete(string path)
     {
-        try { if (File.Exists(path)) File.Delete(path); } catch { }
+        try
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warning("capture-staging-cleanup", "A pending capture staging file could not be removed.", ex);
+        }
     }
 }

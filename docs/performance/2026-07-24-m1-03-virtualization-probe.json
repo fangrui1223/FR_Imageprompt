@@ -1,0 +1,25 @@
+{
+  "StartedAtUtc": "2026-07-24T06:07:08.7701731+00:00",
+  "Environment": {
+    "ItemCount": 30000,
+    "RowCount": 4476,
+    "LogicalViewportWidth": 2560,
+    "LogicalViewportHeight": 1600,
+    "TargetDpiScale": 1.5
+  },
+  "Measurement": {
+    "WarmupMs": 500,
+    "DurationMs": 3000
+  },
+  "Layout": {
+    "FullLayoutMs": 4.058,
+    "RealizedContainers": 10,
+    "PeakManagedBytes": 61332992
+  },
+  "Frames": {
+    "Count": 181,
+    "P95Ms": 16.671,
+    "P99Ms": 16.671,
+    "MaximumMs": 16.671
+  }
+}

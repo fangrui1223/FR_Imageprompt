@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace PromptVault.Core;
 
 public sealed class LibraryPaths
@@ -13,6 +15,7 @@ public sealed class LibraryPaths
     public string MediumThumbnails => Path.Combine(Root, "thumbnails", "medium");
     public string Models => Path.Combine(Root, "models");
     public string Staging => Path.Combine(Root, ".staging");
+    public string DatabaseBackups => Path.Combine(Root, "backups", "database");
     public string Database => Path.Combine(Root, "promptvault.db");
 
     public void EnsureCreated()
@@ -25,7 +28,14 @@ public sealed class LibraryPaths
         Directory.CreateDirectory(Staging);
         foreach (var file in Directory.EnumerateFiles(Staging).Where(path => File.GetLastWriteTimeUtc(path) < DateTime.UtcNow.AddDays(-1)))
         {
-            try { File.Delete(file); } catch { }
+            try
+            {
+                File.Delete(file);
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceWarning($"PromptVault stale staging cleanup failed for '{file}': {ex}");
+            }
         }
     }
 

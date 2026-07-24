@@ -6,4 +6,10 @@
   <Folder Name="/tests/">
     <Project Path="tests/PromptVault.Tests/PromptVault.Tests.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/PromptVault.Benchmark/PromptVault.Benchmark.csproj" />
+    <Project Path="tools/PromptVault.ExternalIndexProbe/PromptVault.ExternalIndexProbe.csproj" />
+    <Project Path="tools/PromptVault.PerformanceGate/PromptVault.PerformanceGate.csproj" />
+    <Project Path="tools/PromptVault.VirtualizationProbe/PromptVault.VirtualizationProbe.csproj" />
+  </Folder>
 </Solution>

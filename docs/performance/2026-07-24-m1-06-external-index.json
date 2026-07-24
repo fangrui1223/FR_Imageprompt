@@ -1,0 +1,55 @@
+{
+  "Milestone": "M1-06",
+  "StartedAtUtc": "2026-07-24T08:31:24.0274014+00:00",
+  "Environment": {
+    "OperatingSystem": "Microsoft Windows NT 10.0.26200.0",
+    "DotNet": "10.0.9",
+    "ProcessorCount": 32,
+    "ItemCount": 30000,
+    "QueryIterations": 12,
+    "SourceFormat": "valid 1x1 PNG used to isolate filesystem, header metadata, and SQLite index cost",
+    "SourceBytesPerFile": 68,
+    "ValidationIntervalHours": 6,
+    "PageSize": 240
+  },
+  "Setup": {
+    "FileCreationMs": 6698.306
+  },
+  "InitialScan": {
+    "ElapsedMs": 1999.18,
+    "MetadataReads": 30000,
+    "AvailableFiles": 30000,
+    "FailedFiles": 0,
+    "Status": "Ready"
+  },
+  "UnchangedValidation": {
+    "ElapsedMs": 613.03,
+    "MetadataReads": 0,
+    "AvailableFiles": 30000,
+    "FailedFiles": 0
+  },
+  "IndexedQuery": {
+    "SampleCount": 11,
+    "P50Ms": 11.426,
+    "P95Ms": 11.793,
+    "MaximumMs": 11.793,
+    "FirstPageItems": 240,
+    "TotalCount": 30000,
+    "HasStableCursor": true
+  },
+  "IncrementalChanges": {
+    "AddMs": 3.112,
+    "RenameMs": 0.994,
+    "DeleteMs": 0.518,
+    "MissingFilesAfterDelete": 1
+  },
+  "Storage": {
+    "DatabaseBytes": 19488768
+  },
+  "Safety": {
+    "TestRoot": "C:\\Users\\fangr\\AppData\\Local\\Temp\\PromptVaultExternalIndexProbe\\fbf8dfcb96934fea971b6eb8ab6fea49",
+    "UsesTemporaryDirectory": true,
+    "DeletesTestRootOnExit": true,
+    "OpensUserLibrary": false
+  }
+}

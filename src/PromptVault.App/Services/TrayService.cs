@@ -44,8 +44,9 @@ public sealed class TrayService : IDisposable
                 ? Icon.ExtractAssociatedIcon(path)
                 : null;
         }
-        catch
+        catch (Exception ex)
         {
+            AppLog.Warning("tray-icon", "Application icon could not be loaded for the tray.", ex);
             return null;
         }
     }

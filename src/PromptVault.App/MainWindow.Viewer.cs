@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
@@ -11,6 +12,7 @@ public partial class MainWindow
     private bool _viewerDragging;
     private Point _viewerLastPoint;
     private CancellationTokenSource? _viewerLoadCancellation;
+    private readonly ImmersiveImageCache _immersiveImageCache = ImmersiveImageCache.Shared;
 
     private void ShowImmersiveViewer(long itemId)
     {
@@ -31,16 +33,39 @@ public partial class MainWindow
         _viewerLoadCancellation = new CancellationTokenSource();
         var token = _viewerLoadCancellation.Token;
         var item = _items[_viewerIndex];
+        var stopwatch = Stopwatch.StartNew();
         try
         {
             var path = ResolveOriginalPath(item);
             var decodeWidth = (int)Math.Clamp(ActualWidth * 1.6, 1200, 2800);
-            var bitmap = await Task.Run(() => ImagePipeline.LoadPreview(path, decodeWidth), token);
+            var result = await _immersiveImageCache.LoadAsync(path, decodeWidth, token);
             token.ThrowIfCancellationRequested();
-            ImmersiveImage.Source = bitmap;
+            ImmersiveImage.Source = result.Image;
+            stopwatch.Stop();
+            var snapshot = _immersiveImageCache.GetSnapshot();
+            DevelopmentPerformanceTrace.Event("immersive-image-load", new
+            {
+                cacheHit = result.CacheHit,
+                elapsedMs = Math.Round(stopwatch.Elapsed.TotalMilliseconds, 3),
+                decodeWidth,
+                cacheEntries = snapshot.EntryCount,
+                cachedMiB = Math.Round(snapshot.CachedBytes / 1024d / 1024d, 3),
+                budgetMiB = Math.Round(snapshot.MemoryBudgetBytes / 1024d / 1024d, 3)
+            });
+            PrefetchViewerNeighbor(_viewerIndex - 1, decodeWidth, path);
+            PrefetchViewerNeighbor(_viewerIndex + 1, decodeWidth, path);
         }
         catch (OperationCanceledException) { }
         catch (Exception ex) { ToastService.Show(this, $"无法打开图片：{ex.Message}"); }
+    }
+
+    private void PrefetchViewerNeighbor(int index, int decodeWidth, string currentPath)
+    {
+        if (_items.Count < 2) return;
+        var normalizedIndex = (index + _items.Count) % _items.Count;
+        var path = ResolveOriginalPath(_items[normalizedIndex]);
+        if (string.Equals(path, currentPath, StringComparison.OrdinalIgnoreCase)) return;
+        _ = _immersiveImageCache.PrefetchAsync(path, decodeWidth);
     }
 
     private void NavigateViewer(int offset)
@@ -53,6 +78,16 @@ public partial class MainWindow
 
     private void MainWindowPreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (DevelopmentPerformanceTrace.IsEnabled
+            && Keyboard.Modifiers.HasFlag(ModifierKeys.Control)
+            && Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)
+            && e.Key == Key.F9)
+        {
+            StartDevelopmentScrollProbe();
+            e.Handled = true;
+            return;
+        }
+
         if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && e.Key == Key.M)
         {
             ToggleTransparentMode();

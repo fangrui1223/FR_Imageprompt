@@ -1,7 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Security.Cryptography;
-using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -17,20 +15,19 @@ namespace PromptVault.App;
 
 public partial class MainWindow : Window
 {
-    private static readonly HashSet<string> SupportedImageExtensions = new(StringComparer.OrdinalIgnoreCase)
-    { ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif" };
-
     private readonly LibraryRepository _repository;
     private readonly CaptureCoordinator _capture;
     private readonly AppSettings _settings;
+    private readonly ExternalFolderIndexService _externalIndex;
     private readonly ClipboardMonitor _clipboard;
     private readonly DispatcherTimer _searchTimer;
     private readonly DispatcherTimer _resizeTimer;
     private readonly DispatcherTimer _subtleStatusTimer;
     private readonly Dictionary<long, CancellationTokenSource> _clicks = new();
     private readonly HashSet<long> _selectedItemIds = new();
+    private readonly Dictionary<GalleryRow, FrameworkElement> _realizedRowElements = new();
     private IReadOnlyList<CategoryRecord> _categories = [];
-    private IReadOnlyList<GalleryEntry> _items = [];
+    private readonly List<GalleryEntry> _items = [];
     private CancellationTokenSource? _loadCancellation;
     private bool _showTrash;
     private bool _allowClose;
@@ -46,13 +43,28 @@ public partial class MainWindow : Window
     private GalleryCardViewModel? _dragCandidate;
     private Point _dragStart;
     private ScrollViewer? _rowsScrollViewer;
-    private string _lastRowsSignature = "";
-    private bool _hasRowsSignature;
+    private readonly DevelopmentFrameSampler _frameSampler = new();
+    private SearchOptions? _activeSearch;
+    private GalleryPageCursor? _nextPageCursor;
+    private ExternalFilePageCursor? _nextExternalPageCursor;
+    private IReadOnlyDictionary<string, ExternalFolderIndexState> _externalFolderStates =
+        new Dictionary<string, ExternalFolderIndexState>();
+    private long _totalCount;
+    private bool _hasMoreItems;
+    private bool _isLoadingNextPage;
+    private bool _thumbnailPriorityRefreshQueued;
+    private EventHandler? _developmentScrollProbeRendering;
     private const double GalleryWheelPixelsPerNotch = 180d;
 
     public ObservableCollection<GalleryRow> Rows { get; } = new();
 
-    public MainWindow(LibraryRepository repository, CaptureCoordinator capture, AppSettings settings, bool transparentWindow = false, MainWindowSnapshot? initialSnapshot = null)
+    internal MainWindow(
+        LibraryRepository repository,
+        CaptureCoordinator capture,
+        AppSettings settings,
+        ExternalFolderIndexService externalIndex,
+        bool transparentWindow = false,
+        MainWindowSnapshot? initialSnapshot = null)
     {
         _trueTransparentWindow = transparentWindow;
         _transparentMode = transparentWindow;
@@ -66,6 +78,8 @@ public partial class MainWindow : Window
         _repository = repository;
         _capture = capture;
         _settings = settings;
+        _externalIndex = externalIndex;
+        _externalIndex.IndexChanged += ExternalFolderIndexChanged;
         DataContext = this;
         InitializeComponent();
         CategoryList.ContextMenu = new System.Windows.Controls.ContextMenu();
@@ -82,10 +96,11 @@ public partial class MainWindow : Window
         UpdateSelectionVisual();
         Loaded += async (_, _) =>
         {
+            using var startupMeasurement = DevelopmentPerformanceTrace.Measure("gallery-first-content-ready");
             try
             {
                 await LoadCategoriesAsync();
-                LoadExternalFolders();
+                await LoadExternalFoldersAsync();
                 ApplyInitialSnapshot();
                 ApplyTransparentMode();
                 await RefreshAsync(RefreshAnimationKind.None);
@@ -96,6 +111,7 @@ public partial class MainWindow : Window
                 _startupRefreshPending = false;
                 _searchTimer.Stop();
                 _resizeTimer.Stop();
+                RegroupIfNeeded();
             }
         };
         SizeChanged += (_, _) =>
@@ -198,7 +214,13 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _loadCancellation?.Cancel();
+        _loadCancellation?.Dispose();
+        _loadCancellation = null;
+        foreach (var row in Rows) ReleaseRow(row);
+        _frameSampler.Dispose();
         _clipboard.Dispose();
+        _externalIndex.IndexChanged -= ExternalFolderIndexChanged;
         base.OnClosed(e);
     }
 
@@ -214,248 +236,609 @@ public partial class MainWindow : Window
         _suppressFilterRefresh = false;
     }
 
-    private void LoadExternalFolders()
+    private async Task LoadExternalFoldersAsync(CancellationToken cancellationToken = default)
     {
+        _externalFolderStates = await _repository.GetExternalFolderIndexStatesAsync(
+            cancellationToken);
         var choices = _settings.ExternalFolders
             .Where(x => !string.IsNullOrWhiteSpace(x.Path))
-            .Select(x => new ExternalFolderChoice(x.Id, string.IsNullOrWhiteSpace(x.Name) ? System.IO.Path.GetFileName(x.Path.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar)) : x.Name, x.Path))
+            .Select(x => new ExternalFolderChoice(
+                x.Id,
+                string.IsNullOrWhiteSpace(x.Name)
+                    ? System.IO.Path.GetFileName(x.Path.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar))
+                    : x.Name,
+                x.Path,
+                FormatExternalFolderStatus(_externalFolderStates.GetValueOrDefault(x.Id))))
             .ToArray();
+        _suppressExternalRefresh = true;
         ExternalFolderList.ItemsSource = choices;
+        if (_externalFolderId is not null)
+        {
+            ExternalFolderList.SelectedItem = choices.FirstOrDefault(x => x.Id == _externalFolderId);
+        }
+        _suppressExternalRefresh = false;
+    }
+
+    private static string FormatExternalFolderStatus(ExternalFolderIndexState? state)
+    {
+        if (state is null) return "等待建立索引";
+        return state.Status switch
+        {
+            ExternalFolderIndexStatus.Pending => "等待建立索引",
+            ExternalFolderIndexStatus.Indexing => $"正在建立索引 · 已发现 {state.AvailableFiles:N0} 张",
+            ExternalFolderIndexStatus.Missing => "文件夹不可用",
+            ExternalFolderIndexStatus.PermissionDenied => "没有读取权限",
+            ExternalFolderIndexStatus.Failed => "索引失败",
+            _ when state.FailedFiles > 0 =>
+                $"{state.AvailableFiles:N0} 张 · {state.FailedFiles:N0} 个文件无法读取",
+            _ => $"{state.AvailableFiles:N0} 张"
+        };
+    }
+
+    private void ExternalFolderIndexChanged(
+        object? sender,
+        ExternalFolderIndexChangedEventArgs e)
+    {
+        if (Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished) return;
+        _ = Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(async () =>
+        {
+            try
+            {
+                await LoadExternalFoldersAsync();
+                if (e.ContentChanged
+                    && IsLoaded
+                    && string.Equals(_externalFolderId, e.FolderId, StringComparison.Ordinal))
+                {
+                    await RefreshAsync(RefreshAnimationKind.ContentChange);
+                }
+                else
+                {
+                    UpdateBaseStatus();
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warning(
+                    "external-folder-index-ui",
+                    "External folder index state could not be applied.",
+                    ex);
+            }
+        }));
     }
 
     private async Task RefreshAsync(RefreshAnimationKind animationKind = RefreshAnimationKind.ContentChange)
     {
-        _loadCancellation?.Cancel();
+        var refreshStopwatch = Stopwatch.StartNew();
+        using var measurement = DevelopmentPerformanceTrace.Measure("gallery-refresh", new
+        {
+            animation = animationKind.ToString(),
+            queryLength = SearchBox.Text.Length,
+            hasTagFilter = !string.IsNullOrWhiteSpace(TagBox.Text),
+            external = IsExternalMode
+        });
+        var previousCancellation = _loadCancellation;
+        previousCancellation?.Cancel();
+        previousCancellation?.Dispose();
         _loadCancellation = new CancellationTokenSource();
         var token = _loadCancellation.Token;
         try
         {
-            StatusText.Text = "濠殿喗绻愮徊钘夛耿椤忓牆绀夐柣妯煎劋缁?..";
+            StatusText.Text = "正在加载图片…";
+            var previousItemCount = _items.Count;
+            DevelopmentPerformanceTrace.Event("gallery-refresh-transition", new
+            {
+                phase = "query-start",
+                reason = animationKind.ToString(),
+                displayedItems = _items.Count,
+                displayedRows = Rows.Count,
+                rowsOpacity = RowsList.Opacity
+            });
+            var queryStopwatch = Stopwatch.StartNew();
             IReadOnlyList<GalleryEntry> result;
+            long totalCount;
+            GalleryPageCursor? nextCursor = null;
+            ExternalFilePageCursor? nextExternalCursor = null;
+            var selected = CategoryList.SelectedItem as CategoryChoice;
+            var search = new SearchOptions(
+                Query: SearchBox.Text,
+                CategoryId: selected?.Id is > 0 ? selected.Id : null,
+                UncategorizedOnly: selected?.Id == 0,
+                Tag: TagBox.Text,
+                Trash: _showTrash ? GalleryTrashScope.Trash : GalleryTrashScope.Active,
+                Source: IsExternalMode ? GallerySourceKind.ExternalFolder : GallerySourceKind.Library,
+                SourceId: IsExternalMode ? _externalFolderId : null,
+                Sort: _oldestFirst ? GallerySortOrder.OldestFirst : GallerySortOrder.NewestFirst,
+                PageSize: GalleryVirtualizationPolicy.PageSize);
             if (IsExternalMode)
             {
                 var folder = _settings.ExternalFolders.FirstOrDefault(x => x.Id == _externalFolderId);
-                result = folder is null ? [] : await LoadExternalFolderAsync(folder, token);
+                if (folder is null)
+                {
+                    result = [];
+                    totalCount = 0;
+                }
+                else
+                {
+                    await _externalIndex.EnsureFolderIndexedAsync(folder, cancellationToken: token);
+                    var page = await _repository.SearchExternalFilesAsync(
+                        folder.Id,
+                        search.Query,
+                        search.Sort,
+                        search.PageSize,
+                        cancellationToken: token);
+                    result = page.Items.Select(item => GalleryEntry.FromExternal(item, folder.Path)).ToArray();
+                    totalCount = page.TotalCount;
+                    nextExternalCursor = page.NextCursor;
+                    var state = await _externalIndex.GetStateAsync(folder.Id, token);
+                    if (state is not null)
+                    {
+                        _externalFolderStates = new Dictionary<string, ExternalFolderIndexState>(
+                            _externalFolderStates,
+                            StringComparer.Ordinal)
+                        {
+                            [folder.Id] = state
+                        };
+                    }
+                }
             }
             else
             {
-                var selected = CategoryList.SelectedItem as CategoryChoice;
-                long? category = selected?.Id is > 0 ? selected.Id : null;
-                var libraryItems = await _repository.SearchAsync(new SearchOptions(
-                    SearchBox.Text, category, TagBox.Text, _showTrash, _oldestFirst, 5000), token);
-                if (selected?.Id == 0) libraryItems = libraryItems.Where(x => x.CategoryId is null).ToArray();
-                result = libraryItems.Select(GalleryEntry.FromLibrary).ToArray();
+                var page = await _repository.SearchPageAsync(search, token);
+                result = page.Items.Select(GalleryEntry.FromLibrary).ToArray();
+                totalCount = page.TotalCount;
+                nextCursor = page.NextCursor;
             }
 
-            var rowsSignature = CreateRowsSignature(result);
-            var hadRowsSignature = _hasRowsSignature;
-            var rowsChanged = !hadRowsSignature || !string.Equals(_lastRowsSignature, rowsSignature, StringComparison.Ordinal);
-            var shouldRebuildRows = animationKind != RefreshAnimationKind.Search || rowsChanged;
-
-            _items = result;
-            _lastRowsSignature = rowsSignature;
-            _hasRowsSignature = true;
-            _selectedItemIds.RemoveWhere(id => _items.All(item => item.Id != id));
-            if (shouldRebuildRows)
+            token.ThrowIfCancellationRequested();
+            queryStopwatch.Stop();
+            var nextItems = result.ToArray();
+            var availableWidth = GetGalleryAvailableWidth();
+            var nextRows = GalleryLayoutEngine.CreateRows(nextItems, availableWidth);
+            var preparationStopwatch = Stopwatch.StartNew();
+            var preparation = await PrepareFirstViewportAsync(
+                nextRows,
+                nextItems,
+                token);
+            preparationStopwatch.Stop();
+            token.ThrowIfCancellationRequested();
+            DevelopmentPerformanceTrace.Event("gallery-refresh-transition", new
             {
-                BuildRows();
-                AnimateRowsRefresh(animationKind, rowsChanged, hadRowsSignature);
-            }
-            CountText.Text = IsExternalMode ? $"\u5916\u90E8\u6587\u4EF6\u5939 - {_items.Count}" : (_showTrash ? $"\u56DE\u6536\u7AD9 - {_items.Count}" : $"\u56FE\u7247\u6536\u85CF - {_items.Count}");
+                phase = "first-viewport-ready",
+                reason = animationKind.ToString(),
+                displayedItems = _items.Count,
+                displayedRows = Rows.Count,
+                preparedItems = nextItems.Length,
+                preparedRows = preparation.PreparedRows,
+                rowsOpacity = RowsList.Opacity
+            });
+
+            _activeSearch = search;
+            _nextPageCursor = nextCursor;
+            _nextExternalPageCursor = nextExternalCursor;
+            _totalCount = totalCount;
+            _hasMoreItems = IsExternalMode
+                ? nextExternalCursor is not null
+                : nextCursor is not null;
+            _isLoadingNextPage = false;
+            _selectedItemIds.RemoveWhere(id => nextItems.All(item => item.Id != id));
+
+            var applyStopwatch = Stopwatch.StartNew();
+            var applyResult = ApplyPreparedRows(
+                nextItems,
+                nextRows,
+                availableWidth,
+                preparation,
+                resetScroll: true);
+            applyStopwatch.Stop();
+            _rowsScrollViewer ??= FindDescendant<ScrollViewer>(RowsList);
+            UpdateCountText();
             UpdateBaseStatus();
             UpdateTrashVisual();
             UpdateSelectionVisual();
-        }
-        catch (OperationCanceledException) { }
-            catch (Exception ex) { StatusText.Text = $"\u52A0\u8F7D\u5931\u8D25\uFF1A{ex.Message}"; }
-    }
-
-    private Task<IReadOnlyList<GalleryEntry>> LoadExternalFolderAsync(ExternalFolderSetting folder, CancellationToken cancellationToken)
-    {
-        var query = SearchBox.Text.Trim();
-        var oldestFirst = _oldestFirst;
-        return Task.Run<IReadOnlyList<GalleryEntry>>(() =>
-        {
-            if (!Directory.Exists(folder.Path)) return [];
-            var files = Directory.EnumerateFiles(folder.Path)
-                .Where(path => SupportedImageExtensions.Contains(System.IO.Path.GetExtension(path)))
-                .Where(path => query.Length == 0 || System.IO.Path.GetFileName(path).Contains(query, StringComparison.OrdinalIgnoreCase));
-            files = oldestFirst
-                ? files.OrderBy(File.GetLastWriteTimeUtc)
-                : files.OrderByDescending(File.GetLastWriteTimeUtc);
-
-        var items = new List<GalleryEntry>();
-        foreach (var file in files.Take(5000))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            try
+            QueueNextPageIfNeeded();
+            refreshStopwatch.Stop();
+            DevelopmentPerformanceTrace.Event("gallery-refresh-applied", new
             {
-                var (width, height) = ReadImageSize(file);
-                var name = System.IO.Path.GetFileNameWithoutExtension(file);
-                items.Add(new GalleryEntry(
-                    ExternalId(file),
-                    "external",
-                    file,
-                    file,
-                    width,
-                    height,
-                    System.IO.Path.GetExtension(file).TrimStart('.').ToLowerInvariant(),
-                    name,
-                    $"\u6765\u6E90\u6587\u4EF6\u5939\uFF1A{folder.Path}",
-                    null,
-                    name,
-                    "",
-                    new DateTimeOffset(File.GetLastWriteTimeUtc(file), TimeSpan.Zero),
-                    null,
-                    true,
-                    folder.Id));
+                reason = animationKind.ToString(),
+                previousItems = previousItemCount,
+                nextItems = nextItems.Length,
+                queryMs = Math.Round(queryStopwatch.Elapsed.TotalMilliseconds, 3),
+                preparationMs = Math.Round(preparationStopwatch.Elapsed.TotalMilliseconds, 3),
+                applyMs = Math.Round(applyStopwatch.Elapsed.TotalMilliseconds, 3),
+                totalMs = Math.Round(refreshStopwatch.Elapsed.TotalMilliseconds, 3),
+                applyResult.ReusedRows,
+                applyResult.ReusedCards,
+                applyResult.PreparedCards,
+                applyResult.PreparedRows,
+                applyResult.FirstViewportCards,
+                applyResult.ReadyFirstViewportCards,
+                rowsOpacity = RowsList.Opacity
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            refreshStopwatch.Stop();
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("gallery-refresh", ex);
+            StatusText.Text = $"\u52A0\u8F7D\u5931\u8D25\uFF1A{ex.Message}";
+        }
+    }
+
+    private async Task LoadNextPageAsync()
+    {
+        if (_isLoadingNextPage || !_hasMoreItems || _activeSearch is null) return;
+        var cancellation = _loadCancellation;
+        if (cancellation is null || cancellation.IsCancellationRequested) return;
+
+        _isLoadingNextPage = true;
+        var token = cancellation.Token;
+        var continuePrefetch = true;
+        try
+        {
+            IReadOnlyList<GalleryEntry> nextItems;
+            long totalCount;
+            GalleryPageCursor? nextCursor = null;
+            ExternalFilePageCursor? nextExternalCursor = null;
+            if (_activeSearch.Source == GallerySourceKind.ExternalFolder)
+            {
+                var folder = _settings.ExternalFolders.FirstOrDefault(x => x.Id == _activeSearch.SourceId);
+                if (folder is null || _nextExternalPageCursor is null)
+                {
+                    _hasMoreItems = false;
+                    return;
+                }
+                var page = await _repository.SearchExternalFilesAsync(
+                    folder.Id,
+                    _activeSearch.Query,
+                    _activeSearch.Sort,
+                    _activeSearch.PageSize,
+                    _nextExternalPageCursor,
+                    token);
+                nextItems = page.Items.Select(item => GalleryEntry.FromExternal(item, folder.Path)).ToArray();
+                totalCount = page.TotalCount;
+                nextExternalCursor = page.NextCursor;
             }
-            catch { }
+            else
+            {
+                if (_nextPageCursor is null)
+                {
+                    _hasMoreItems = false;
+                    return;
+                }
+
+                var page = await _repository.SearchPageAsync(
+                    _activeSearch with { Cursor = _nextPageCursor },
+                    token);
+                nextItems = page.Items.Select(GalleryEntry.FromLibrary).ToArray();
+                totalCount = page.TotalCount;
+                nextCursor = page.NextCursor;
+            }
+
+            token.ThrowIfCancellationRequested();
+            var knownIds = _items.Select(item => item.Id).ToHashSet();
+            var uniqueItems = nextItems.Where(item => knownIds.Add(item.Id)).ToArray();
+            _totalCount = totalCount;
+            _nextPageCursor = nextCursor;
+            _nextExternalPageCursor = nextExternalCursor;
+            _hasMoreItems = _activeSearch.Source == GallerySourceKind.ExternalFolder
+                ? nextExternalCursor is not null
+                : nextCursor is not null;
+
+            if (uniqueItems.Length > 0)
+            {
+                _items.AddRange(uniqueItems);
+                AppendGalleryRows(uniqueItems);
+            }
+
+            UpdateCountText();
+            DevelopmentPerformanceTrace.Event("gallery-page-applied", new
+            {
+                loadedItems = _items.Count,
+                totalItems = _totalCount,
+                rowCount = Rows.Count,
+                realizedCards = Rows.Sum(row => row.Items.Count),
+                hasMore = _hasMoreItems
+            });
         }
-            return items;
-        }, cancellationToken);
+        catch (OperationCanceledException)
+        {
+            continuePrefetch = false;
+        }
+        catch (Exception ex)
+        {
+            continuePrefetch = false;
+            AppLog.Error("gallery-next-page", ex);
+            ShowSubtleStatus($"继续加载失败：{ex.Message}");
+        }
+        finally
+        {
+            _isLoadingNextPage = false;
+        }
+
+        if (continuePrefetch) QueueNextPageIfNeeded();
     }
 
-    private static (int Width, int Height) ReadImageSize(string path)
+    private void QueueNextPageIfNeeded()
     {
-        var frame = ImagePipeline.DecodeFirstFrame(path);
-        return (Math.Max(1, frame.PixelWidth), Math.Max(1, frame.PixelHeight));
+        if (!_hasMoreItems || _isLoadingNextPage) return;
+        _ = Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+        {
+            _rowsScrollViewer ??= FindDescendant<ScrollViewer>(RowsList);
+            if (_rowsScrollViewer is not null && ShouldPrefetchNextPage(_rowsScrollViewer))
+            {
+                _ = LoadNextPageAsync();
+            }
+        }));
     }
 
-    private static long ExternalId(string path)
+    private static bool ShouldPrefetchNextPage(ScrollViewer viewer)
     {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(System.IO.Path.GetFullPath(path).ToLowerInvariant()));
-        var value = BitConverter.ToInt64(bytes, 0);
-        if (value == long.MinValue) value = long.MaxValue;
-        value = Math.Abs(value);
-        return value == 0 ? -1 : -value;
+        return GalleryVirtualizationPolicy.ShouldPrefetch(
+            viewer.ViewportHeight,
+            viewer.ScrollableHeight,
+            viewer.VerticalOffset);
     }
 
-    private void BuildRows()
+    private void UpdateCountText()
     {
-        var availableWidth = Math.Max(300, ActualWidth - 56);
+        var countLabel = IsExternalMode
+            ? "\u5916\u90E8\u6587\u4EF6\u5939"
+            : _showTrash ? "\u56DE\u6536\u7AD9" : "\u56FE\u7247\u6536\u85CF";
+        CountText.Text = _items.Count < _totalCount
+            ? $"{countLabel} - {_totalCount:N0}\uFF08\u5DF2\u52A0\u8F7D {_items.Count:N0}\uFF09"
+            : $"{countLabel} - {_totalCount:N0}";
+    }
+
+    private void AppendGalleryRows(IReadOnlyList<GalleryEntry> appendedItems)
+    {
+        if (appendedItems.Count == 0) return;
+        var availableWidth = GetGalleryAvailableWidth();
+        if (Math.Abs(availableWidth - _layoutWidth) >= 32)
+        {
+            var regrouped = GalleryLayoutEngine.CreateRows(_items, availableWidth);
+            var reusableCards = CreateReusableCardMap(_items);
+            ApplyPreparedRows(
+                _items.ToArray(),
+                regrouped,
+                availableWidth,
+                new GalleryPreparation(
+                    reusableCards,
+                    new Dictionary<long, GalleryCardViewModel>(),
+                    CountRowsForFirstViewport(regrouped)),
+                resetScroll: false);
+            return;
+        }
+
+        var append = GalleryLayoutEngine.CreateAppend(Rows, appendedItems, _layoutWidth);
+        if (append.ReplaceIncompleteTail && Rows.LastOrDefault() is { } incomplete)
+        {
+            var replacement = append.Rows[0];
+            var reusableCards = incomplete.Items.ToDictionary(card => card.Id);
+            var transferredCards = new HashSet<GalleryCardViewModel>();
+            if (incomplete.IsRealized)
+            {
+                replacement.Realize(
+                    _repository.Paths,
+                    id => _selectedItemIds.Contains(id),
+                    reusableCards,
+                    transferredCards);
+            }
+
+            ReleaseRow(incomplete, transferredCards);
+            Rows[^1] = replacement;
+            foreach (var row in append.Rows.Skip(1)) Rows.Add(row);
+        }
+        else
+        {
+            foreach (var row in append.Rows) Rows.Add(row);
+        }
+
+        QueueThumbnailPriorityRefresh();
+    }
+
+    private async Task<GalleryPreparation> PrepareFirstViewportAsync(
+        IReadOnlyList<GalleryRow> rows,
+        IReadOnlyList<GalleryEntry> nextItems,
+        CancellationToken cancellationToken)
+    {
+        var reusableCards = CreateReusableCardMap(nextItems);
+        var preparedCards = new Dictionary<long, GalleryCardViewModel>();
+        var loadTasks = new List<Task>();
+        var preparedRows = CountRowsForFirstViewport(rows);
+        var dpiScale = VisualTreeHelper.GetDpi(RowsList).DpiScaleX;
+
+        for (var rowIndex = 0; rowIndex < preparedRows; rowIndex++)
+        {
+            foreach (var layout in rows[rowIndex].LayoutItems)
+            {
+                if (reusableCards.TryGetValue(layout.Item.Id, out var reusableCard)
+                    && (reusableCard.Thumbnail is not null || reusableCard.ThumbnailLoadFailed))
+                {
+                    continue;
+                }
+
+                if (reusableCard is not null)
+                {
+                    // An unfinished card cannot satisfy the first-viewport-ready
+                    // contract. Prepare a replacement without mutating the card
+                    // that is still presenting the old gallery.
+                    reusableCards.Remove(layout.Item.Id);
+                }
+
+                if (preparedCards.ContainsKey(layout.Item.Id))
+                {
+                    continue;
+                }
+
+                var card = new GalleryCardViewModel(
+                    layout.Item,
+                    _repository.Paths,
+                    layout.LayoutWidth,
+                    layout.ImageHeight,
+                    _selectedItemIds.Contains(layout.Item.Id));
+                preparedCards.Add(layout.Item.Id, card);
+                loadTasks.Add(card.PrepareAsync(
+                    ThumbnailRequestPriority.Visible,
+                    dpiScale,
+                    cancellationToken));
+            }
+        }
+
+        try
+        {
+            await Task.WhenAll(loadTasks);
+            return new GalleryPreparation(reusableCards, preparedCards, preparedRows);
+        }
+        catch
+        {
+            foreach (var card in preparedCards.Values) card.CancelThumbnailLoad();
+            throw;
+        }
+    }
+
+    private GalleryApplyResult ApplyPreparedRows(
+        IReadOnlyList<GalleryEntry> nextItems,
+        IReadOnlyList<GalleryRow> desiredRows,
+        double availableWidth,
+        GalleryPreparation preparation,
+        bool resetScroll)
+    {
+        var oldRows = Rows.ToArray();
+        var targetRows = new List<GalleryRow>(desiredRows.Count);
+        var reusedRows = 0;
+        for (var index = 0; index < desiredRows.Count; index++)
+        {
+            var desired = desiredRows[index];
+            if (index < oldRows.Length && oldRows[index].CanReuseFrom(desired))
+            {
+                oldRows[index].UpdateFrom(desired, id => _selectedItemIds.Contains(id));
+                targetRows.Add(oldRows[index]);
+                reusedRows++;
+            }
+            else
+            {
+                targetRows.Add(desired);
+            }
+        }
+
+        var candidateCards = new Dictionary<long, GalleryCardViewModel>(preparation.ReusableCards);
+        foreach (var (id, card) in preparation.PreparedCards)
+        {
+            candidateCards.TryAdd(id, card);
+        }
+
+        var transferredCards = new HashSet<GalleryCardViewModel>();
+        for (var index = 0; index < Math.Min(preparation.PreparedRows, targetRows.Count); index++)
+        {
+            targetRows[index].Realize(
+                _repository.Paths,
+                id => _selectedItemIds.Contains(id),
+                candidateCards,
+                transferredCards);
+        }
+
+        var targetRowSet = targetRows.ToHashSet();
+        foreach (var oldRow in oldRows)
+        {
+            if (!targetRowSet.Contains(oldRow)) ReleaseRow(oldRow, transferredCards);
+        }
+
+        _items.Clear();
+        _items.AddRange(nextItems);
         _layoutWidth = availableWidth;
-        ReplaceRows(CreateGalleryRows(_items, availableWidth));
-    }
-
-    private IReadOnlyList<GalleryRow> CreateGalleryRows(IReadOnlyList<GalleryEntry> items, double availableWidth)
-    {
-        var rows = new List<GalleryRow>();
-        if (items.Count == 0) return rows;
-
-        const double targetImageHeight = 210;
-        const double horizontalMargin = 14;
-        var pending = new List<GalleryEntry>();
-        var ratioSum = 0d;
-
-        foreach (var item in items)
+        for (var index = 0; index < targetRows.Count; index++)
         {
-            pending.Add(item);
-            ratioSum += LayoutRatio(item);
-            var projectedWidth = ratioSum * targetImageHeight + pending.Count * horizontalMargin;
-            if (projectedWidth < availableWidth && pending.Count < 7) continue;
-            rows.Add(CreateGalleryRow(pending, ratioSum, availableWidth, true));
-            pending.Clear();
-            ratioSum = 0;
+            if (index < Rows.Count)
+            {
+                if (!ReferenceEquals(Rows[index], targetRows[index])) Rows[index] = targetRows[index];
+            }
+            else
+            {
+                Rows.Add(targetRows[index]);
+            }
         }
 
-        if (pending.Count > 0) rows.Add(CreateGalleryRow(pending, ratioSum, availableWidth, false));
-        return rows;
+        while (Rows.Count > targetRows.Count) Rows.RemoveAt(Rows.Count - 1);
+
+        _rowsScrollViewer ??= FindDescendant<ScrollViewer>(RowsList);
+        if (resetScroll) _rowsScrollViewer?.ScrollToTop();
+        EmptyGalleryState.Visibility = nextItems.Count == 0
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        QueueThumbnailPriorityRefresh();
+
+        var reusedCardSet = preparation.ReusableCards.Values.ToHashSet();
+        var preparedCardSet = preparation.PreparedCards.Values.ToHashSet();
+        var realizedCards = targetRows
+            .Take(preparation.PreparedRows)
+            .SelectMany(row => row.Items)
+            .ToArray();
+        return new GalleryApplyResult(
+            reusedRows,
+            realizedCards.Count(reusedCardSet.Contains),
+            realizedCards.Count(preparedCardSet.Contains),
+            preparation.PreparedRows,
+            realizedCards.Length,
+            realizedCards.Count(card => card.Thumbnail is not null || card.ThumbnailLoadFailed));
     }
 
-    private void ReplaceRows(IReadOnlyList<GalleryRow> rows)
+    private Dictionary<long, GalleryCardViewModel> CreateReusableCardMap(
+        IReadOnlyList<GalleryEntry> nextItems)
     {
-        for (var index = 0; index < rows.Count; index++)
+        var nextById = nextItems.ToDictionary(item => item.Id);
+        var cards = new Dictionary<long, GalleryCardViewModel>();
+        foreach (var card in Rows.SelectMany(row => row.Items))
         {
-            if (index < Rows.Count) Rows[index] = rows[index];
-            else Rows.Add(rows[index]);
+            if (nextById.TryGetValue(card.Id, out var next)
+                && card.CanReuseFor(next))
+            {
+                cards.TryAdd(card.Id, card);
+            }
         }
-
-        while (Rows.Count > rows.Count) Rows.RemoveAt(Rows.Count - 1);
+        return cards;
     }
 
-    private static string CreateRowsSignature(IReadOnlyList<GalleryEntry> items)
+    private int CountRowsForFirstViewport(IReadOnlyList<GalleryRow> rows)
     {
-        if (items.Count == 0) return "0";
-        var builder = new StringBuilder(items.Count * 12);
-        builder.Append(items.Count);
-        foreach (var item in items)
+        var targetHeight = RowsList.ActualHeight > 0
+            ? RowsList.ActualHeight
+            : Math.Max(720, ActualHeight - 140);
+        var height = 0d;
+        var count = 0;
+        while (count < rows.Count && height < targetHeight)
         {
-            builder.Append('|');
-            builder.Append(item.Id);
+            height += rows[count].RowHeight + 14;
+            count++;
         }
-        return builder.ToString();
+        return count;
     }
 
-    private void AnimateRowsRefresh(RefreshAnimationKind animationKind, bool rowsChanged, bool hadRowsSignature)
-    {
-        if (!RowsList.IsLoaded || !hadRowsSignature || !rowsChanged || animationKind == RefreshAnimationKind.None) return;
-        RowsList.BeginAnimation(OpacityProperty, null);
-        var fromOpacity = animationKind == RefreshAnimationKind.Search ? 0.97 : 0.9;
-        var duration = animationKind == RefreshAnimationKind.Search ? 80 : 100;
-        RowsList.Opacity = fromOpacity;
-        RowsList.BeginAnimation(OpacityProperty, new DoubleAnimation(1d, TimeSpan.FromMilliseconds(duration))
-        {
-            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
-            FillBehavior = FillBehavior.HoldEnd
-        });
-    }
+    private double GetGalleryAvailableWidth() => Math.Max(300, ActualWidth - 56);
 
-    private GalleryRow CreateGalleryRow(IReadOnlyList<GalleryEntry> items, double ratioSum, double availableWidth, bool fill)
+    private void ReleaseRow(
+        GalleryRow row,
+        ISet<GalleryCardViewModel>? preservedCards = null)
     {
-        const double horizontalMargin = 14;
-        var imageHeight = fill
-            ? Math.Clamp((availableWidth - items.Count * horizontalMargin) / ratioSum, 140, 270)
-            : 210;
-        var row = new GalleryRow();
-        foreach (var item in items)
-        {
-            var width = Math.Max(92, LayoutRatio(item) * imageHeight);
-            row.Items.Add(new GalleryCardViewModel(item, _repository.Paths, width, imageHeight, _selectedItemIds.Contains(item.Id)));
-        }
-        return row;
-    }
-
-    private static double LayoutRatio(GalleryEntry item)
-    {
-        var ratio = item.Height <= 0 ? 1d : item.Width / (double)item.Height;
-        return Math.Clamp(ratio, 0.52, 2.5);
+        _realizedRowElements.Remove(row);
+        row.Release(preservedCards);
     }
 
     private void RegroupIfNeeded()
     {
-        var width = Math.Max(300, ActualWidth - 56);
+        var width = GetGalleryAvailableWidth();
         if (Math.Abs(width - _layoutWidth) < 32) return;
-        _layoutWidth = width;
-        var rows = CreateGalleryRows(_items, width);
-        if (TryUpdateRowLayouts(rows)) return;
-        ReplaceRows(rows);
-    }
-
-    private bool TryUpdateRowLayouts(IReadOnlyList<GalleryRow> rows)
-    {
-        if (Rows.Count != rows.Count) return false;
-        for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
-        {
-            var currentItems = Rows[rowIndex].Items;
-            var nextItems = rows[rowIndex].Items;
-            if (currentItems.Count != nextItems.Count) return false;
-            for (var itemIndex = 0; itemIndex < nextItems.Count; itemIndex++)
-            {
-                if (currentItems[itemIndex].Id != nextItems[itemIndex].Id) return false;
-            }
-        }
-
-        for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
-        {
-            var currentItems = Rows[rowIndex].Items;
-            var nextItems = rows[rowIndex].Items;
-            for (var itemIndex = 0; itemIndex < nextItems.Count; itemIndex++)
-            {
-                currentItems[itemIndex].UpdateLayout(nextItems[itemIndex].LayoutWidth, nextItems[itemIndex].ImageHeight);
-            }
-        }
-        return true;
+        var rows = GalleryLayoutEngine.CreateRows(_items, width);
+        ApplyPreparedRows(
+            _items.ToArray(),
+            rows,
+            width,
+            new GalleryPreparation(
+                CreateReusableCardMap(_items),
+                new Dictionary<long, GalleryCardViewModel>(),
+                CountRowsForFirstViewport(rows)),
+            resetScroll: false);
     }
 
     private async Task SaveCaptureAsync(PendingCapture pending, string prompt, string notes, long? category, string tags)
@@ -471,6 +854,8 @@ public partial class MainWindow : Window
 
     private void RowsListPreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
+        _frameSampler.BeginInteraction("gallery-scroll", TimeSpan.FromMilliseconds(750));
+        ThumbnailPresentationQueue.NotifyHighMotion(TimeSpan.FromMilliseconds(220));
         _rowsScrollViewer ??= FindDescendant<ScrollViewer>(RowsList);
         if (_rowsScrollViewer is null) return;
 
@@ -480,6 +865,84 @@ public partial class MainWindow : Window
         _rowsScrollViewer.ScrollToVerticalOffset(target);
         e.Handled = true;
     }
+
+    private void RowsListScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        if (e.OriginalSource is ScrollViewer viewer) _rowsScrollViewer = viewer;
+        if (Math.Abs(e.VerticalChange) > 0.01)
+        {
+            _frameSampler.BeginInteraction("gallery-scroll", TimeSpan.FromMilliseconds(750));
+            ThumbnailPresentationQueue.NotifyHighMotion(TimeSpan.FromMilliseconds(220));
+        }
+        QueueThumbnailPriorityRefresh();
+        QueueNextPageIfNeeded();
+    }
+
+    private void StartDevelopmentScrollProbe()
+    {
+        if (!DevelopmentPerformanceTrace.IsEnabled
+            || _developmentScrollProbeRendering is not null)
+        {
+            return;
+        }
+
+        _rowsScrollViewer ??= FindDescendant<ScrollViewer>(RowsList);
+        if (_rowsScrollViewer is null) return;
+        var clock = Stopwatch.StartNew();
+        var direction = 1d;
+        const double pixelsPerFrame = 16d;
+        var lastRenderingTime = TimeSpan.Zero;
+        _developmentScrollProbeRendering = (_, args) =>
+        {
+            if (_rowsScrollViewer is null) return;
+            if (clock.Elapsed >= TimeSpan.FromSeconds(3))
+            {
+                if (_developmentScrollProbeRendering is not null)
+                {
+                    CompositionTarget.Rendering -= _developmentScrollProbeRendering;
+                    _developmentScrollProbeRendering = null;
+                }
+                DevelopmentPerformanceTrace.Event("gallery-scroll-gate-complete", new
+                {
+                    durationMs = Math.Round(clock.Elapsed.TotalMilliseconds, 3),
+                    pixelsPerFrame,
+                    loadedItems = _items.Count,
+                    totalItems = _totalCount
+                });
+                return;
+            }
+
+            if (args is not RenderingEventArgs rendering
+                || rendering.RenderingTime == lastRenderingTime)
+            {
+                return;
+            }
+            lastRenderingTime = rendering.RenderingTime;
+            if (_rowsScrollViewer.VerticalOffset >= _rowsScrollViewer.ScrollableHeight - 96)
+            {
+                direction = -1;
+            }
+            else if (_rowsScrollViewer.VerticalOffset <= 96)
+            {
+                direction = 1;
+            }
+
+            ThumbnailPresentationQueue.NotifyHighMotion(TimeSpan.FromMilliseconds(220));
+            var target = Math.Clamp(
+                _rowsScrollViewer.VerticalOffset + direction * pixelsPerFrame,
+                0,
+                _rowsScrollViewer.ScrollableHeight);
+            _rowsScrollViewer.ScrollToVerticalOffset(target);
+        };
+        DevelopmentPerformanceTrace.Event("gallery-scroll-gate-start", new
+        {
+            pixelsPerFrame,
+            loadedItems = _items.Count,
+            totalItems = _totalCount
+        });
+        CompositionTarget.Rendering += _developmentScrollProbeRendering;
+    }
+
     private void SearchChanged(object sender, TextChangedEventArgs e)
     {
         if (_startupRefreshPending) return;
@@ -600,14 +1063,17 @@ public partial class MainWindow : Window
             };
             _settings.ExternalFolders.Add(existing);
             _settings.Save();
-            LoadExternalFolders();
+            _externalIndex.RegisterFolder(existing);
+            await LoadExternalFoldersAsync();
         }
 
+        _externalFolderId = existing.Id;
         if (ExternalFolderList.ItemsSource is IEnumerable<ExternalFolderChoice> choices)
         {
+            _suppressExternalRefresh = true;
             ExternalFolderList.SelectedItem = choices.FirstOrDefault(x => x.Id == existing.Id);
+            _suppressExternalRefresh = false;
         }
-        _externalFolderId = existing.Id;
         await RefreshAsync();
     }
 
@@ -628,9 +1094,76 @@ public partial class MainWindow : Window
     private void OpenLibraryClick(object sender, RoutedEventArgs e) => Process.Start(new ProcessStartInfo
     { FileName = _repository.Paths.Root, UseShellExecute = true });
 
-    private async void CardImageLoaded(object sender, RoutedEventArgs e)
+    private void GalleryRowLoaded(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is GalleryCardViewModel card) await card.LoadAsync();
+        if (sender is FrameworkElement { DataContext: GalleryRow row } element)
+        {
+            RealizeRow(row, element);
+        }
+    }
+
+    private void GalleryRowUnloaded(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is GalleryRow row) ReleaseRow(row);
+    }
+
+    private void GalleryRowDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.OldValue is GalleryRow oldRow) ReleaseRow(oldRow);
+        if (sender is FrameworkElement { IsLoaded: true } element && e.NewValue is GalleryRow newRow)
+        {
+            RealizeRow(newRow, element);
+        }
+    }
+
+    private void RealizeRow(GalleryRow row, FrameworkElement element)
+    {
+        _realizedRowElements[row] = element;
+        if (!row.IsRealized)
+        {
+            row.Realize(_repository.Paths, id => _selectedItemIds.Contains(id));
+        }
+        QueueThumbnailPriorityRefresh();
+    }
+
+    private void QueueThumbnailPriorityRefresh()
+    {
+        if (_thumbnailPriorityRefreshQueued) return;
+        _thumbnailPriorityRefreshQueued = true;
+        _ = Dispatcher.BeginInvoke(
+            DispatcherPriority.Loaded,
+            new Action(UpdateThumbnailPriorities));
+    }
+
+    private void UpdateThumbnailPriorities()
+    {
+        _thumbnailPriorityRefreshQueued = false;
+        var viewportBottom = RowsList.ActualHeight;
+        if (viewportBottom <= 0) return;
+
+        foreach (var (row, element) in _realizedRowElements.ToArray())
+        {
+            if (!row.IsRealized || !element.IsLoaded) continue;
+            double rowTop;
+            try
+            {
+                rowTop = element.TranslatePoint(new Point(0, 0), RowsList).Y;
+            }
+            catch (InvalidOperationException)
+            {
+                continue;
+            }
+
+            var rowBottom = rowTop + Math.Max(element.ActualHeight, row.RowHeight);
+            var priority = rowBottom > 0 && rowTop < viewportBottom
+                ? ThumbnailRequestPriority.Visible
+                : ThumbnailRequestPriority.Prefetch;
+            var dpiScale = VisualTreeHelper.GetDpi(element).DpiScaleX;
+            foreach (var card in row.Items)
+            {
+                _ = card.LoadAsync(priority, dpiScale);
+            }
+        }
     }
 
     private void CardMouseEnter(object sender, MouseEventArgs e) => AnimateScale(sender as Border, 1.02);
@@ -782,6 +1315,33 @@ public partial class MainWindow : Window
     private void UpdateBaseStatus()
     {
         if (StatusText is null) return;
+        if (IsExternalMode
+            && _externalFolderId is not null
+            && _externalFolderStates.TryGetValue(_externalFolderId, out var externalState)
+            && externalState.Status != ExternalFolderIndexStatus.Ready)
+        {
+            StatusText.Text = externalState.Status switch
+            {
+                ExternalFolderIndexStatus.Indexing =>
+                    $"正在后台建立外部文件夹索引，已发现 {externalState.AvailableFiles:N0} 张图片…",
+                ExternalFolderIndexStatus.Missing =>
+                    "外部文件夹不存在、磁盘未连接或路径已经移动。",
+                ExternalFolderIndexStatus.PermissionDenied =>
+                    "FR_Imageprompt 没有读取这个外部文件夹的权限。",
+                ExternalFolderIndexStatus.Failed =>
+                    externalState.LastError ?? "外部文件夹索引失败。",
+                _ => "外部文件夹正在等待建立索引。"
+            };
+            return;
+        }
+        if (!IsExternalMode
+            && !string.IsNullOrWhiteSpace(SearchBox.Text)
+            && !_repository.FullTextSearchAvailable)
+        {
+            StatusText.Text = "\u5168\u6587\u7D22\u5F15\u6682\u4E0D\u53EF\u7528\uFF0C\u5DF2\u5207\u6362\u517C\u5BB9\u641C\u7D22\uFF08\u7ED3\u679C\u5B8C\u6574\uFF0C\u901F\u5EA6\u53EF\u80FD\u7A0D\u6162\uFF09";
+            return;
+        }
+
         StatusText.Text = IsExternalMode
             ? "\u5916\u90E8\u6587\u4EF6\u5939\uFF1A\u53EF\u62D6\u51FA\u56FE\u7247\uFF0C\u53F3\u952E\u6216 Alt+M \u6536\u85CF\u5230\u56FE\u5E93"
             : (_showTrash ? "\u8BB0\u5F55\u5C06\u5728\u79FB\u5165\u56DE\u6536\u7AD9 30 \u5929\u540E\u81EA\u52A8\u6E05\u7406" : (_clipboard.IsEnabled ? "\u590D\u5236\u6216\u62D6\u5165\u4E00\u5F20\u56FE\u7247\u5373\u53EF\u5F00\u59CB\u6536\u5F55" : "\u6536\u5F55\u76D1\u542C\u5DF2\u5173\u95ED\uFF0C\u53EF\u6B63\u5E38\u6D4F\u89C8\u56FE\u7247\u4E0E\u590D\u5236\u63D0\u793A\u8BCD"));
@@ -990,6 +1550,7 @@ public partial class MainWindow : Window
 
         var saved = 0;
         var duplicates = 0;
+        var failed = 0;
         foreach (var entry in external)
         {
             try
@@ -998,7 +1559,11 @@ public partial class MainWindow : Window
                 var result = await _capture.SaveAsync(pending, entry.Prompt, entry.Notes, categoryId, []);
                 if (result.WasDuplicate) duplicates++; else saved++;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                failed++;
+                AppLog.Warning("external-collect", "External image could not be collected.", ex);
+            }
         }
 
         FinishSelectionOperation();
@@ -1007,6 +1572,7 @@ public partial class MainWindow : Window
             : duplicates > 0
                 ? $"\u5DF2\u6536\u85CF {saved} \u5F20\uFF0C\u5DF2\u5B58\u5728 {duplicates} \u5F20"
                 : $"\u5DF2\u6536\u85CF {saved} \u5F20";
+        if (failed > 0) message += $"，失败 {failed} 张（已写入诊断日志）";
         ShowSubtleStatus(message);
     }
 
@@ -1109,9 +1675,7 @@ public partial class MainWindow : Window
         if (index < 0 || target < 0 || target >= _settings.ExternalFolders.Count) return;
         (_settings.ExternalFolders[index], _settings.ExternalFolders[target]) = (_settings.ExternalFolders[target], _settings.ExternalFolders[index]);
         _settings.Save();
-        LoadExternalFolders();
-        if (ExternalFolderList.ItemsSource is IEnumerable<ExternalFolderChoice> choices)
-            ExternalFolderList.SelectedItem = choices.FirstOrDefault(x => x.Id == id);
+        await LoadExternalFoldersAsync();
         await RefreshAsync();
     }
 
@@ -1120,9 +1684,10 @@ public partial class MainWindow : Window
         var removed = _settings.ExternalFolders.RemoveAll(x => x.Id == id) > 0;
         if (!removed) return;
         _settings.Save();
+        await _externalIndex.RemoveFolderAsync(id);
         var wasSelected = _externalFolderId == id;
         if (wasSelected) _externalFolderId = null;
-        LoadExternalFolders();
+        await LoadExternalFoldersAsync();
         if (wasSelected)
         {
             _suppressFilterRefresh = true;
@@ -1161,10 +1726,23 @@ public partial class MainWindow : Window
         }
         return null;
     }
+    private sealed record GalleryPreparation(
+        IReadOnlyDictionary<long, GalleryCardViewModel> ReusableCards,
+        IReadOnlyDictionary<long, GalleryCardViewModel> PreparedCards,
+        int PreparedRows);
+
+    private sealed record GalleryApplyResult(
+        int ReusedRows,
+        int ReusedCards,
+        int PreparedCards,
+        int PreparedRows,
+        int FirstViewportCards,
+        int ReadyFirstViewportCards);
+
     private enum RefreshAnimationKind { None, Search, ViewSwitch, ContentChange }
 
     private sealed record CategoryMove(long[] ItemIds, long? CategoryId, string Name);
     private sealed record ExternalCollect(GalleryEntry[] Entries, long? CategoryId);
     private sealed record CategoryChoice(long? Id, string Name);
-    private sealed record ExternalFolderChoice(string Id, string Name, string Path);
+    private sealed record ExternalFolderChoice(string Id, string Name, string Path, string StatusText);
 }

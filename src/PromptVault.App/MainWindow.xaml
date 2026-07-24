@@ -16,56 +16,78 @@
      <TextBlock x:Name="CountText" FontSize="24" FontWeight="SemiBold" Foreground="{StaticResource PrimaryTextBrush}" Text="图片收藏"/>
      <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{DynamicResource HeaderHintBrush}" Text="移至顶部搜索 · 左侧分类 · 可拖入图片"/>
     </Grid>
-    <ListBox Grid.Row="1" x:Name="RowsList" ItemsSource="{Binding Rows}" Background="Transparent" BorderThickness="0" PreviewMouseWheel="RowsListPreviewMouseWheel"
-     ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="False" VirtualizingPanel.ScrollUnit="Pixel"
-     VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
-     <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
-     <ListBox.ItemContainerStyle>
-      <Style TargetType="ListBoxItem">
-       <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="0"/>
-       <Setter Property="Margin" Value="0,0,0,14"/><Setter Property="Background" Value="Transparent"/><Setter Property="Focusable" Value="False"/>
-       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><ContentPresenter/></ControlTemplate></Setter.Value></Setter>
-      </Style>
-     </ListBox.ItemContainerStyle>
-     <ListBox.ItemTemplate>
-      <DataTemplate>
-       <ItemsControl ItemsSource="{Binding Items}">
-        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" HorizontalAlignment="Center"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-        <ItemsControl.ItemTemplate>
-         <DataTemplate>
-          <Border Margin="7,0" Width="{Binding LayoutWidth}" Height="{Binding CardHeight}" Background="{DynamicResource CardSurfaceBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
-           CornerRadius="14" ClipToBounds="True" Cursor="Hand" MouseEnter="CardMouseEnter" MouseLeave="CardMouseLeave"
-           MouseLeftButtonDown="CardMouseDown" MouseMove="CardMouseMove" MouseLeftButtonUp="CardClick" ContextMenuOpening="CardContextMenuOpening"
-           RenderTransformOrigin="0.5,0.5">
-           <Border.RenderTransform><ScaleTransform ScaleX="1" ScaleY="1"/></Border.RenderTransform>
-           <Border.ContextMenu><ContextMenu Background="#F116202D" Foreground="#EEF6FF"><MenuItem Header="移到回收站" Click="DeleteCardClick"/></ContextMenu></Border.ContextMenu>
-           <Grid>
-            <Grid.RowDefinitions><RowDefinition Height="{Binding ImageHeight}"/><RowDefinition Height="42"/></Grid.RowDefinitions>
-            <Border Grid.RowSpan="2" CornerRadius="14" BorderBrush="#56D6FF" BorderThickness="2" Background="#1856D6FF" IsHitTestVisible="False" Panel.ZIndex="2">
-             <Border.Style><Style TargetType="Border"><Setter Property="Opacity" Value="0"/><Style.Triggers><DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter Property="Opacity" Value="1"/></DataTrigger></Style.Triggers></Style></Border.Style>
-            </Border>
-            <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,10,0" Width="30" Height="30" CornerRadius="15" Background="#D856D6FF" BorderBrush="#BDEEFF" BorderThickness="1" IsHitTestVisible="False" Panel.ZIndex="3">
-             <Border.Style><Style TargetType="Border"><Setter Property="Opacity" Value="0"/><Style.Triggers><DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter Property="Opacity" Value="1"/></DataTrigger></Style.Triggers></Style></Border.Style>
-             <TextBlock Text="✓" Foreground="#06131F" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            </Border>
-            <Border Background="{DynamicResource ImageWellBrush}" ClipToBounds="True">
-             <Image Source="{Binding Thumbnail}" Stretch="Uniform" Loaded="CardImageLoaded" RenderOptions.BitmapScalingMode="LowQuality"/>
-            </Border>
-            <Border Grid.Row="1" Padding="12,0" Background="{DynamicResource CardLabelBrush}">
-             <Grid>
-              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-              <TextBlock Grid.Column="0" Text="{Binding CategoryName}" Foreground="{DynamicResource CardTextBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-              <TextBlock Grid.Column="2" Text="{Binding Tags}" Foreground="{DynamicResource CardMetaTextBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-             </Grid>
-            </Border>
-           </Grid>
-          </Border>
-         </DataTemplate>
-        </ItemsControl.ItemTemplate>
-       </ItemsControl>
-      </DataTemplate>
-     </ListBox.ItemTemplate>
-    </ListBox>
+    <Grid Grid.Row="1">
+     <ListBox x:Name="RowsList" ItemsSource="{Binding Rows}" Background="Transparent" BorderThickness="0" PreviewMouseWheel="RowsListPreviewMouseWheel"
+      ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="True"
+      ScrollViewer.ScrollChanged="RowsListScrollChanged" VirtualizingPanel.ScrollUnit="Pixel" VirtualizingPanel.CacheLength="2,2"
+      VirtualizingPanel.CacheLengthUnit="Page" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+      <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
+      <ListBox.ItemContainerStyle>
+       <Style TargetType="ListBoxItem">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="0"/>
+        <Setter Property="Margin" Value="0,0,0,14"/><Setter Property="Background" Value="Transparent"/><Setter Property="Focusable" Value="False"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><ContentPresenter/></ControlTemplate></Setter.Value></Setter>
+       </Style>
+      </ListBox.ItemContainerStyle>
+      <ListBox.ItemTemplate>
+       <DataTemplate>
+        <ItemsControl Height="{Binding RowHeight}" ItemsSource="{Binding Items}" Loaded="GalleryRowLoaded" Unloaded="GalleryRowUnloaded"
+         DataContextChanged="GalleryRowDataContextChanged">
+         <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" HorizontalAlignment="Center"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+         <ItemsControl.ItemTemplate>
+          <DataTemplate>
+           <Border Margin="7,0" Width="{Binding LayoutWidth}" Height="{Binding CardHeight}" Background="{DynamicResource CardSurfaceBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+            CornerRadius="14" ClipToBounds="True" Cursor="Hand" MouseEnter="CardMouseEnter" MouseLeave="CardMouseLeave"
+            MouseLeftButtonDown="CardMouseDown" MouseMove="CardMouseMove" MouseLeftButtonUp="CardClick" ContextMenuOpening="CardContextMenuOpening"
+            RenderTransformOrigin="0.5,0.5">
+            <Border.RenderTransform><ScaleTransform ScaleX="1" ScaleY="1"/></Border.RenderTransform>
+            <Border.ContextMenu><ContextMenu Background="#F116202D" Foreground="#EEF6FF"><MenuItem Header="移到回收站" Click="DeleteCardClick"/></ContextMenu></Border.ContextMenu>
+            <Grid>
+             <Grid.RowDefinitions><RowDefinition Height="{Binding ImageHeight}"/><RowDefinition Height="42"/></Grid.RowDefinitions>
+             <Border Grid.RowSpan="2" CornerRadius="14" BorderBrush="#56D6FF" BorderThickness="2" Background="#1856D6FF" IsHitTestVisible="False" Panel.ZIndex="2">
+              <Border.Style><Style TargetType="Border"><Setter Property="Opacity" Value="0"/><Style.Triggers><DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter Property="Opacity" Value="1"/></DataTrigger></Style.Triggers></Style></Border.Style>
+             </Border>
+             <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,10,0" Width="30" Height="30" CornerRadius="15" Background="#D856D6FF" BorderBrush="#BDEEFF" BorderThickness="1" IsHitTestVisible="False" Panel.ZIndex="3">
+              <Border.Style><Style TargetType="Border"><Setter Property="Opacity" Value="0"/><Style.Triggers><DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter Property="Opacity" Value="1"/></DataTrigger></Style.Triggers></Style></Border.Style>
+              <TextBlock Text="✓" Foreground="#06131F" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+             </Border>
+             <Border Background="{DynamicResource ImageWellBrush}" ClipToBounds="True">
+              <Grid>
+               <Image Source="{Binding Thumbnail}" Stretch="Uniform" RenderOptions.BitmapScalingMode="LowQuality"
+                SnapsToDevicePixels="True" CacheMode="BitmapCache"/>
+               <TextBlock Text="缩略图不可用" HorizontalAlignment="Center" VerticalAlignment="Center"
+                Foreground="{DynamicResource CardMetaTextBrush}" FontSize="13">
+                <TextBlock.Style>
+                 <Style TargetType="TextBlock">
+                  <Setter Property="Visibility" Value="Collapsed"/>
+                  <Style.Triggers>
+                   <DataTrigger Binding="{Binding ThumbnailLoadFailed}" Value="True">
+                    <Setter Property="Visibility" Value="Visible"/>
+                   </DataTrigger>
+                  </Style.Triggers>
+                 </Style>
+                </TextBlock.Style>
+               </TextBlock>
+              </Grid>
+             </Border>
+             <Border Grid.Row="1" Padding="12,0" Background="{DynamicResource CardLabelBrush}">
+              <Grid>
+               <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+               <TextBlock Grid.Column="0" Text="{Binding CategoryName}" Foreground="{DynamicResource CardTextBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+               <TextBlock Grid.Column="2" Text="{Binding Tags}" Foreground="{DynamicResource CardMetaTextBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+              </Grid>
+             </Border>
+            </Grid>
+           </Border>
+          </DataTemplate>
+         </ItemsControl.ItemTemplate>
+        </ItemsControl>
+       </DataTemplate>
+      </ListBox.ItemTemplate>
+     </ListBox>
+     <TextBlock x:Name="EmptyGalleryState" Text="没有匹配的图片" Visibility="Collapsed" IsHitTestVisible="False"
+      HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="18" Foreground="{DynamicResource HeaderHintBrush}"/>
+    </Grid>
     <TextBlock Grid.Row="2" x:Name="StatusText" Margin="6,10,0,0" Foreground="{DynamicResource StatusHintBrush}" Text="复制或拖入一张图片即可开始收录"/>
    </Grid>
 
@@ -137,7 +159,14 @@
         <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><Border x:Name="ExternalBorder" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="8"><ContentPresenter/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ExternalBorder" Property="Background" Value="#243A50"/><Setter TargetName="ExternalBorder" Property="BorderBrush" Value="#3D708D"/></Trigger><Trigger Property="IsSelected" Value="True"><Setter TargetName="ExternalBorder" Property="Background" Value="#2A4C65"/><Setter TargetName="ExternalBorder" Property="BorderBrush" Value="#56D6FF"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
        </Style>
       </ListBox.ItemContainerStyle>
-      <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/></DataTemplate></ListBox.ItemTemplate>
+      <ListBox.ItemTemplate>
+       <DataTemplate>
+        <StackPanel>
+         <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+         <TextBlock Text="{Binding StatusText}" Margin="0,2,0,0" FontSize="10" Foreground="#7892A8" TextTrimming="CharacterEllipsis"/>
+        </StackPanel>
+       </DataTemplate>
+      </ListBox.ItemTemplate>
      </ListBox>
      <StackPanel Grid.Row="5" Margin="0,14,0,0">
       <Button Content="＋ 新建分类" Click="AddCategoryClick" Margin="0,0,0,8"/>

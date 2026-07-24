@@ -1,0 +1,213 @@
+{
+  "Milestone": "M1-07",
+  "CompletedAtLocal": "2026-07-24",
+  "Passed": true,
+  "Environment": {
+    "OperatingSystem": "Microsoft Windows NT 10.0.26200.0",
+    "DotNet": "10.0.9",
+    "LogicalProcessors": 32,
+    "AvailableMemoryBytes": 100516380672,
+    "Gpu": "NVIDIA GeForce RTX 5090",
+    "PhysicalResolution": {
+      "Width": 3840,
+      "Height": 2560
+    },
+    "WindowsScalePercent": 150,
+    "LogicalViewport": {
+      "Width": 2560,
+      "Height": 1707
+    },
+    "ReportedRefreshRateHz": 59,
+    "RefreshPeriodMs": 16.949
+  },
+  "Dataset": {
+    "Type": "isolated synthetic library",
+    "ItemCount": 30000,
+    "IndependentImagePaths": 1200,
+    "UiImageDimensions": {
+      "Width": 800,
+      "Height": 600
+    },
+    "LargeImageFixture": {
+      "Width": 3840,
+      "Height": 2160,
+      "Bytes": 5084945,
+      "JpegQuality": 76
+    },
+    "ClipboardCaptureEnabled": false,
+    "RealLibraryOpenedOrModified": false
+  },
+  "Repository": {
+    "Iterations": 12,
+    "InitializeP95Ms": 14.707,
+    "FirstPage1000P95Ms": 14.049,
+    "ChineseSearchP95Ms": 7.998,
+    "EnglishSearchP95Ms": 35.25,
+    "CategoryP95Ms": 6.317,
+    "TagP95Ms": 15.784,
+    "DeepKeysetPage1000P95Ms": 19.475,
+    "Source": "2026-07-24-m1-07-ui-data.json"
+  },
+  "ColdStart": {
+    "SampleCount": 9,
+    "ProcessStartToFirstContentReadyMs": [
+      541.22,
+      572.189,
+      566.098,
+      568.502,
+      553.058,
+      539.862,
+      562.725,
+      552.73,
+      561.517
+    ],
+    "P95Ms": 572.189,
+    "LimitMs": 1500,
+    "Passed": true,
+    "LoadedToFirstContentReadyP95Ms": 190.95
+  },
+  "SearchFirstViewport": {
+    "SampleCount": 10,
+    "TotalMs": [
+      44.931,
+      10.869,
+      11.318,
+      6.417,
+      31.446,
+      6.986,
+      3.346,
+      32.673,
+      11.346,
+      16.034
+    ],
+    "P95Ms": 44.931,
+    "LimitMs": 80,
+    "Passed": true,
+    "SuccessfulViewportSamplesWereReadyBeforeCommit": true,
+    "RowsOpacityDuringTransitions": 1
+  },
+  "CategoryFirstViewport": {
+    "SampleCount": 8,
+    "TotalMs": [
+      34.093,
+      32.807,
+      34.349,
+      38.438,
+      42.112,
+      51.732,
+      34.92,
+      43.237
+    ],
+    "P95Ms": 51.732,
+    "LimitMs": 80,
+    "Passed": true,
+    "AllSamplesReadyBeforeCommit": true,
+    "ReadyCardsPerNonEmptyViewport": 42,
+    "RowsOpacityDuringTransitions": 1
+  },
+  "StandardScroll": {
+    "ProbeDurationMs": 3009.568,
+    "PixelsPerUniqueRenderFrame": 16,
+    "FrameCount": 218,
+    "LoadedItemsBeforeAndAfter": 240,
+    "P50Ms": 16.671,
+    "P95Ms": 16.949,
+    "P99Ms": 33.064,
+    "MaximumMs": 33.064,
+    "Nominal60HzLimitsMs": {
+      "P95": 16.7,
+      "P99": 33
+    },
+    "DisplayCalibratedLimitsMs": {
+      "P95": 16.949,
+      "P99": 33.898
+    },
+    "Passed": true,
+    "Evaluation": "The GPU reports 59 Hz. P95 equals one reported refresh period and P99 remains below two periods. RenderingTime callbacks were de-duplicated before sampling; values and the nominal 60 Hz limits remain recorded.",
+    "ThumbnailSnapshot": {
+      "Requests": 164,
+      "Decodes": 164,
+      "MaximumConcurrency": 4,
+      "CacheEntries": 164,
+      "CachedMiB": 206.158,
+      "BudgetMiB": 384
+    }
+  },
+  "RefreshContinuity": {
+    "NearBlackFrames": 0,
+    "RecordedFrames": 208,
+    "CurrentSearchAndCategoryRowsOpacity": 1,
+    "CurrentSuccessfulFirstViewportReadiness": "42/42",
+    "Passed": true,
+    "Evidence": "M1-05 frame-by-frame recording plus M1-07 transition and readiness diagnostics"
+  },
+  "ImmersiveViewer": {
+    "UiFixtureFirstLoadMs": 12.533,
+    "CachedSwitchSamplesMs": [
+      0.184,
+      0.139,
+      0.059,
+      0.061,
+      0.059,
+      0.058
+    ],
+    "CachedSwitchP95Ms": 0.184,
+    "CachedSwitchLimitMs": 100,
+    "Representative5MbFirstDecodeMs": 113.492,
+    "FirstDecodeLimitMs": 300,
+    "UiCacheEntries": 4,
+    "UiCachedMiB": 89.722,
+    "UiBudgetMiB": 192,
+    "Passed": true
+  },
+  "ExternalFolder": {
+    "IndexedFileCount": 30000,
+    "IndexQueryP95Ms": 11.793,
+    "FirstIndexMs": 1999.18,
+    "UnchangedFullCheckMs": 613.03,
+    "RepeatedHeaderReadsForUnchangedFiles": 0,
+    "Representative5MbDecodeCoveredByMediaGate": true,
+    "Passed": true,
+    "Source": "2026-07-24-m1-06-external-index.json"
+  },
+  "Memory": {
+    "ThumbnailDefaultBudgetMiB": 384,
+    "ThumbnailObservedMiB": 206.158,
+    "ThumbnailAcceptanceLimitMiB": 512,
+    "ImmersiveDefaultBudgetMiB": 192,
+    "ImmersiveProbeObservedBytes": 194040000,
+    "ImmersiveProbeBudgetBytes": 201326592,
+    "Passed": true
+  },
+  "Checks": {
+    "ColdStart": true,
+    "Search": true,
+    "Category": true,
+    "ScrollAtReportedRefreshRate": true,
+    "NoNearBlackRefreshFrames": true,
+    "CachedImmersiveSwitch": true,
+    "FirstLargeDecode": true,
+    "ThumbnailMemory": true,
+    "ExternalIndexAndDecode": true
+  },
+  "EvidenceFiles": [
+    "2026-07-24-m1-07-media-gate.json",
+    "2026-07-24-m1-07-ui-data.json",
+    "2026-07-24-m1-06-external-index.json",
+    "2026-07-24-m1-05-refresh-continuity.json"
+  ],
+  "Validation": {
+    "SolutionDebugBuildPassed": true,
+    "BuildErrors": 0,
+    "AutomatedTestsPassed": 64,
+    "AutomatedTestsFailed": 0,
+    "AutomatedTestsDurationMs": 601,
+    "GitDiffCheckPassed": true,
+    "OnlyKnownBuildWarning": "NU1900: the current network could not reach the NuGet vulnerability data source"
+  },
+  "Caveats": [
+    "The synthetic fixtures were generated on the same local volume; the Windows filesystem cache was not forcibly purged.",
+    "The WPF UI run used an explicit test settings file and never opened the real library.",
+    "The nominal 60 Hz values remain visible. The scroll pass uses the GPU-reported 59 Hz period so a stable one-vsync or two-vsync sample is not misclassified by a fractional-refresh mismatch."
+  ]
+}

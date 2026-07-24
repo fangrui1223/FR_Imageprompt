@@ -2,6 +2,14 @@
 
 本文件用于帮助新的 Codex 对话快速接手本项目。内容以项目事实、目录分工、编码约定和验证方式为主；具体功能取舍以用户最新要求为准。
 
+## 0. 当前长期实施蓝图
+
+FR_Imageprompt 2.0 的产品决策、分阶段实施步骤、性能验收线和跨对话进度记录统一维护在：
+
+- `docs/FR_Imageprompt-2.0-implementation-blueprint.md`
+
+新的 Codex 对话在进行功能开发、性能优化、UI 重构、无感收录、AI 元数据或自由画板工作前，必须先完整阅读该蓝图。实施时从依赖已经完成的第一个未勾选步骤继续；每完成一步，必须在蓝图中勾选并追加日期、主要文件、验证结果和遗留问题。
+
 ## 1. 技术栈说明
 
 项目名称：FR_Imageprompt / PromptVault
@@ -82,6 +90,7 @@ Compress-Archive -LiteralPath 'artifacts\PromptVault-CLIP-ViT-B32\clip' -Destina
 
 - `src/PromptVault.Core/`：核心库。
 - `src/PromptVault.Core/LibraryRepository.cs`：图库数据库、搜索、分类、标签、回收站等核心存取逻辑。
+- `src/PromptVault.Core/LibraryRepository.ExternalIndex.cs`：外部文件夹持久化索引、稳定键分页和增量状态存取。
 - `src/PromptVault.Core/Models.cs`：核心数据记录。
 - `src/PromptVault.Core/ModelPackInstaller.cs`：模型包导入和校验。
 - `src/PromptVault.App/`：WPF 主程序。
@@ -92,6 +101,7 @@ Compress-Archive -LiteralPath 'artifacts\PromptVault-CLIP-ViT-B32\clip' -Destina
 - `src/PromptVault.App/CaptureWindow.xaml.cs`：收录窗口交互逻辑。
 - `src/PromptVault.App/CaptureWindow.Drop.cs`：收录窗口拖放处理。
 - `src/PromptVault.App/Services/`：应用服务，例如剪贴板监听、图片处理、AI 分类、Toast、托盘等。
+- `src/PromptVault.App/Services/ExternalFolderIndexService.cs`：外部目录后台扫描、文件监控、低频校验和图片头元数据读取。
 - `src/PromptVault.App/ViewModels.cs`：图库卡片和列表相关 ViewModel。
 
 测试和工具：
@@ -102,6 +112,8 @@ Compress-Archive -LiteralPath 'artifacts\PromptVault-CLIP-ViT-B32\clip' -Destina
 - `tools/model-pack/verify.mjs`：模型包验证脚本。
 - `tools/model-pack/local-models/`：离线模型文件。
 - `tools/PromptVault.ModelSmoke/`：调用真实 `LocalAiClassifier` 的命令行烟测工具。
+- `tools/PromptVault.ExternalIndexProbe/`：30,000 文件外部索引、复检、查询与增量变化性能探针。
+- `tools/PromptVault.PerformanceGate/`：M1-07 的约 5MB/4K 图片解码、沉浸大图缓存和缩略图内存门禁探针。
 
 文档、模型和产物：
 

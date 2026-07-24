@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Diagnostics;
 
 namespace PromptVault.Core;
 
@@ -64,8 +65,28 @@ public sealed class ModelPackInstaller
             if (Directory.Exists(target)) Directory.Move(target, target + $".old-{DateTime.UtcNow:yyyyMMddHHmmss}");
             Directory.Move(clip, target);
         }
-        finally { try { if (Directory.Exists(staging)) Directory.Delete(staging, true); } catch { } }
+        finally
+        {
+            try
+            {
+                if (Directory.Exists(staging)) Directory.Delete(staging, true);
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceWarning($"PromptVault model staging cleanup failed for '{staging}': {ex}");
+            }
+        }
     }
 
-    private static void TryDelete(string path) { try { if (File.Exists(path)) File.Delete(path); } catch { } }
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceWarning($"PromptVault temporary model file cleanup failed for '{path}': {ex}");
+        }
+    }
 }

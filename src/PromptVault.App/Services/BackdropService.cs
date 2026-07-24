@@ -19,7 +19,10 @@ public static class BackdropService
             DwmSetWindowAttribute(handle, 33, ref rounded, sizeof(int));
             DwmSetWindowAttribute(handle, 38, ref mica, sizeof(int));
         }
-        catch { }
+        catch (Exception ex)
+        {
+            AppLog.Warning("window-backdrop", "Windows backdrop could not be applied.", ex);
+        }
     }
 
     [DllImport("dwmapi.dll")]

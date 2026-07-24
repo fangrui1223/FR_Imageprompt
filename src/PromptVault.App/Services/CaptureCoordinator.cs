@@ -48,7 +48,7 @@ public sealed class CaptureCoordinator
         }
         catch
         {
-            try { File.Delete(staged); } catch { }
+            TryDeleteStagingFile(staged);
             throw;
         }
     }
@@ -94,7 +94,7 @@ public sealed class CaptureCoordinator
         {
             if (pending.ExistingItem is null)
             {
-                foreach (var path in moved) { try { if (File.Exists(path)) File.Delete(path); } catch { } }
+                foreach (var path in moved) TryDeleteStagingFile(path);
             }
             throw;
         }
@@ -132,7 +132,7 @@ public sealed class CaptureCoordinator
         }
         catch
         {
-            try { File.Delete(staged); } catch { }
+            TryDeleteStagingFile(staged);
             throw;
         }
     }
@@ -141,6 +141,18 @@ public sealed class CaptureCoordinator
     {
         Directory.CreateDirectory(_repository.Paths.Staging);
         return Path.Combine(_repository.Paths.Staging, $"{Guid.NewGuid():N}{extension}");
+    }
+
+    private static void TryDeleteStagingFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warning("capture-staging-cleanup", "A capture staging file could not be removed.", ex);
+        }
     }
 
     private static string ExtensionFromUriOrContentType(Uri uri, string? contentType)
