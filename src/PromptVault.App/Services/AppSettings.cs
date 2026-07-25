@@ -13,10 +13,15 @@ public sealed class AppSettings
     public bool InspectorPinned { get; set; }
     public string EdgeMenuSensitivity { get; set; } = EdgeIntentProfile.NormalSensitivity;
     public bool EdgeMenusAlwaysVisible { get; set; }
+    public bool OnlineAiEnabled { get; set; }
+    public string OnlineAiEndpoint { get; set; } = "";
+    public string OnlineAiModel { get; set; } = "";
+    public bool OnlineAiIncludeExistingPrompt { get; set; }
     public List<ExternalFolderSetting> ExternalFolders { get; set; } = [];
     public Dictionary<string, GalleryLayoutPreference> GalleryLayouts { get; set; } = [];
     [JsonIgnore] public string? RecoveryNotice { get; private set; }
     [JsonIgnore] public string? RecoveryBackupPath { get; private set; }
+    [JsonIgnore] public string StorageFilePath => StoragePath ?? SettingsPath;
     [JsonIgnore] private string? StoragePath { get; set; }
 
     private static string SettingsPath => Path.Combine(

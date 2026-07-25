@@ -1,0 +1,69 @@
+<Window x:Class="PromptVault.App.AiSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="AI 设置" Width="680" Height="650"
+        MinWidth="620" MinHeight="590"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        Foreground="{DynamicResource PrimaryTextBrush}">
+ <Grid Margin="24">
+  <Grid.RowDefinitions>
+   <RowDefinition Height="Auto"/>
+   <RowDefinition Height="*"/>
+   <RowDefinition Height="Auto"/>
+  </Grid.RowDefinitions>
+  <StackPanel>
+   <TextBlock Text="AI 设置" FontSize="26" FontWeight="SemiBold"/>
+   <TextBlock Margin="0,6,0,18" Foreground="{DynamicResource SecondaryTextBrush}"
+              Text="本地 AI 始终离线运行。在线 API 是可选增强，默认关闭。"/>
+  </StackPanel>
+  <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+   <StackPanel>
+    <CheckBox x:Name="OnlineEnabledCheckBox" Content="启用在线 AI"
+              FontSize="16" FontWeight="SemiBold" Margin="0,0,0,18"/>
+
+    <TextBlock Text="OpenAI 兼容的 Chat Completions 完整端点"/>
+    <TextBox x:Name="EndpointBox" Margin="0,6,0,14"
+             AutomationProperties.Name="在线 AI 端点"/>
+
+    <TextBlock Text="模型名称"/>
+    <TextBox x:Name="ModelBox" Margin="0,6,0,14"
+             AutomationProperties.Name="在线 AI 模型"/>
+
+    <TextBlock Text="API 密钥"/>
+    <PasswordBox x:Name="ApiKeyBox" Margin="0,6,0,4"
+                 PasswordChar="●"
+                 MinHeight="38" Padding="12,0"
+                 VerticalContentAlignment="Center"
+                 Foreground="{DynamicResource PrimaryTextBrush}"
+                 Background="{DynamicResource TextFieldBrush}"
+                 BorderBrush="{DynamicResource TextFieldBorderBrush}"
+                 BorderThickness="1"
+                 AutomationProperties.Name="在线 AI 密钥"/>
+    <TextBlock x:Name="KeyStateText" Margin="0,0,0,14"
+               Foreground="{DynamicResource MutedTextBrush}"/>
+
+    <CheckBox x:Name="IncludePromptCheckBox"
+              Content="同时发送当前提示词"
+              Margin="0,2,0,18"/>
+
+    <Border Padding="14" Background="{DynamicResource PanelBrush}"
+            BorderBrush="{DynamicResource FloatingBorderBrush}" BorderThickness="1"
+            CornerRadius="{StaticResource CornerRadiusControl}">
+     <StackPanel>
+      <TextBlock Text="发送内容与隐私边界" FontWeight="SemiBold" Margin="0,0,0,8"/>
+      <TextBlock TextWrapping="Wrap" LineHeight="20"
+                 Text="只有启用在线 AI 后，新收录或你主动触发的分析才会发送：图片原始内容、可用分类名称和所需元数据字段。只有勾选“同时发送当前提示词”时才会发送提示词。不会发送本机路径、备注、既有标签或数据库；API 密钥只保存到 Windows 凭据管理器，不写入设置、日志或仓库。服务方如何保存和使用请求内容由其隐私条款决定。"/>
+     </StackPanel>
+    </Border>
+
+    <TextBlock x:Name="StatusText" Margin="0,14,0,0"
+               TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"/>
+   </StackPanel>
+  </ScrollViewer>
+  <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+   <Button Content="取消" MinWidth="88" Margin="0,0,10,0" IsCancel="True"/>
+   <Button Content="保存设置" MinWidth="104" IsDefault="True" Click="SaveClick"/>
+  </StackPanel>
+ </Grid>
+</Window>

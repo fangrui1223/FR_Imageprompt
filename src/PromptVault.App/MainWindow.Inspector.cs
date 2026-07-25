@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using PromptVault.App.Services;
+using PromptVault.Core;
 
 namespace PromptVault.App;
 
@@ -11,6 +12,7 @@ public partial class MainWindow
     private GalleryEntry? _inspectedItem;
     private BitmapSource? _inspectedThumbnail;
     private string? _inspectorAiDraft = null;
+    private MetadataCandidateRecord? _inspectorAiCandidate;
     private bool _inspectorVisible;
 
     private void OpenInspector(GalleryCardViewModel card)
@@ -45,18 +47,61 @@ public partial class MainWindow
         InspectorSourceText.Text = item.IsExternal
             ? $"外部文件夹\n{item.OriginalPath}"
             : $"图库原图\n{ResolveOriginalPath(item)}";
-        InspectorAiDraftText.Text = string.IsNullOrWhiteSpace(_inspectorAiDraft)
-            ? "尚无 AI 草稿 · M4 分析后显示"
-            : _inspectorAiDraft;
-        InspectorAestheticText.Text = "尚无审美属性 · M4 分析后显示";
+        _inspectorAiDraft = null;
+        _inspectorAiCandidate = null;
+        InspectorAiDraftText.Text = "正在读取 AI 元数据…";
+        InspectorAiDraftText.IsReadOnly = true;
+        InspectorAiSourceText.Text = "";
+        InspectorAestheticText.Text = "正在读取审美属性…";
 
         var editable = !item.IsExternal && item.DeletedAt is null;
         InspectorPromptEditor.IsReadOnly = !editable;
         InspectorTagsEditor.IsReadOnly = !editable;
         InspectorNotesEditor.IsReadOnly = !editable;
         InspectorSaveButton.IsEnabled = editable;
+        InspectorOnlineAiButton.IsEnabled = editable;
         InspectorConfirmAiButton.IsEnabled = editable && !string.IsNullOrWhiteSpace(_inspectorAiDraft);
+        InspectorRejectAiButton.IsEnabled = false;
         UpdateInspectorPinVisual();
+        _ = LoadInspectorAiAsync(item.Id, editable);
+    }
+
+    private async Task LoadInspectorAiAsync(long itemId, bool editable)
+    {
+        try
+        {
+            var candidates = await _repository.GetMetadataCandidatesAsync(itemId);
+            var authoritative = await _repository.GetUserMetadataAsync(itemId, "description");
+            if (_inspectedItem?.Id != itemId) return;
+            _inspectorAiCandidate = candidates.FirstOrDefault(candidate =>
+                candidate.FieldType == "description"
+                && candidate.Status == MetadataCandidateStatus.Pending);
+            _inspectorAiDraft = _inspectorAiCandidate?.Value;
+            InspectorAiDraftText.Text = authoritative?.Value
+                ?? _inspectorAiDraft
+                ?? "尚无 AI 草稿，可通过待校正入口加入分析队列";
+            InspectorAiDraftText.IsReadOnly = authoritative is not null || _inspectorAiCandidate is null;
+            InspectorAiSourceText.Text = authoritative is not null
+                ? "用户已确认 · 权威元数据"
+                : _inspectorAiCandidate is { } draft
+                    ? $"{draft.ModelName} · {draft.Source} · {(draft.Confidence is { } score ? score.ToString("P1") : "无置信度")}"
+                    : "";
+            var aesthetics = candidates
+                .Where(candidate => candidate.FieldType is
+                    "style" or "lighting" or "color" or "composition" or "texture" or "atmosphere")
+                .Select(candidate => $"{candidate.FieldType}：{candidate.Value}")
+                .ToArray();
+            InspectorAestheticText.Text = aesthetics.Length == 0
+                ? "尚无审美属性"
+                : string.Join("  ·  ", aesthetics);
+            InspectorConfirmAiButton.IsEnabled = editable && _inspectorAiCandidate is not null;
+            InspectorRejectAiButton.IsEnabled = editable && _inspectorAiCandidate is not null;
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warning("inspector-ai", "Inspector AI metadata could not be loaded.", ex);
+            if (_inspectedItem?.Id == itemId) InspectorAiDraftText.Text = "AI 元数据暂时不可用";
+        }
     }
 
     private void RestoreInspectorAfterRefresh()
@@ -179,16 +224,109 @@ public partial class MainWindow
         }
     }
 
-    private void ConfirmInspectorAiClick(object sender, RoutedEventArgs e)
+    private async void ConfirmInspectorAiClick(object sender, RoutedEventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(_inspectorAiDraft))
+        if (_inspectorAiCandidate is not { } candidate)
         {
             ToastService.Show(this, "尚无可确认的 AI 草稿");
             return;
         }
+        await _repository.ConfirmMetadataCandidateAsync(candidate.Id, InspectorAiDraftText.Text);
+        ToastService.Show(this, "AI 草稿已确认为用户元数据");
+        if (_inspectedItem is { } item) await LoadInspectorAiAsync(item.Id, !item.IsExternal && item.DeletedAt is null);
+    }
 
-        InspectorPromptEditor.Text = _inspectorAiDraft;
-        ToastService.Show(this, "AI 草稿已填入提示词，保存后生效");
+    private async void RejectInspectorAiClick(object sender, RoutedEventArgs e)
+    {
+        if (_inspectorAiCandidate is not { } candidate) return;
+        await _repository.RejectMetadataCandidateAsync(candidate.Id);
+        ToastService.Show(this, "AI 草稿已拒绝，模型重跑不会恢复本版本结果");
+        if (_inspectedItem is { } item) await LoadInspectorAiAsync(item.Id, !item.IsExternal && item.DeletedAt is null);
+    }
+
+    private async void OpenAiReviewClick(object sender, RoutedEventArgs e)
+    {
+        await _clipboard.ShowAiReviewAsync(_inspectedItem?.Id);
+    }
+
+    private async void AnalyzeInspectorOnlineClick(object sender, RoutedEventArgs e)
+    {
+        if (_inspectedItem is not { IsExternal: false, DeletedAt: null } item) return;
+        if (!_settings.OnlineAiEnabled
+            || !OnlineAiConfiguration.TryCreate(_settings, out _, out _)
+            || !WindowsCredentialStore.HasOnlineAiKey())
+        {
+            OpenAiSettingsClick(sender, e);
+            ToastService.Show(this, "完成在线 AI 设置后，请再次点击“在线分析”");
+            return;
+        }
+
+        InspectorOnlineAiButton.IsEnabled = false;
+        try
+        {
+            ToastService.Show(this, "在线分析已交给独立 Worker");
+            if (!await _aiWorker.EnqueueOnlineAndRunAsync(item.Id, item.Hash))
+            {
+                ToastService.Show(this, "在线调用未完成；本地图库和收录未受影响");
+                return;
+            }
+            await LoadInspectorAiAsync(item.Id, editable: true);
+            ToastService.Show(this, "在线草稿已生成，请确认或修改");
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warning("online-ai", "Online AI analysis could not complete.", ex);
+            ToastService.Show(this, "在线调用失败；本地图库和收录未受影响");
+        }
+        finally
+        {
+            if (_inspectedItem is { IsExternal: false, DeletedAt: null })
+                InspectorOnlineAiButton.IsEnabled = true;
+        }
+    }
+
+    private async Task ShowSimilarImagesAsync()
+    {
+        if (_inspectedItem is not { IsExternal: false } item)
+        {
+            ToastService.Show(this, "请先选择主图库中的一张图片");
+            return;
+        }
+        await using var provider = new LocalClipAiProvider(_repository.Paths.Models);
+        try
+        {
+            var service = new SimilaritySearchService(
+                _repository,
+                new AiProviderRegistry([provider]));
+            var matches = await service.SearchByImageAsync(
+                item.Id,
+                LocalClipAiProvider.ProviderId,
+                LocalClipAiProvider.ModelVersion,
+                100);
+            var results = new List<(GalleryItem Item, float Score)>();
+            foreach (var match in matches)
+            {
+                if (await _repository.GetGalleryItemAsync(match.ItemId) is { } galleryItem)
+                    results.Add((galleryItem, match.Score));
+            }
+            if (results.Count == 0)
+            {
+                ToastService.Show(this, "还没有相似图片向量，请先完成后台分析");
+                return;
+            }
+            var window = new SimilarityResultsWindow(this, _repository, results);
+            window.ItemRequested += selected =>
+            {
+                OpenInspector(GalleryEntry.FromLibrary(selected), null);
+                window.Close();
+            };
+            window.Show();
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warning("similarity-ui", "Similarity results could not be shown.", ex);
+            ToastService.Show(this, $"相似搜索不可用：{ex.Message}");
+        }
     }
 
     private void AddInspectorToBoardClick(object sender, RoutedEventArgs e)

@@ -1,0 +1,4436 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-07-25T10:41:19.852158+00:00",
+  "dataset": {
+    "count": 200,
+    "groups": 8,
+    "variantsPerGroup": 25,
+    "source": "deterministic synthetic representative set",
+    "containsRealLibraryData": false
+  },
+  "candidate": {
+    "providerId": "local-clip-vit-b32",
+    "model": "Xenova/clip-vit-base-patch32",
+    "revision": "d15189d7028b43f1d3e65039190477f6af591c2a",
+    "modelSizeBytes": 89677740
+  },
+  "metrics": {
+    "modelExecutionRate": 1,
+    "categoryTop1Accuracy": 0.5,
+    "tagUsabilityRate": 0.875,
+    "chineseDescriptionNonEmptyRate": 1,
+    "stableAttributeGroups": 7,
+    "totalAttributeGroups": 8,
+    "estimatedAverageCorrectionSeconds": 5.375,
+    "inferenceP50Ms": 136.6587,
+    "inferenceP95Ms": 156.0835,
+    "inferenceMaxMs": 260.4813
+  },
+  "decision": {
+    "selected": true,
+    "scope": "local embeddings plus conservative metadata drafts",
+    "rationale": "Use only as local draft evidence; user confirmation remains authoritative and low-confidence output is not auto-applied."
+  },
+  "cases": [
+    {
+      "id": "portrait-01",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 260.4813
+    },
+    {
+      "id": "portrait-02",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 147.6093
+    },
+    {
+      "id": "portrait-03",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 146.3049
+    },
+    {
+      "id": "portrait-04",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 151.351
+    },
+    {
+      "id": "portrait-05",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 164.6534
+    },
+    {
+      "id": "portrait-06",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 154.8308
+    },
+    {
+      "id": "portrait-07",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 155.6179
+    },
+    {
+      "id": "portrait-08",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 152.2057
+    },
+    {
+      "id": "portrait-09",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 152.9175
+    },
+    {
+      "id": "portrait-10",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 155.9759
+    },
+    {
+      "id": "portrait-11",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 152.3227
+    },
+    {
+      "id": "portrait-12",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 145.3961
+    },
+    {
+      "id": "portrait-13",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 144.3191
+    },
+    {
+      "id": "portrait-14",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 154.026
+    },
+    {
+      "id": "portrait-15",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 158.6167
+    },
+    {
+      "id": "portrait-16",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 149.4375
+    },
+    {
+      "id": "portrait-17",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 145.9485
+    },
+    {
+      "id": "portrait-18",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 145.5073
+    },
+    {
+      "id": "portrait-19",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 157.2514
+    },
+    {
+      "id": "portrait-20",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 148.8057
+    },
+    {
+      "id": "portrait-21",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 156.2052
+    },
+    {
+      "id": "portrait-22",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 146.2483
+    },
+    {
+      "id": "portrait-23",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 150.7321
+    },
+    {
+      "id": "portrait-24",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 161.7366
+    },
+    {
+      "id": "portrait-25",
+      "group": "portrait",
+      "expectedCategory": "\u4EBA\u7269",
+      "expectedTags": [
+        "\u4EBA\u50CF",
+        "\u67D4\u5149"
+      ],
+      "predictedCategories": [
+        "\u4EBA\u7269"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u4EBA\u50CF",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u592A\u7A7A"
+      ],
+      "description": "\u4EBA\u7269\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u4EBA\u50CF\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 153.6639
+    },
+    {
+      "id": "daylight-landscape-01",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u67D4\u548C\u8272\u5F69",
+        "3D\u6E32\u67D3",
+        "\u5199\u5B9E"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 154.4514
+    },
+    {
+      "id": "daylight-landscape-02",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u5199\u5B9E",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 148.1149
+    },
+    {
+      "id": "daylight-landscape-03",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u67D4\u548C\u8272\u5F69",
+        "3D\u6E32\u67D3",
+        "\u5199\u5B9E"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 142.5816
+    },
+    {
+      "id": "daylight-landscape-04",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u5199\u5B9E",
+        "\u67D4\u548C\u8272\u5F69",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u5199\u5B9E\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 142.4788
+    },
+    {
+      "id": "daylight-landscape-05",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u5199\u5B9E",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 140.6887
+    },
+    {
+      "id": "daylight-landscape-06",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u5199\u5B9E",
+        "\u67D4\u548C\u8272\u5F69",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u5199\u5B9E\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 141.4947
+    },
+    {
+      "id": "daylight-landscape-07",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u67D4\u548C\u8272\u5F69",
+        "3D\u6E32\u67D3",
+        "\u5199\u5B9E"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 161.7257
+    },
+    {
+      "id": "daylight-landscape-08",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u5199\u5B9E",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 146.2985
+    },
+    {
+      "id": "daylight-landscape-09",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u5199\u5B9E",
+        "\u67D4\u548C\u8272\u5F69",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u5199\u5B9E\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 163.7211
+    },
+    {
+      "id": "daylight-landscape-10",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u5199\u5B9E",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 141.5057
+    },
+    {
+      "id": "daylight-landscape-11",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u5199\u5B9E",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.8868
+    },
+    {
+      "id": "daylight-landscape-12",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u5199\u5B9E",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.9905
+    },
+    {
+      "id": "daylight-landscape-13",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u5199\u5B9E",
+        "\u67D4\u548C\u8272\u5F69",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u5199\u5B9E\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.816
+    },
+    {
+      "id": "daylight-landscape-14",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u5199\u5B9E",
+        "\u67D4\u548C\u8272\u5F69",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u5199\u5B9E\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 137.1391
+    },
+    {
+      "id": "daylight-landscape-15",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u5199\u5B9E",
+        "3D\u6E32\u67D3",
+        "\u67D4\u548C\u8272\u5F69"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u5199\u5B9E\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 151.3094
+    },
+    {
+      "id": "daylight-landscape-16",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u5199\u5B9E",
+        "3D\u6E32\u67D3",
+        "\u67D4\u548C\u8272\u5F69"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u5199\u5B9E\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 149.1734
+    },
+    {
+      "id": "daylight-landscape-17",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u67D4\u548C\u8272\u5F69",
+        "3D\u6E32\u67D3",
+        "\u5199\u5B9E"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 137.9333
+    },
+    {
+      "id": "daylight-landscape-18",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u5199\u5B9E",
+        "3D\u6E32\u67D3",
+        "\u67D4\u548C\u8272\u5F69"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u5199\u5B9E\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 134.6304
+    },
+    {
+      "id": "daylight-landscape-19",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u67D4\u548C\u8272\u5F69",
+        "3D\u6E32\u67D3",
+        "\u5199\u5B9E"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.5906
+    },
+    {
+      "id": "daylight-landscape-20",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u5199\u5B9E",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.8337
+    },
+    {
+      "id": "daylight-landscape-21",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u5199\u5B9E",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 138.0836
+    },
+    {
+      "id": "daylight-landscape-22",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u5199\u5B9E",
+        "3D\u6E32\u67D3",
+        "\u67D4\u548C\u8272\u5F69"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u5199\u5B9E\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 145.5737
+    },
+    {
+      "id": "daylight-landscape-23",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u5199\u5B9E",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 140.1943
+    },
+    {
+      "id": "daylight-landscape-24",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "3D\u6E32\u67D3",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u5199\u5B9E"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.0628
+    },
+    {
+      "id": "daylight-landscape-25",
+      "group": "daylight-landscape",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u65E5\u5149",
+        "\u98CE\u666F"
+      ],
+      "predictedCategories": [
+        "\u573A\u666F"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u98CE\u666F",
+        "3D\u6E32\u67D3",
+        "\u5199\u5B9E",
+        "\u67D4\u548C\u8272\u5F69"
+      ],
+      "description": "\u573A\u666F\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u98CE\u666F\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.5978
+    },
+    {
+      "id": "night-scene-01",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u591C\u666F",
+        "\u592A\u7A7A",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u591C\u666F\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.6964
+    },
+    {
+      "id": "night-scene-02",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u591C\u666F",
+        "\u6781\u7B80",
+        "\u592A\u7A7A",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u591C\u666F\u3001\u6781\u7B80\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.0558
+    },
+    {
+      "id": "night-scene-03",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u591C\u666F",
+        "\u592A\u7A7A",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u591C\u666F\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.1396
+    },
+    {
+      "id": "night-scene-04",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u591C\u666F",
+        "\u592A\u7A7A",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u591C\u666F\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 147.039
+    },
+    {
+      "id": "night-scene-05",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u591C\u666F",
+        "\u6781\u7B80",
+        "\u592A\u7A7A",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u591C\u666F\u3001\u6781\u7B80\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 133.9911
+    },
+    {
+      "id": "night-scene-06",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u591C\u666F",
+        "\u592A\u7A7A",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u591C\u666F\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 149.0529
+    },
+    {
+      "id": "night-scene-07",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u591C\u666F",
+        "\u6781\u7B80",
+        "\u592A\u7A7A",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u591C\u666F\u3001\u6781\u7B80\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.2092
+    },
+    {
+      "id": "night-scene-08",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u591C\u666F",
+        "\u592A\u7A7A",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u591C\u666F\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.4851
+    },
+    {
+      "id": "night-scene-09",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u591C\u666F",
+        "\u6781\u7B80",
+        "\u592A\u7A7A",
+        "\u98CE\u666F",
+        "\u5199\u5B9E"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u591C\u666F\u3001\u6781\u7B80\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 134.8017
+    },
+    {
+      "id": "night-scene-10",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u592A\u7A7A",
+        "\u591C\u666F",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u592A\u7A7A\u3001\u591C\u666F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 138.3428
+    },
+    {
+      "id": "night-scene-11",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u591C\u666F",
+        "\u592A\u7A7A",
+        "\u98CE\u666F",
+        "\u5199\u5B9E"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u591C\u666F\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 142.0141
+    },
+    {
+      "id": "night-scene-12",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u591C\u666F",
+        "\u592A\u7A7A",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u591C\u666F\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.4769
+    },
+    {
+      "id": "night-scene-13",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u591C\u666F",
+        "\u592A\u7A7A",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u591C\u666F\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 153.8941
+    },
+    {
+      "id": "night-scene-14",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u591C\u666F",
+        "\u592A\u7A7A",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u591C\u666F\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 182.3146
+    },
+    {
+      "id": "night-scene-15",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u591C\u666F",
+        "\u592A\u7A7A",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u591C\u666F\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 145.0518
+    },
+    {
+      "id": "night-scene-16",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u591C\u666F",
+        "\u6781\u7B80",
+        "\u592A\u7A7A",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u591C\u666F\u3001\u6781\u7B80\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 137.3877
+    },
+    {
+      "id": "night-scene-17",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u591C\u666F",
+        "\u6781\u7B80",
+        "\u592A\u7A7A",
+        "\u98CE\u666F",
+        "\u5199\u5B9E"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u591C\u666F\u3001\u6781\u7B80\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.4603
+    },
+    {
+      "id": "night-scene-18",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u591C\u666F",
+        "\u592A\u7A7A",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u591C\u666F\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.746
+    },
+    {
+      "id": "night-scene-19",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u591C\u666F",
+        "\u592A\u7A7A",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u591C\u666F\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 134.3646
+    },
+    {
+      "id": "night-scene-20",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u591C\u666F",
+        "\u6781\u7B80",
+        "\u592A\u7A7A",
+        "\u98CE\u666F",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u591C\u666F\u3001\u6781\u7B80\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.2477
+    },
+    {
+      "id": "night-scene-21",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u591C\u666F",
+        "\u592A\u7A7A",
+        "\u98CE\u666F",
+        "\u5199\u5B9E"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u591C\u666F\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 144.0332
+    },
+    {
+      "id": "night-scene-22",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u591C\u666F",
+        "\u592A\u7A7A",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u591C\u666F\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 156.0835
+    },
+    {
+      "id": "night-scene-23",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u591C\u666F",
+        "\u592A\u7A7A",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u591C\u666F\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.7302
+    },
+    {
+      "id": "night-scene-24",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u591C\u666F",
+        "\u6781\u7B80",
+        "\u592A\u7A7A",
+        "\u98CE\u666F",
+        "\u5199\u5B9E"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u591C\u666F\u3001\u6781\u7B80\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.1972
+    },
+    {
+      "id": "night-scene-25",
+      "group": "night-scene",
+      "expectedCategory": "\u573A\u666F",
+      "expectedTags": [
+        "\u591C\u666F",
+        "\u7535\u5F71\u611F"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u591C\u666F",
+        "\u6781\u7B80",
+        "\u592A\u7A7A",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u591C\u666F\u3001\u6781\u7B80\u3001\u592A\u7A7A\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 147.1477
+    },
+    {
+      "id": "minimal-product-01",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u3001\u754C\u9762\u8BBE\u8BA1\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 134.4794
+    },
+    {
+      "id": "minimal-product-02",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u98CE\u666F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 138.7253
+    },
+    {
+      "id": "minimal-product-03",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.4688
+    },
+    {
+      "id": "minimal-product-04",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u98CE\u666F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 137.1953
+    },
+    {
+      "id": "minimal-product-05",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u98CE\u666F",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u3001\u754C\u9762\u8BBE\u8BA1\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 138.944
+    },
+    {
+      "id": "minimal-product-06",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.6587
+    },
+    {
+      "id": "minimal-product-07",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.8492
+    },
+    {
+      "id": "minimal-product-08",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.2714
+    },
+    {
+      "id": "minimal-product-09",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u3001\u754C\u9762\u8BBE\u8BA1\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 138.3908
+    },
+    {
+      "id": "minimal-product-10",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u3001\u754C\u9762\u8BBE\u8BA1\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 142.204
+    },
+    {
+      "id": "minimal-product-11",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u3001\u754C\u9762\u8BBE\u8BA1\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 142.691
+    },
+    {
+      "id": "minimal-product-12",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 153.7318
+    },
+    {
+      "id": "minimal-product-13",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u3001\u754C\u9762\u8BBE\u8BA1\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 138.6777
+    },
+    {
+      "id": "minimal-product-14",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.982
+    },
+    {
+      "id": "minimal-product-15",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u3001\u754C\u9762\u8BBE\u8BA1\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.43
+    },
+    {
+      "id": "minimal-product-16",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u3001\u754C\u9762\u8BBE\u8BA1\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.9308
+    },
+    {
+      "id": "minimal-product-17",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u3001\u754C\u9762\u8BBE\u8BA1\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.9722
+    },
+    {
+      "id": "minimal-product-18",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.07
+    },
+    {
+      "id": "minimal-product-19",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u98CE\u666F",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u3001\u754C\u9762\u8BBE\u8BA1\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.9356
+    },
+    {
+      "id": "minimal-product-20",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "3D\u6E32\u67D3",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.3901
+    },
+    {
+      "id": "minimal-product-21",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u3001\u754C\u9762\u8BBE\u8BA1\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.5036
+    },
+    {
+      "id": "minimal-product-22",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u3001\u754C\u9762\u8BBE\u8BA1\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.5358
+    },
+    {
+      "id": "minimal-product-23",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u3001\u754C\u9762\u8BBE\u8BA1\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 134.698
+    },
+    {
+      "id": "minimal-product-24",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u3001\u754C\u9762\u8BBE\u8BA1\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.7523
+    },
+    {
+      "id": "minimal-product-25",
+      "group": "minimal-product",
+      "expectedCategory": "\u4EA7\u54C1",
+      "expectedTags": [
+        "\u6781\u7B80",
+        "\u4EA7\u54C1\u6444\u5F71"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u3001\u754C\u9762\u8BBE\u8BA1\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 139.06
+    },
+    {
+      "id": "architecture-01",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 139.9721
+    },
+    {
+      "id": "architecture-02",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 143.1721
+    },
+    {
+      "id": "architecture-03",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 144.8221
+    },
+    {
+      "id": "architecture-04",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.7446
+    },
+    {
+      "id": "architecture-05",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 134.424
+    },
+    {
+      "id": "architecture-06",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.2461
+    },
+    {
+      "id": "architecture-07",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.2698
+    },
+    {
+      "id": "architecture-08",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.3359
+    },
+    {
+      "id": "architecture-09",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 147.785
+    },
+    {
+      "id": "architecture-10",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 134.8183
+    },
+    {
+      "id": "architecture-11",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 147.7698
+    },
+    {
+      "id": "architecture-12",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.6974
+    },
+    {
+      "id": "architecture-13",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 134.9058
+    },
+    {
+      "id": "architecture-14",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 137.3561
+    },
+    {
+      "id": "architecture-15",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.4336
+    },
+    {
+      "id": "architecture-16",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.0355
+    },
+    {
+      "id": "architecture-17",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 147.2739
+    },
+    {
+      "id": "architecture-18",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 147.4925
+    },
+    {
+      "id": "architecture-19",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.4173
+    },
+    {
+      "id": "architecture-20",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 134.8403
+    },
+    {
+      "id": "architecture-21",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.5722
+    },
+    {
+      "id": "architecture-22",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.1868
+    },
+    {
+      "id": "architecture-23",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 138.1221
+    },
+    {
+      "id": "architecture-24",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.1797
+    },
+    {
+      "id": "architecture-25",
+      "group": "architecture",
+      "expectedCategory": "\u5EFA\u7B51",
+      "expectedTags": [
+        "\u5EFA\u7B51",
+        "\u5E7F\u89D2"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.682
+    },
+    {
+      "id": "interface-01",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.6812
+    },
+    {
+      "id": "interface-02",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 144.0391
+    },
+    {
+      "id": "interface-03",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 143.5035
+    },
+    {
+      "id": "interface-04",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 138.4854
+    },
+    {
+      "id": "interface-05",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.1365
+    },
+    {
+      "id": "interface-06",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.0056
+    },
+    {
+      "id": "interface-07",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 143.3397
+    },
+    {
+      "id": "interface-08",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 147.8047
+    },
+    {
+      "id": "interface-09",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 137.146
+    },
+    {
+      "id": "interface-10",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 134.5773
+    },
+    {
+      "id": "interface-11",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.7108
+    },
+    {
+      "id": "interface-12",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.6062
+    },
+    {
+      "id": "interface-13",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 134.5631
+    },
+    {
+      "id": "interface-14",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 137.057
+    },
+    {
+      "id": "interface-15",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 137.4495
+    },
+    {
+      "id": "interface-16",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 134.7482
+    },
+    {
+      "id": "interface-17",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 142.4948
+    },
+    {
+      "id": "interface-18",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.305
+    },
+    {
+      "id": "interface-19",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.2165
+    },
+    {
+      "id": "interface-20",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.3082
+    },
+    {
+      "id": "interface-21",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.8344
+    },
+    {
+      "id": "interface-22",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 147.3659
+    },
+    {
+      "id": "interface-23",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 140.2565
+    },
+    {
+      "id": "interface-24",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.9574
+    },
+    {
+      "id": "interface-25",
+      "group": "interface",
+      "expectedCategory": "\u754C\u9762\u8BBE\u8BA1",
+      "expectedTags": [
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6781\u7B80"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u6781\u7B80",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "\u6982\u5FF5\u827A\u672F",
+        "\u9713\u8679",
+        "\u5EFA\u7B51"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u6781\u7B80\u3001\u754C\u9762\u8BBE\u8BA1\u3001\u6982\u5FF5\u827A\u672F\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.7173
+    },
+    {
+      "id": "illustration-01",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.3635
+    },
+    {
+      "id": "illustration-02",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 134.6602
+    },
+    {
+      "id": "illustration-03",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.4492
+    },
+    {
+      "id": "illustration-04",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 160.7225
+    },
+    {
+      "id": "illustration-05",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 133.7162
+    },
+    {
+      "id": "illustration-06",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.8733
+    },
+    {
+      "id": "illustration-07",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.3819
+    },
+    {
+      "id": "illustration-08",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.5422
+    },
+    {
+      "id": "illustration-09",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.7191
+    },
+    {
+      "id": "illustration-10",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 137.643
+    },
+    {
+      "id": "illustration-11",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.0195
+    },
+    {
+      "id": "illustration-12",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.6862
+    },
+    {
+      "id": "illustration-13",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 152.8572
+    },
+    {
+      "id": "illustration-14",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 134.5344
+    },
+    {
+      "id": "illustration-15",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.0597
+    },
+    {
+      "id": "illustration-16",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.079
+    },
+    {
+      "id": "illustration-17",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.2963
+    },
+    {
+      "id": "illustration-18",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 133.8638
+    },
+    {
+      "id": "illustration-19",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 134.0994
+    },
+    {
+      "id": "illustration-20",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.9956
+    },
+    {
+      "id": "illustration-21",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.7476
+    },
+    {
+      "id": "illustration-22",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.148
+    },
+    {
+      "id": "illustration-23",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.7576
+    },
+    {
+      "id": "illustration-24",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.6029
+    },
+    {
+      "id": "illustration-25",
+      "group": "illustration",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u63D2\u753B",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "predictedCategories": [
+        "\u63D2\u753B"
+      ],
+      "predictedTags": [
+        "\u67D4\u548C\u8272\u5F69",
+        "\u6781\u7B80",
+        "3D\u6E32\u67D3",
+        "\u98CE\u666F",
+        "\u6982\u5FF5\u827A\u672F"
+      ],
+      "description": "\u63D2\u753B\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u67D4\u548C\u8272\u5F69\u3001\u6781\u7B80\u30013D\u6E32\u67D3\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.0085
+    },
+    {
+      "id": "neon-cyberpunk-01",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.871
+    },
+    {
+      "id": "neon-cyberpunk-02",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 141.6501
+    },
+    {
+      "id": "neon-cyberpunk-03",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 146.871
+    },
+    {
+      "id": "neon-cyberpunk-04",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.6768
+    },
+    {
+      "id": "neon-cyberpunk-05",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 134.9056
+    },
+    {
+      "id": "neon-cyberpunk-06",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 138.1932
+    },
+    {
+      "id": "neon-cyberpunk-07",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.4432
+    },
+    {
+      "id": "neon-cyberpunk-08",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 134.0408
+    },
+    {
+      "id": "neon-cyberpunk-09",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 134.2379
+    },
+    {
+      "id": "neon-cyberpunk-10",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.1001
+    },
+    {
+      "id": "neon-cyberpunk-11",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.827
+    },
+    {
+      "id": "neon-cyberpunk-12",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.6939
+    },
+    {
+      "id": "neon-cyberpunk-13",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.9243
+    },
+    {
+      "id": "neon-cyberpunk-14",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.9414
+    },
+    {
+      "id": "neon-cyberpunk-15",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.3351
+    },
+    {
+      "id": "neon-cyberpunk-16",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 133.7881
+    },
+    {
+      "id": "neon-cyberpunk-17",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 147.7025
+    },
+    {
+      "id": "neon-cyberpunk-18",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 150.3052
+    },
+    {
+      "id": "neon-cyberpunk-19",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 136.5077
+    },
+    {
+      "id": "neon-cyberpunk-20",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.1572
+    },
+    {
+      "id": "neon-cyberpunk-21",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.7872
+    },
+    {
+      "id": "neon-cyberpunk-22",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.5594
+    },
+    {
+      "id": "neon-cyberpunk-23",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 133.8702
+    },
+    {
+      "id": "neon-cyberpunk-24",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 135.9627
+    },
+    {
+      "id": "neon-cyberpunk-25",
+      "group": "neon-cyberpunk",
+      "expectedCategory": "\u63D2\u753B",
+      "expectedTags": [
+        "\u9713\u8679",
+        "\u8D5B\u535A\u670B\u514B"
+      ],
+      "predictedCategories": [
+        "\u754C\u9762\u8BBE\u8BA1"
+      ],
+      "predictedTags": [
+        "\u9713\u8679",
+        "\u6781\u7B80",
+        "\u67D4\u548C\u8272\u5F69",
+        "\u754C\u9762\u8BBE\u8BA1",
+        "3D\u6E32\u67D3"
+      ],
+      "description": "\u754C\u9762\u8BBE\u8BA1\u53C2\u8003\u56FE\uFF0C\u5448\u73B0\u9713\u8679\u3001\u6781\u7B80\u3001\u67D4\u548C\u8272\u5F69\u7279\u5F81",
+      "usedModel": true,
+      "latencyMs": 134.924
+    }
+  ]
+}

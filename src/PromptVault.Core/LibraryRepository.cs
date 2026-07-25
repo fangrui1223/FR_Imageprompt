@@ -151,6 +151,15 @@ public sealed partial class LibraryRepository
         return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? ReadGalleryItem(reader) : null;
     }
 
+    public async Task<GalleryItem?> GetGalleryItemAsync(long itemId, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        var command = BuildGalleryCommand(connection, "WHERE ci.id = $id", "LIMIT 1");
+        command.Parameters.AddWithValue("$id", itemId);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? ReadGalleryItem(reader) : null;
+    }
+
     public async Task<SaveResult> SaveAsync(SaveItemInput input, CancellationToken cancellationToken = default)
     {
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);

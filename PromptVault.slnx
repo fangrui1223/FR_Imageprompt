@@ -8,8 +8,12 @@
   </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/PromptVault.Benchmark/PromptVault.Benchmark.csproj" />
+    <Project Path="tools/PromptVault.AiWorker/PromptVault.AiWorker.csproj" />
+    <Project Path="tools/PromptVault.AiEvaluation/PromptVault.AiEvaluation.csproj" />
     <Project Path="tools/PromptVault.ExternalIndexProbe/PromptVault.ExternalIndexProbe.csproj" />
     <Project Path="tools/PromptVault.PerformanceGate/PromptVault.PerformanceGate.csproj" />
+    <Project Path="tools/PromptVault.SimilarityProbe/PromptVault.SimilarityProbe.csproj" />
+    <Project Path="tools/PromptVault.M4UiSeed/PromptVault.M4UiSeed.csproj" />
     <Project Path="tools/PromptVault.VirtualizationProbe/PromptVault.VirtualizationProbe.csproj" />
   </Folder>
 </Solution>

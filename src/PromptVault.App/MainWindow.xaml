@@ -196,6 +196,7 @@
       <Button Content="＋ 新建分类" Click="AddCategoryClick" Margin="0,0,0,8"/>
       <Button Content="＋ 添加文件夹" Click="AddExternalFolderClick" Margin="0,0,0,8"/>
       <Button Content="导入 AI 模型包" Click="ImportModelClick" Margin="0,0,0,8"/>
+      <Button Content="AI 设置" Click="OpenAiSettingsClick" Margin="0,0,0,8"/>
       <Button Content="打开图库文件夹" Click="OpenLibraryClick"/>
      </StackPanel>
     </Grid>   </Border>
@@ -241,10 +242,11 @@
          AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
 
         <TextBlock Text="AI 草稿" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="{StaticResource FontSizeCaption}"/>
-        <Border Margin="0,4,0,12" Padding="10,9" Background="{DynamicResource PanelBrush}" CornerRadius="{StaticResource CornerRadiusControl}">
-         <TextBlock x:Name="InspectorAiDraftText" Text="尚无 AI 草稿 · M4 分析后显示"
-          Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap"/>
-        </Border>
+         <TextBox x:Name="InspectorAiDraftText" Margin="0,4,0,4" MinHeight="72" MaxHeight="150"
+          Padding="10,8" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+          Text="正在读取 AI 元数据…" IsReadOnly="True"/>
+         <TextBlock x:Name="InspectorAiSourceText" Margin="0,0,0,12"
+          Foreground="{DynamicResource MutedTextBrush}" FontSize="{StaticResource FontSizeCaption}" TextWrapping="Wrap"/>
 
         <TextBlock Text="来源" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="{StaticResource FontSizeCaption}"/>
         <TextBlock x:Name="InspectorSourceText" Margin="0,4,0,12" Foreground="{DynamicResource PrimaryTextBrush}" TextWrapping="Wrap"/>
@@ -257,8 +259,13 @@
        </StackPanel>
       </ScrollViewer>
       <WrapPanel Grid.Row="2" Margin="2,14,2,0" HorizontalAlignment="Right">
-       <Button x:Name="InspectorConfirmAiButton" Height="36" MinWidth="76" Margin="0,0,7,0" Content="确认 AI"
-        IsEnabled="False" Click="ConfirmInspectorAiClick"/>
+        <Button Height="36" MinWidth="76" Margin="0,0,7,0" Content="待校正" Click="OpenAiReviewClick"/>
+        <Button x:Name="InspectorOnlineAiButton" Height="36" MinWidth="76" Margin="0,0,7,0"
+         Content="在线分析" Click="AnalyzeInspectorOnlineClick"/>
+        <Button x:Name="InspectorRejectAiButton" Height="36" MinWidth="64" Margin="0,0,7,0" Content="拒绝"
+         IsEnabled="False" Click="RejectInspectorAiClick"/>
+        <Button x:Name="InspectorConfirmAiButton" Height="36" MinWidth="76" Margin="0,0,7,0" Content="确认 AI"
+         IsEnabled="False" Click="ConfirmInspectorAiClick"/>
        <Button Height="36" MinWidth="76" Margin="0,0,7,0" Content="加入画板" Click="AddInspectorToBoardClick"/>
        <Button Height="36" MinWidth="76" Margin="0,0,7,0" Content="打开原图" Click="OpenInspectorSourceClick"/>
        <Button x:Name="InspectorSaveButton" Height="36" MinWidth="76" Content="保存修改" Click="SaveInspectorClick"/>

@@ -38,6 +38,102 @@ public sealed record SaveItemInput(
 
 public sealed record SaveResult(long ItemId, bool WasDuplicate);
 
+public enum AiMetadataSource
+{
+    User,
+    LocalModel,
+    OnlineApi,
+    Rule
+}
+
+public enum MetadataCandidateStatus
+{
+    Pending,
+    Confirmed,
+    Modified,
+    Rejected
+}
+
+public sealed record MetadataCandidateInput(
+    long ItemId,
+    string FieldType,
+    string Value,
+    AiMetadataSource Source,
+    string ProviderId,
+    string ModelName,
+    string ModelVersion,
+    double? Confidence);
+
+public sealed record MetadataCandidateRecord(
+    long Id,
+    long ItemId,
+    string FieldType,
+    string Value,
+    AiMetadataSource Source,
+    string ProviderId,
+    string ModelName,
+    string ModelVersion,
+    double? Confidence,
+    MetadataCandidateStatus Status,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
+
+public sealed record UserMetadataRecord(
+    long ItemId,
+    string FieldType,
+    string Value,
+    long? SourceCandidateId,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
+
+public enum AiJobStatus
+{
+    Queued,
+    Running,
+    Paused,
+    Completed,
+    Failed
+}
+
+public sealed record AiJobInput(
+    long ItemId,
+    string JobType,
+    string ProviderId,
+    string ModelVersion,
+    string CacheKey,
+    string Payload = "{}",
+    int Priority = 0,
+    int MaxAttempts = 3,
+    DateTimeOffset? NotBefore = null);
+
+public sealed record AiJobRecord(
+    long Id,
+    long ItemId,
+    string JobType,
+    string ProviderId,
+    string ModelVersion,
+    AiJobStatus Status,
+    int Priority,
+    int Attempts,
+    int MaxAttempts,
+    DateTimeOffset NotBefore,
+    string CacheKey,
+    string Payload,
+    string? LastError,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    DateTimeOffset? CompletedAt);
+
+public sealed record ImageEmbeddingRecord(
+    long ItemId,
+    string ProviderId,
+    string ModelVersion,
+    float[] Vector,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
+
+public sealed record SimilarityMatch(long ItemId, float Score);
+
 public enum CaptureState
 {
     ImageDetected = 0,

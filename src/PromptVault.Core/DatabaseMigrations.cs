@@ -32,7 +32,7 @@ public sealed class DatabaseMigrationException : Exception
 
 internal static class DatabaseMigrations
 {
-    public const int LatestVersion = 7;
+    public const int LatestVersion = 10;
 
     private static readonly IReadOnlyList<Migration> Steps =
     [
@@ -129,6 +129,70 @@ internal static class DatabaseMigrations
                 ON capture_inbox(state, updated_at DESC);
             CREATE INDEX IF NOT EXISTS ix_capture_inbox_prompt_deadline
                 ON capture_inbox(state, prompt_deadline_at);
+            """),
+        new(8, """
+            CREATE TABLE IF NOT EXISTS metadata_candidates(
+                id INTEGER PRIMARY KEY,
+                item_id INTEGER NOT NULL REFERENCES collection_items(id) ON DELETE CASCADE,
+                field_type TEXT NOT NULL,
+                value TEXT NOT NULL,
+                source TEXT NOT NULL,
+                provider_id TEXT NOT NULL,
+                model_name TEXT NOT NULL,
+                model_version TEXT NOT NULL,
+                confidence REAL NULL,
+                status TEXT NOT NULL CHECK(status IN ('pending', 'confirmed', 'modified', 'rejected')),
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(item_id, field_type, source, provider_id, model_version));
+            CREATE INDEX IF NOT EXISTS ix_metadata_candidates_review
+                ON metadata_candidates(status, updated_at DESC, item_id);
+            CREATE INDEX IF NOT EXISTS ix_metadata_candidates_item
+                ON metadata_candidates(item_id, field_type, status);
+            CREATE TABLE IF NOT EXISTS user_metadata(
+                item_id INTEGER NOT NULL REFERENCES collection_items(id) ON DELETE CASCADE,
+                field_type TEXT NOT NULL,
+                value TEXT NOT NULL,
+                source_candidate_id INTEGER NULL REFERENCES metadata_candidates(id) ON DELETE SET NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY(item_id, field_type));
+            """),
+        new(9, """
+            CREATE TABLE IF NOT EXISTS ai_jobs(
+                id INTEGER PRIMARY KEY,
+                item_id INTEGER NOT NULL REFERENCES collection_items(id) ON DELETE CASCADE,
+                job_type TEXT NOT NULL,
+                provider_id TEXT NOT NULL,
+                model_version TEXT NOT NULL,
+                status TEXT NOT NULL CHECK(status IN ('queued', 'running', 'paused', 'completed', 'failed')),
+                priority INTEGER NOT NULL DEFAULT 0,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                max_attempts INTEGER NOT NULL DEFAULT 3,
+                not_before TEXT NOT NULL,
+                cache_key TEXT NOT NULL UNIQUE,
+                payload TEXT NOT NULL DEFAULT '{}',
+                last_error TEXT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                completed_at TEXT NULL);
+            CREATE INDEX IF NOT EXISTS ix_ai_jobs_claim
+                ON ai_jobs(status, not_before, priority DESC, id);
+            CREATE INDEX IF NOT EXISTS ix_ai_jobs_item
+                ON ai_jobs(item_id, updated_at DESC);
+            """),
+        new(10, """
+            CREATE TABLE IF NOT EXISTS image_embeddings(
+                item_id INTEGER NOT NULL REFERENCES collection_items(id) ON DELETE CASCADE,
+                provider_id TEXT NOT NULL,
+                model_version TEXT NOT NULL,
+                dimension INTEGER NOT NULL,
+                vector BLOB NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY(item_id, provider_id, model_version));
+            CREATE INDEX IF NOT EXISTS ix_image_embeddings_model
+                ON image_embeddings(provider_id, model_version, item_id);
             """)
     ];
 

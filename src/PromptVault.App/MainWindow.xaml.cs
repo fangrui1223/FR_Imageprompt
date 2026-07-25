@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private readonly LibraryRepository _repository;
     private readonly CaptureCoordinator _capture;
     private readonly AppSettings _settings;
+    private readonly AiWorkerLauncher _aiWorker;
     private readonly ExternalFolderIndexService _externalIndex;
     private readonly ClipboardMonitor _clipboard;
     private readonly DispatcherTimer _searchTimer;
@@ -78,6 +79,7 @@ public partial class MainWindow : Window
         _repository = repository;
         _capture = capture;
         _settings = settings;
+        _aiWorker = new AiWorkerLauncher(repository, settings);
         _externalIndex = externalIndex;
         _externalIndex.IndexChanged += ExternalFolderIndexChanged;
         DataContext = this;
@@ -320,6 +322,7 @@ public partial class MainWindow : Window
 
     private async Task RefreshAsync(RefreshAnimationKind animationKind = RefreshAnimationKind.ContentChange)
     {
+        _aiWorker.MarkUiActive();
         var refreshStopwatch = Stopwatch.StartNew();
         using var measurement = DevelopmentPerformanceTrace.Measure("gallery-refresh", new
         {
@@ -887,6 +890,7 @@ public partial class MainWindow : Window
         string tags)
     {
         var result = await _capture.SaveAsync(pending, prompt, notes, category, [tags]);
+        _ = CompleteCaptureAiAsync(result.CaptureId, result.ItemId, pending.Hash);
         if (Dispatcher.CheckAccess())
         {
             await RefreshAsync();
@@ -896,6 +900,26 @@ public partial class MainWindow : Window
             await Dispatcher.InvokeAsync(() => RefreshAsync()).Task.Unwrap();
         }
         return result;
+    }
+
+    private async Task CompleteCaptureAiAsync(Guid captureId, long itemId, string hash)
+    {
+        try
+        {
+            await _aiWorker.EnqueueAndRunAsync(itemId, hash);
+            var candidate = (await _repository.GetMetadataCandidatesAsync(itemId))
+                .FirstOrDefault(value =>
+                    value.Status == MetadataCandidateStatus.Pending
+                    && value.FieldType == "description");
+            if (candidate is not null)
+            {
+                await _clipboard.ShowAiSummaryAsync(captureId, candidate.Value);
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warning("ai-capture", "Capture AI draft could not be displayed.", ex);
+        }
     }
 
     private async Task RefreshAfterCaptureChangeAsync()
@@ -912,6 +936,7 @@ public partial class MainWindow : Window
 
     private void RowsListPreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
+        _aiWorker.MarkUiActive();
         _frameSampler.BeginInteraction("gallery-scroll", TimeSpan.FromMilliseconds(750));
         ThumbnailPresentationQueue.NotifyHighMotion(TimeSpan.FromMilliseconds(220));
         _rowsScrollViewer ??= FindDescendant<ScrollViewer>(RowsList);
@@ -1160,6 +1185,19 @@ public partial class MainWindow : Window
             ToastService.Show(this, "\u6A21\u578B\u5305\u5DF2\u5BFC\u5165");
         }
         catch (Exception ex) { ToastService.Show(this, $"\u6A21\u578B\u5305\u5BFC\u5165\u5931\u8D25\uFF1A{ex.Message}"); }
+    }
+
+    private void OpenAiSettingsClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new AiSettingsWindow(_settings) { Owner = this };
+        if (dialog.ShowDialog() == true)
+        {
+            ToastService.Show(
+                this,
+                _settings.OnlineAiEnabled
+                    ? "在线 AI 已启用；后续新收录将同时生成在线草稿"
+                    : "在线 AI 保持关闭");
+        }
     }
 
     private void OpenLibraryClick(object sender, RoutedEventArgs e) => Process.Start(new ProcessStartInfo

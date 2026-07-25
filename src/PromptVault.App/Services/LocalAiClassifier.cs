@@ -7,7 +7,12 @@ using PromptVault.Core;
 
 namespace PromptVault.App.Services;
 
-public sealed record AiSuggestion(IReadOnlyList<string> Categories, IReadOnlyList<string> Tags, bool UsedModel);
+public sealed record AiSuggestion(
+    IReadOnlyList<string> Categories,
+    IReadOnlyList<string> Tags,
+    bool UsedModel,
+    float[]? Embedding = null,
+    double? Confidence = null);
 
 public sealed class LocalAiClassifier
 {
@@ -46,7 +51,12 @@ public sealed class LocalAiClassifier
 
             if (ApplyAutoCategoryRules(embedding, categories, manifest, categoryScores) is { } ruledCategory)
             {
-                return new AiSuggestion([ruledCategory], BuildTagSuggestions(tagScores, manifest, ruledCategory), true);
+                return new AiSuggestion(
+                    [ruledCategory],
+                    BuildTagSuggestions(tagScores, manifest, ruledCategory),
+                    true,
+                    embedding,
+                    categoryScores.FirstOrDefault(score => score.Name == ruledCategory).Score);
             }
 
             var guardedCategories = manifest.AutoCategoryRules.Select(x => x.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -55,7 +65,12 @@ public sealed class LocalAiClassifier
                 .Take(3)
                 .Select(x => x.Name)
                 .ToArray();
-            return new AiSuggestion(suggestions, BuildTagSuggestions(tagScores, manifest, null), true);
+            return new AiSuggestion(
+                suggestions,
+                BuildTagSuggestions(tagScores, manifest, null),
+                true,
+                embedding,
+                categoryScores.FirstOrDefault().Score);
         }
         catch (Exception ex)
         {

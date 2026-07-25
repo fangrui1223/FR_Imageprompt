@@ -1,0 +1,83 @@
+{
+  "phase": "M4",
+  "date": "2026-07-25",
+  "branch": "codex/m1-foundation",
+  "environment": {
+    "os": "Windows 10.0.26200",
+    "dotnet": "10.0.9",
+    "logicalProcessors": 32,
+    "physicalResolution": "3840x2560",
+    "windowsScalePercent": 150,
+    "logicalViewport": "2560x1707"
+  },
+  "validation": {
+    "debugSolutionBuild": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "passed": 133,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 945
+    },
+    "similarityProbe": {
+      "configuration": "Release",
+      "vectorCount": 30000,
+      "dimensions": 512,
+      "topK": 100,
+      "iterations": 31,
+      "indexBuildMs": 102.4531,
+      "p50Ms": 3.6701,
+      "p95Ms": 5.9452,
+      "maxMs": 20.2439,
+      "thresholdMs": 100,
+      "passed": true
+    },
+    "aiEvaluation": {
+      "caseCount": 200,
+      "categoryCount": 8,
+      "categoryTop1Accuracy": 0.5,
+      "tagUsabilityRate": 0.875,
+      "chineseDescriptionNonEmptyRate": 1.0,
+      "stableAttributeGroups": 7,
+      "totalAttributeGroups": 8,
+      "estimatedAverageCorrectionSeconds": 5.375,
+      "inferenceP50Ms": 136.6587,
+      "inferenceP95Ms": 156.0835,
+      "inferenceMaxMs": 260.4813,
+      "modelBytes": 89677740,
+      "decision": "local vectors and reviewable conservative drafts only"
+    },
+    "ui": {
+      "syntheticItems": 3,
+      "initialCandidates": 12,
+      "afterConfirmCandidates": 11,
+      "afterRejectCandidates": 10,
+      "similarResults": 2,
+      "galleryRemainedVisible": true,
+      "blackRefreshObserved": false,
+      "onlineEnabledDefault": false,
+      "includePromptDefault": false,
+      "privacyDisclosureReadable": true
+    },
+    "onlineIsolation": {
+      "fakeHttpHandlerOnly": true,
+      "actualNetworkRequests": 0,
+      "credentialsWritten": 0,
+      "apiKeyPresentInSettingsOrBody": false,
+      "failureLeavesUserMetadataUntouched": true,
+      "failureLeavesPromptUntouched": true
+    }
+  },
+  "dataSafety": {
+    "settingsArgumentExplicit": true,
+    "syntheticLibrary": ".m4-ui-library",
+    "captureListeningEnabled": false,
+    "realLibraryOpenedOrModified": false,
+    "realClipboardUsed": false,
+    "onlineDataSent": false,
+    "machineAbsolutePathsRecorded": false
+  },
+  "result": "passed"
+}

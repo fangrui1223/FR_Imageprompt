@@ -18,8 +18,19 @@ public partial class App : System.Windows.Application
         RegisterGlobalExceptionLogging();
         AppLog.Information("startup", "Application startup began.");
         DevelopmentPerformanceTrace.Event("app-startup-begin");
+        var isAiWorker = e.Args.Contains("--ai-worker", StringComparer.OrdinalIgnoreCase);
         try
         {
+            if (isAiWorker)
+            {
+                var libraryRoot = GetOptionValue(e.Args, "--library")
+                    ?? throw new ArgumentException("--ai-worker 需要 --library 参数。");
+                var workerSettings = AppSettings.Load(GetOptionValue(e.Args, "--settings"));
+                var processed = await AiWorkerHost.RunOnceAsync(libraryRoot, workerSettings);
+                AppLog.Information("ai-worker", "Independent AI worker completed.", new { processed });
+                Shutdown(processed >= 0 ? 0 : 1);
+                return;
+            }
             _settings = AppSettings.Load(GetOptionValue(e.Args, "--settings"));
             VisualModeService.Apply(transparent: false, _settings.ReducedMotionEnabled);
             if (!string.IsNullOrWhiteSpace(_settings.RecoveryNotice))
@@ -72,6 +83,11 @@ public partial class App : System.Windows.Application
         catch (Exception ex)
         {
             AppLog.Error("startup", ex);
+            if (isAiWorker)
+            {
+                Shutdown(-1);
+                return;
+            }
             MessageBox.Show(
                 $"FR_Imageprompt 无法启动：\n{ex.Message}\n\n诊断日志：{AppLog.CurrentLogPath}",
                 "启动失败",

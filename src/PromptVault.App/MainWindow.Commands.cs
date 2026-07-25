@@ -145,9 +145,9 @@ public partial class MainWindow
             new("settings.edge.always", _settings.EdgeMenusAlwaysVisible ? "设置：关闭边栏常显" : "设置：边栏始终显示", "顶部和左侧菜单显示偏好", "edge menu always visible", "设置"),
             new("settings.motion", _settings.ReducedMotionEnabled ? "设置：恢复界面动效" : "设置：减少界面动效", "切换所有装饰性动效", "motion animation accessibility", "设置"),
             new("settings.transparent", "设置：切换透明模式", "复用当前窗口状态切换显示模式", "transparent glass ctrl m", "设置"),
-            new("future.pending", "待校正图片", "入口已预留；M4 产生 AI 草稿后启用状态筛选", "pending review correction ai", "未来入口"),
-            new("future.aesthetic", "AI 审美属性", "入口已预留；M4 分析后提供属性筛选", "aesthetic composition color lighting ai", "未来入口"),
-            new("future.similar", "查找相似图片", "入口已预留；M4 向量索引完成后启用", "similar image vector", "未来入口")
+            new("ai.pending", "AI：待校正图片", "连续确认、修改或拒绝 AI 草稿", "pending review correction ai", "AI"),
+            new("ai.aesthetic", "AI：查看当前图片审美属性", "在右侧检查器查看风格、光影、色彩、构图、质感和氛围", "aesthetic composition color lighting ai", "AI"),
+            new("ai.similar", "AI：查找当前图片的相似图片", "使用本地 512 维向量搜索，不上传图片", "similar image vector", "AI")
         ]);
 
         foreach (var category in _categories)
@@ -347,14 +347,17 @@ public partial class MainWindow
                 case "settings.transparent":
                     ToggleTransparentMode();
                     break;
-                case "future.pending":
-                    ToastService.Show(this, "待校正状态将在 M4 AI 草稿生成后启用");
+                case "ai.pending":
+                    await _clipboard.ShowAiReviewAsync();
                     break;
-                case "future.aesthetic":
-                    ToastService.Show(this, "AI 审美属性将在 M4 本地分析后启用");
+                case "ai.aesthetic":
+                    if (_inspectedItem is null)
+                        ToastService.Show(this, "请先选择一张图片并打开检查器");
+                    else
+                        SetInspectorVisibility(true);
                     break;
-                case "future.similar":
-                    ToastService.Show(this, "相似图片入口已预留，M4 向量索引完成后启用");
+                case "ai.similar":
+                    await ShowSimilarImagesAsync();
                     break;
             }
         }

@@ -8,6 +8,7 @@ namespace PromptVault.App;
 public partial class CaptureCapsuleWindow : Window
 {
     private Guid? _captureId;
+    private long? _savedItemId;
     private CapsuleAction _primaryAction;
 
     public CaptureCapsuleWindow()
@@ -19,11 +20,13 @@ public partial class CaptureCapsuleWindow : Window
 
     public event Action<Guid>? ExpandRequested;
     public event Action<Guid>? UndoRequested;
+    public event Action<long>? ReviewRequested;
     public event Action? InboxRequested;
 
     public void ShowDetected()
     {
         _captureId = null;
+        _savedItemId = null;
         _primaryAction = CapsuleAction.None;
         PreviewImage.Source = null;
         PreparingGlyph.Visibility = Visibility.Visible;
@@ -40,6 +43,7 @@ public partial class CaptureCapsuleWindow : Window
         int inboxCount)
     {
         _captureId = session.Id;
+        _savedItemId = session.SavedItemId;
         PreviewImage.Source = preview;
         PreparingGlyph.Visibility = preview is null
             ? Visibility.Visible
@@ -50,6 +54,10 @@ public partial class CaptureCapsuleWindow : Window
             : Visibility.Visible;
         InboxButton.Content = $"待补 {inboxCount}";
         InboxButton.Visibility = inboxCount > 0
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        ReviewButton.Visibility = !string.IsNullOrWhiteSpace(session.AiSummary)
+                                  && session.SavedItemId is not null
             ? Visibility.Visible
             : Visibility.Collapsed;
 
@@ -125,6 +133,11 @@ public partial class CaptureCapsuleWindow : Window
 
     private void InboxButtonClick(object sender, RoutedEventArgs e) =>
         InboxRequested?.Invoke();
+
+    private void ReviewButtonClick(object sender, RoutedEventArgs e)
+    {
+        if (_savedItemId is { } itemId) ReviewRequested?.Invoke(itemId);
+    }
 
     private void PositionAtBottomRight()
     {

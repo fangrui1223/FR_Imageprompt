@@ -37,6 +37,7 @@ public sealed class ClipboardMonitor : IDisposable
     private CaptureCapsuleWindow? _capsule;
     private CaptureInboxWindow? _inboxWindow;
     private CaptureWindow? _captureWindow;
+    private AiReviewWindow? _reviewWindow;
     private Guid? _expandedCaptureId;
     private uint _lastSequence;
     private bool _enabled = true;
@@ -254,6 +255,26 @@ public sealed class ClipboardMonitor : IDisposable
             await RefreshCapsuleAsync(captureId).ConfigureAwait(false);
             ScheduleAiSummaryExpiration(captureId, AiSummaryVisibility);
         }).ConfigureAwait(false);
+    }
+
+    public async Task ShowAiReviewAsync(long? preferredItemId = null)
+    {
+        await _owner.Dispatcher.InvokeAsync(() =>
+        {
+            if (_reviewWindow is { IsVisible: true })
+            {
+                _reviewWindow.Activate();
+                return;
+            }
+            var window = new AiReviewWindow(_owner, _repository, preferredItemId);
+            _reviewWindow = window;
+            window.Closed += (_, _) =>
+            {
+                if (ReferenceEquals(_reviewWindow, window)) _reviewWindow = null;
+            };
+            window.Show();
+            window.Activate();
+        });
     }
 
     private async Task CaptureFileAsync(string path)
@@ -896,6 +917,7 @@ public sealed class ClipboardMonitor : IDisposable
         _capsule = new CaptureCapsuleWindow();
         _capsule.ExpandRequested += captureId => _ = ExpandCaptureAsync(captureId);
         _capsule.UndoRequested += captureId => _ = UndoCaptureAsync(captureId);
+        _capsule.ReviewRequested += itemId => _ = ShowAiReviewAsync(itemId);
         _capsule.InboxRequested += () => _ = ShowInboxAsync();
         return _capsule;
     }
@@ -1230,6 +1252,8 @@ public sealed class ClipboardMonitor : IDisposable
         CloseExpandedWindowCore();
         _inboxWindow?.Close();
         _inboxWindow = null;
+        _reviewWindow?.Close();
+        _reviewWindow = null;
         _capsule?.Close();
         _capsule = null;
         _lifetime.Dispose();
