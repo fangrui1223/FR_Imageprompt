@@ -32,7 +32,7 @@ public sealed class DatabaseMigrationException : Exception
 
 internal static class DatabaseMigrations
 {
-    public const int LatestVersion = 5;
+    public const int LatestVersion = 6;
 
     private static readonly IReadOnlyList<Migration> Steps =
     [
@@ -88,6 +88,12 @@ internal static class DatabaseMigrations
                 ON external_file_index(folder_id, availability_status, modified_at DESC, id DESC);
             CREATE INDEX IF NOT EXISTS ix_external_file_folder_name
                 ON external_file_index(folder_id, availability_status, file_name COLLATE NOCASE);
+            """),
+        new(6, """
+            ALTER TABLE collection_items
+                ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0 CHECK(is_favorite IN (0, 1));
+            CREATE INDEX IF NOT EXISTS ix_items_favorite_created
+                ON collection_items(is_favorite, deleted_at, created_at DESC, id DESC);
             """)
     ];
 
@@ -171,7 +177,18 @@ internal static class DatabaseMigrations
         {
             var command = connection.CreateCommand();
             command.Transaction = transaction;
-            command.CommandText = migration.Sql;
+            command.CommandText = migration.Version == 6
+                && await ColumnExistsAsync(
+                    connection,
+                    transaction,
+                    "collection_items",
+                    "is_favorite",
+                    cancellationToken).ConfigureAwait(false)
+                ? """
+                    CREATE INDEX IF NOT EXISTS ix_items_favorite_created
+                        ON collection_items(is_favorite, deleted_at, created_at DESC, id DESC);
+                    """
+                : migration.Sql;
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
             var setVersion = connection.CreateCommand();
@@ -190,6 +207,27 @@ internal static class DatabaseMigrations
             await transaction.RollbackAsync(CancellationToken.None).ConfigureAwait(false);
             throw;
         }
+    }
+
+    private static async Task<bool> ColumnExistsAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        string table,
+        string column,
+        CancellationToken cancellationToken)
+    {
+        var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = $"PRAGMA table_info({table});";
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            if (string.Equals(reader.GetString(1), column, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private sealed record Migration(int Version, string Sql);

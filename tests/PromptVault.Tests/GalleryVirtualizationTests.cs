@@ -6,6 +6,21 @@ namespace PromptVault.Tests;
 public sealed class GalleryVirtualizationTests
 {
     [Fact]
+    public void PureImageCardsDoNotReserveAFormerLabelFooter()
+    {
+        var entry = CreateEntries(1)[0];
+        var row = Assert.Single(GalleryLayoutEngine.CreateRows([entry], 900));
+        var layout = Assert.Single(row.LayoutItems);
+        var paths = new LibraryPaths(Path.Combine(Path.GetTempPath(), "PromptVaultVirtualizationTests"));
+
+        row.Realize(paths, _ => false);
+        var card = Assert.Single(row.Items);
+
+        Assert.Equal(layout.ImageHeight, card.CardHeight);
+        Assert.Equal(layout.ImageHeight, row.RowHeight);
+    }
+
+    [Fact]
     public void ThirtyThousandEntriesCreateNoCardViewModelsUntilRowsAreRealized()
     {
         var entries = CreateEntries(30_000);
@@ -20,7 +35,7 @@ public sealed class GalleryVirtualizationTests
         foreach (var row in rows)
         {
             row.Realize(paths, id => id == selectedId);
-            coveredHeight += row.LayoutItems.Max(item => item.ImageHeight) + 56;
+            coveredHeight += row.RowHeight + row.RowMargin.Bottom;
             if (coveredHeight >= 1440 * 3) break;
         }
 
@@ -62,6 +77,45 @@ public sealed class GalleryVirtualizationTests
             Assert.Equal(
                 expectedRow.LayoutItems.Select(item => Math.Round(item.LayoutWidth, 6)),
                 actualRow.LayoutItems.Select(item => Math.Round(item.LayoutWidth, 6)));
+            Assert.Equal(
+                expectedRow.LayoutItems.Select(item => Math.Round(item.LayoutX, 6)),
+                actualRow.LayoutItems.Select(item => Math.Round(item.LayoutX, 6)));
+            Assert.Equal(
+                expectedRow.LayoutItems.Select(item => Math.Round(item.LayoutY, 6)),
+                actualRow.LayoutItems.Select(item => Math.Round(item.LayoutY, 6)));
+        }
+    }
+
+    [Fact]
+    public void WaterfallUsesShortestColumnsInsideVirtualizedSections()
+    {
+        var entries = CreateEntries(40);
+        var options = new GalleryLayoutOptions(GalleryLayoutMode.Waterfall, 14, 320);
+
+        var rows = GalleryLayoutEngine.CreateRows(entries, 2500, options);
+
+        Assert.True(rows.Count >= 2);
+        Assert.Contains(rows[0].LayoutItems, item => item.LayoutY > 0);
+        Assert.True(rows[0].LayoutItems.Select(item => item.LayoutX).Distinct().Count() >= 6);
+        Assert.Equal(
+            rows[0].LayoutItems.Max(item => item.LayoutY + item.ImageHeight),
+            rows[0].RowHeight,
+            6);
+    }
+
+    [Fact]
+    public void JustifiedRowsKeepEqualImageHeights()
+    {
+        var entries = CreateEntries(18);
+        var options = new GalleryLayoutOptions(GalleryLayoutMode.Justified, 8, 320);
+
+        var rows = GalleryLayoutEngine.CreateRows(entries, 2500, options);
+
+        Assert.True(rows.Count >= 2);
+        foreach (var row in rows)
+        {
+            Assert.All(row.LayoutItems, item => Assert.Equal(0, item.LayoutY));
+            Assert.Single(row.LayoutItems.Select(item => Math.Round(item.ImageHeight, 6)).Distinct());
         }
     }
 

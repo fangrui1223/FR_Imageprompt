@@ -1,0 +1,207 @@
+{
+  "Milestone": "M2-08",
+  "CompletedAtLocal": "2026-07-25",
+  "Passed": true,
+  "Environment": {
+    "OperatingSystem": "Microsoft Windows NT 10.0.26200.0",
+    "DotNet": "10.0.9",
+    "LogicalProcessors": 32,
+    "Gpu": "NVIDIA GeForce RTX 5090",
+    "PhysicalResolution": {
+      "Width": 3840,
+      "Height": 2560
+    },
+    "WindowsScalePercent": 150,
+    "LogicalViewport": {
+      "Width": 2560,
+      "Height": 1707
+    },
+    "ReportedRefreshRateHz": 59,
+    "RefreshPeriodMs": 16.949
+  },
+  "Dataset": {
+    "Type": "isolated synthetic library",
+    "ItemCount": 30000,
+    "LoadedFirstPageItems": 240,
+    "IndependentGalleryImages": 32,
+    "GalleryImageDimensions": {
+      "Width": 800,
+      "Height": 600
+    },
+    "ExternalSyntheticImages": 2,
+    "ClipboardCaptureEnabled": false,
+    "RealLibraryOpenedOrModified": false
+  },
+  "ColdStart": {
+    "ProcessStartToFirstContentReadyMs": 567.278,
+    "LoadedToFirstContentReadyMs": 129.702,
+    "LimitMs": 1500,
+    "Passed": true
+  },
+  "KeyboardWorkflow": {
+    "Passed": true,
+    "Steps": [
+      "Ctrl+F focused the visible instant-search field",
+      "typing cinematic returned 4285 results without hiding the previous rows",
+      "Down moved focus to the gallery, selected the first stable item, and opened the inspector",
+      "Ctrl+C copied the selected synthetic prompt and displayed the copy toast",
+      "Space opened the immersive viewer",
+      "the first Escape returned to the gallery while preserving selection and inspector state",
+      "the second Escape closed the inspector while preserving the gallery selection"
+    ],
+    "ImmersiveFirstLoadMs": 17.564
+  },
+  "SearchFirstViewport": {
+    "SampleCount": 20,
+    "TotalMsSorted": [
+      34.555,
+      34.628,
+      34.781,
+      35.225,
+      35.472,
+      35.714,
+      35.99,
+      36.034,
+      36.057,
+      37.324,
+      37.349,
+      37.573,
+      37.574,
+      37.631,
+      37.785,
+      37.834,
+      37.834,
+      37.842,
+      39.461,
+      88.678
+    ],
+    "P50Ms": 37.324,
+    "P95Ms": 39.461,
+    "MaximumMs": 88.678,
+    "LimitMs": 80,
+    "Passed": true,
+    "RowsOpacityDuringTransitions": 1
+  },
+  "CategoryFirstViewport": {
+    "SampleCount": 8,
+    "TotalMs": [
+      12.782,
+      12.615,
+      12.48,
+      13.152,
+      13.196,
+      12.769,
+      13.112,
+      12.183
+    ],
+    "P50Ms": 12.769,
+    "P95Ms": 13.196,
+    "MaximumMs": 13.196,
+    "QueryP95Ms": 7.097,
+    "LimitMs": 80,
+    "Passed": true,
+    "RowsOpacityDuringTransitions": 1
+  },
+  "StandardScroll": {
+    "ProbeDurationMs": 3011.931,
+    "PixelsPerUniqueRenderFrame": 16,
+    "FrameCount": 216,
+    "LoadedItemsBeforeAndAfter": 240,
+    "P50Ms": 16.671,
+    "P95Ms": 16.949,
+    "P99Ms": 33.064,
+    "MaximumMs": 33.898,
+    "Nominal60HzLimitsMs": {
+      "P95": 16.7,
+      "P99": 33
+    },
+    "DisplayCalibratedLimitsMs": {
+      "P95": 16.949,
+      "P99": 33.898
+    },
+    "Passed": true,
+    "ThumbnailSnapshot": {
+      "Requests": 1248,
+      "CacheHits": 843,
+      "Decodes": 64,
+      "Coalesced": 341,
+      "MaximumConcurrency": 4,
+      "PendingAtEnd": 0,
+      "RunningAtEnd": 0,
+      "CacheEntries": 64,
+      "CachedMiB": 68.555,
+      "BudgetMiB": 384
+    }
+  },
+  "RefreshContinuity": {
+    "RowsOpacityDuringAllAcceptedSearchAndCategoryTransitions": 1,
+    "NearBlackFramesObserved": 0,
+    "PreviousRowsStayedVisibleUntilThePreparedFirstViewportWasCommitted": true,
+    "Passed": true
+  },
+  "MenusAndCommandPalette": {
+    "Passed": true,
+    "LeftEdgeIntentRevealObserved": true,
+    "CtrlFFocusedSearchWithoutWaitingForEdgeIntent": true,
+    "CommandPaletteOpenSamplesMs": [
+      4.414,
+      1.361,
+      1.15,
+      0.935,
+      1.053,
+      1.098,
+      0.989,
+      1.111,
+      1.001,
+      1.0
+    ],
+    "CommandPaletteEscClosedOverlay": true,
+    "TypographyAndHitTargetsReadableAt4K150Percent": true
+  },
+  "ColdCacheInvestigation": {
+    "GateDefinitionUnchanged": true,
+    "ObservedFirstTouchUiCategoryRefreshesMs": [
+      675.443,
+      596.112,
+      625.803,
+      574.115,
+      650.208
+    ],
+    "ObservedFirstTouchUiSearchRangeMs": {
+      "Minimum": 141.871,
+      "Maximum": 476.048
+    },
+    "SameDatabaseReleaseProbeWarmP95Ms": {
+      "ChineseSearch": 9.713,
+      "EnglishHighHitSearch": 35.105,
+      "BroadEnglishSearch": 21.815,
+      "NarrowSearch": 6.481
+    },
+    "SameDatabaseReleaseProbeWarmCategoryRangeMs": {
+      "Minimum": 5.751,
+      "Maximum": 7.389
+    },
+    "Conclusion": "The M2-07 outliers were reproduced only on first access to previously cold database pages on the D: SATA HDD. Repeated UI samples and an isolated Release repository probe return to the M1 performance envelope; no M2 layout, virtualization, old-frame, or no-black-frame regression was found. The cold physical-I/O observation remains recorded and the 80ms P95 gate was not changed."
+  },
+  "Validation": {
+    "AppDebugBuildPassed": true,
+    "BuildWarnings": 0,
+    "BuildErrors": 0,
+    "AutomatedTestsPassed": 82,
+    "AutomatedTestsFailed": 0,
+    "GitDiffCheckPassed": true
+  },
+  "DataSafety": {
+    "SettingsArgumentWasExplicit": true,
+    "SettingsFile": ".m2-ui-settings.json",
+    "SyntheticLibraryRoot": ".m2-ui-library/30000-8304fcd7c5c74dd1a6b0a69cce5819f5",
+    "CaptureListeningEnabled": false,
+    "ExternalFolderWasSynthetic": true,
+    "RealLibraryOpenedMigratedOrModified": false
+  },
+  "Caveats": [
+    "The filesystem cache was not forcibly purged because doing so would affect unrelated applications and would not represent the repeated P95 gate used by the blueprint.",
+    "The synthetic library reuses 32 independent 800x600 images for 30000 database records; it exercises query, layout, virtualization, selection, keyboard, overlay, and cache behavior without representing 30000 unique image decodes.",
+    "AI draft, aesthetic-attribute, similar-image, and persistent board actions remain explicit future-stage entries and were not implemented during M2."
+  ]
+}

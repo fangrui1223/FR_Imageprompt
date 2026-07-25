@@ -37,6 +37,7 @@ public partial class MainWindow
 
         ApplyTextBoxChrome(SearchBox, transparent);
         ApplyTextBoxChrome(TagBox, transparent);
+        ApplyTextBoxChrome(CommandSearchBox, transparent);
         TransparentToggleButton.Content = transparent ? "退出透明" : "透明";
         if (!transparent)
         {
@@ -72,6 +73,7 @@ public partial class MainWindow
 
     private void MainWindowPreviewMouseMove(object sender, MouseEventArgs e)
     {
+        ObserveEdgeIntent(e.GetPosition(this));
         if (!_ctrlRightDragging) return;
         var current = PointToScreen(e.GetPosition(this));
         Left = _ctrlRightStartWindow.X + current.X - _ctrlRightStartScreen.X;

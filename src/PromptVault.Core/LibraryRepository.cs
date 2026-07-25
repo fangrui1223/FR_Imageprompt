@@ -335,6 +335,11 @@ public sealed partial class LibraryRepository
             conditions.Add("ci.category_id IS NULL");
         }
 
+        if (options.FavoritesOnly)
+        {
+            conditions.Add("ci.is_favorite = 1");
+        }
+
         for (var i = 0; i < tagTerms.Count; i++)
         {
             conditions.Add($"EXISTS(SELECT 1 FROM item_tags fit JOIN tags ft ON ft.id = fit.tag_id WHERE fit.item_id = ci.id AND ft.name LIKE $tag{i} ESCAPE '\\' COLLATE NOCASE)");
@@ -424,6 +429,41 @@ public sealed partial class LibraryRepository
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task UpdateItemDetailsAsync(
+        long itemId,
+        string prompt,
+        string tags,
+        string notes,
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        var update = connection.CreateCommand();
+        update.Transaction = transaction;
+        update.CommandText = """
+            UPDATE collection_items
+            SET prompt = $prompt, notes = $notes, updated_at = $now
+            WHERE id = $id AND deleted_at IS NULL;
+            """;
+        update.Parameters.AddWithValue("$prompt", prompt.Trim());
+        update.Parameters.AddWithValue("$notes", notes.Trim());
+        update.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToString("O"));
+        update.Parameters.AddWithValue("$id", itemId);
+        var changed = await update.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        if (changed == 0)
+        {
+            throw new InvalidOperationException($"Gallery item {itemId} is unavailable for editing.");
+        }
+
+        await ReplaceTagsAsync(
+            connection,
+            transaction,
+            itemId,
+            ParseTagText(tags),
+            cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task UpdateItemsCategoryAsync(IEnumerable<long> itemIds, long? categoryId, CancellationToken cancellationToken = default)
     {
         var ids = itemIds.Distinct().ToArray();
@@ -441,6 +481,24 @@ public sealed partial class LibraryRepository
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task SetFavoriteAsync(
+        long itemId,
+        bool isFavorite,
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE collection_items
+            SET is_favorite = $favorite, updated_at = $now
+            WHERE id = $id AND deleted_at IS NULL;
+            """;
+        command.Parameters.AddWithValue("$favorite", isFavorite ? 1 : 0);
+        command.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToString("O"));
+        command.Parameters.AddWithValue("$id", itemId);
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<TrashPurgeResult> PermanentlyDeleteTrashItemsAsync(
@@ -695,7 +753,7 @@ public sealed partial class LibraryRepository
                        FROM item_tags it
                        JOIN tags t ON t.id = it.tag_id
                        WHERE it.item_id = ci.id
-                   ), ''), ci.created_at, ci.deleted_at
+                   ), ''), ci.created_at, ci.deleted_at, ci.is_favorite
             FROM collection_items ci
             JOIN image_assets a ON a.id = ci.asset_id
             LEFT JOIN categories c ON c.id = ci.category_id
@@ -708,7 +766,8 @@ public sealed partial class LibraryRepository
     private static GalleryItem ReadGalleryItem(SqliteDataReader reader) => new(
         reader.GetInt64(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetString(4), reader.GetInt32(5), reader.GetInt32(6),
         reader.GetString(7), reader.GetString(8), reader.GetString(9), reader.IsDBNull(10) ? null : reader.GetInt64(10), reader.GetString(11),
-        reader.GetString(12), DateTimeOffset.Parse(reader.GetString(13)), reader.IsDBNull(14) ? null : DateTimeOffset.Parse(reader.GetString(14)));
+        reader.GetString(12), DateTimeOffset.Parse(reader.GetString(13)), reader.IsDBNull(14) ? null : DateTimeOffset.Parse(reader.GetString(14)),
+        reader.GetInt64(15) != 0);
 
     private static void AddItemParameters(SqliteCommand command, long id, SaveItemInput input)
     {

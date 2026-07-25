@@ -88,6 +88,32 @@ public partial class MainWindow
             return;
         }
 
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && e.Key == Key.F)
+        {
+            FocusInstantSearch();
+            e.Handled = true;
+            return;
+        }
+
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && e.Key == Key.K)
+        {
+            ToggleCommandPalette();
+            e.Handled = true;
+            return;
+        }
+
+        if (CommandPaletteOverlay.Visibility == Visibility.Visible)
+        {
+            if (e.Key == Key.Escape)
+            {
+                CloseCommandPalette();
+                FocusGalleryInput();
+                Focus();
+                e.Handled = true;
+            }
+            return;
+        }
+
         if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && e.Key == Key.M)
         {
             ToggleTransparentMode();
@@ -102,17 +128,23 @@ public partial class MainWindow
             return;
         }
 
-        if (ImmersiveViewer.Visibility != Visibility.Visible) return;
-        if (e.Key == Key.Escape) CloseImmersiveViewer();
-        else if (e.Key == Key.Left) NavigateViewer(-1);
-        else if (e.Key == Key.Right) NavigateViewer(1);
-        else if (e.Key == Key.D0 || e.Key == Key.NumPad0) ResetImmersiveTransform();
-        else return;
-        e.Handled = true;
+        if (ImmersiveViewer.Visibility == Visibility.Visible)
+        {
+            if (e.Key == Key.Escape) CloseImmersiveViewer();
+            else if (e.Key == Key.Left) NavigateViewer(-1);
+            else if (e.Key == Key.Right) NavigateViewer(1);
+            else if (e.Key == Key.D0 || e.Key == Key.NumPad0) ResetImmersiveTransform();
+            else return;
+            e.Handled = true;
+            return;
+        }
+
+        if (HandleGallerySelectionKey(e)) e.Handled = true;
     }
 
     private void MainWindowPreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
+        NotePointerFocusTarget(e.OriginalSource as DependencyObject);
         if (TryStartCtrlRightDrag(e)) return;
         if (ImmersiveViewer.Visibility != Visibility.Visible) return;
         if (e.ChangedButton == MouseButton.XButton1) NavigateViewer(-1);

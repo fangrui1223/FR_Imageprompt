@@ -23,13 +23,13 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _searchTimer;
     private readonly DispatcherTimer _resizeTimer;
     private readonly DispatcherTimer _subtleStatusTimer;
-    private readonly Dictionary<long, CancellationTokenSource> _clicks = new();
     private readonly HashSet<long> _selectedItemIds = new();
     private readonly Dictionary<GalleryRow, FrameworkElement> _realizedRowElements = new();
     private IReadOnlyList<CategoryRecord> _categories = [];
     private readonly List<GalleryEntry> _items = [];
     private CancellationTokenSource? _loadCancellation;
     private bool _showTrash;
+    private bool _favoritesOnly;
     private bool _allowClose;
     private bool _suppressFilterRefresh;
     private bool _suppressExternalRefresh;
@@ -83,9 +83,11 @@ public partial class MainWindow : Window
         DataContext = this;
         VisualModeService.Apply(transparentWindow, settings.ReducedMotionEnabled);
         InitializeComponent();
+        UpdateInspectorPinVisual();
+        UpdateLayoutControlVisuals();
         CategoryList.ContextMenu = new System.Windows.Controls.ContextMenu();
         ExternalFolderList.ContextMenu = new System.Windows.Controls.ContextMenu();
-        _searchTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(220) };
+        _searchTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(90) };
         _searchTimer.Tick += async (_, _) => { _searchTimer.Stop(); await RefreshAsync(RefreshAnimationKind.Search); };
         _resizeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(180) };
         _resizeTimer.Tick += (_, _) => { _resizeTimer.Stop(); RegroupIfNeeded(); };
@@ -103,6 +105,7 @@ public partial class MainWindow : Window
                 await LoadCategoriesAsync();
                 await LoadExternalFoldersAsync();
                 ApplyInitialSnapshot();
+                UpdateLayoutControlVisuals();
                 ApplyTransparentMode();
                 await RefreshAsync(RefreshAnimationKind.None);
                 RestoreViewerFromSnapshot();
@@ -142,6 +145,7 @@ public partial class MainWindow : Window
             categoryId,
             _externalFolderId,
             _showTrash,
+            _favoritesOnly,
             _oldestFirst,
             _multiSelectMode,
             _selectedItemIds.ToArray(),
@@ -160,6 +164,7 @@ public partial class MainWindow : Window
         SearchBox.Text = snapshot.SearchText;
         TagBox.Text = snapshot.TagText;
         _showTrash = snapshot.ShowTrash;
+        _favoritesOnly = snapshot.FavoritesOnly;
         _oldestFirst = snapshot.OldestFirst;
         _multiSelectMode = snapshot.MultiSelectMode;
         _externalFolderId = snapshot.ExternalFolderId;
@@ -348,6 +353,7 @@ public partial class MainWindow : Window
                 Trash: _showTrash ? GalleryTrashScope.Trash : GalleryTrashScope.Active,
                 Source: IsExternalMode ? GallerySourceKind.ExternalFolder : GallerySourceKind.Library,
                 SourceId: IsExternalMode ? _externalFolderId : null,
+                FavoritesOnly: !IsExternalMode && _favoritesOnly,
                 Sort: _oldestFirst ? GallerySortOrder.OldestFirst : GallerySortOrder.NewestFirst,
                 PageSize: GalleryVirtualizationPolicy.PageSize);
             if (IsExternalMode)
@@ -394,7 +400,10 @@ public partial class MainWindow : Window
             queryStopwatch.Stop();
             var nextItems = result.ToArray();
             var availableWidth = GetGalleryAvailableWidth();
-            var nextRows = GalleryLayoutEngine.CreateRows(nextItems, availableWidth);
+            var nextRows = GalleryLayoutEngine.CreateRows(
+                nextItems,
+                availableWidth,
+                CurrentGalleryLayoutOptions());
             var preparationStopwatch = Stopwatch.StartNew();
             var preparation = await PrepareFirstViewportAsync(
                 nextRows,
@@ -436,6 +445,7 @@ public partial class MainWindow : Window
             UpdateBaseStatus();
             UpdateTrashVisual();
             UpdateSelectionVisual();
+            RestoreInspectorAfterRefresh();
             QueueNextPageIfNeeded();
             refreshStopwatch.Stop();
             DevelopmentPerformanceTrace.Event("gallery-refresh-applied", new
@@ -586,7 +596,7 @@ public partial class MainWindow : Window
     {
         var countLabel = IsExternalMode
             ? "\u5916\u90E8\u6587\u4EF6\u5939"
-            : _showTrash ? "\u56DE\u6536\u7AD9" : "\u56FE\u7247\u6536\u85CF";
+            : _showTrash ? "\u56DE\u6536\u7AD9" : _favoritesOnly ? "已收藏图片" : "\u56FE\u7247\u6536\u85CF";
         CountText.Text = _items.Count < _totalCount
             ? $"{countLabel} - {_totalCount:N0}\uFF08\u5DF2\u52A0\u8F7D {_items.Count:N0}\uFF09"
             : $"{countLabel} - {_totalCount:N0}";
@@ -598,7 +608,10 @@ public partial class MainWindow : Window
         var availableWidth = GetGalleryAvailableWidth();
         if (Math.Abs(availableWidth - _layoutWidth) >= 32)
         {
-            var regrouped = GalleryLayoutEngine.CreateRows(_items, availableWidth);
+            var regrouped = GalleryLayoutEngine.CreateRows(
+                _items,
+                availableWidth,
+                CurrentGalleryLayoutOptions());
             var reusableCards = CreateReusableCardMap(_items);
             ApplyPreparedRows(
                 _items.ToArray(),
@@ -612,7 +625,11 @@ public partial class MainWindow : Window
             return;
         }
 
-        var append = GalleryLayoutEngine.CreateAppend(Rows, appendedItems, _layoutWidth);
+        var append = GalleryLayoutEngine.CreateAppend(
+            Rows,
+            appendedItems,
+            _layoutWidth,
+            CurrentGalleryLayoutOptions());
         if (append.ReplaceIncompleteTail && Rows.LastOrDefault() is { } incomplete)
         {
             var replacement = append.Rows[0];
@@ -676,6 +693,8 @@ public partial class MainWindow : Window
                 var card = new GalleryCardViewModel(
                     layout.Item,
                     _repository.Paths,
+                    layout.LayoutX,
+                    layout.LayoutY,
                     layout.LayoutWidth,
                     layout.ImageHeight,
                     _selectedItemIds.Contains(layout.Item.Id));
@@ -731,7 +750,16 @@ public partial class MainWindow : Window
         }
 
         var transferredCards = new HashSet<GalleryCardViewModel>();
-        for (var index = 0; index < Math.Min(preparation.PreparedRows, targetRows.Count); index++)
+        var additionalRows = preparation.AdditionalRows is null
+            ? Enumerable.Empty<int>()
+            : preparation.AdditionalRows;
+        var rowsToRealize = Enumerable
+            .Range(0, Math.Min(preparation.PreparedRows, targetRows.Count))
+            .Concat(additionalRows)
+            .Where(index => index >= 0 && index < targetRows.Count)
+            .Distinct()
+            .Order();
+        foreach (var index in rowsToRealize)
         {
             targetRows[index].Realize(
                 _repository.Paths,
@@ -810,7 +838,7 @@ public partial class MainWindow : Window
         var count = 0;
         while (count < rows.Count && height < targetHeight)
         {
-            height += rows[count].RowHeight + 14;
+            height += rows[count].RowHeight + rows[count].RowMargin.Bottom;
             count++;
         }
         return count;
@@ -830,7 +858,10 @@ public partial class MainWindow : Window
     {
         var width = GetGalleryAvailableWidth();
         if (Math.Abs(width - _layoutWidth) < 32) return;
-        var rows = GalleryLayoutEngine.CreateRows(_items, width);
+        var rows = GalleryLayoutEngine.CreateRows(
+            _items,
+            width,
+            CurrentGalleryLayoutOptions());
         ApplyPreparedRows(
             _items.ToArray(),
             rows,
@@ -970,6 +1001,7 @@ public partial class MainWindow : Window
         }
 
         FinishSelectionOperation();
+        UpdateLayoutControlVisuals();
         await RefreshAsync(RefreshAnimationKind.ViewSwitch);
     }
 
@@ -978,17 +1010,20 @@ public partial class MainWindow : Window
         if (!IsLoaded || _suppressExternalRefresh) return;
         if (ExternalFolderList.SelectedItem is not ExternalFolderChoice choice) return;
         _externalFolderId = choice.Id;
+        _favoritesOnly = false;
         _showTrash = false;
         _suppressFilterRefresh = true;
         CategoryList.SelectedIndex = -1;
         _suppressFilterRefresh = false;
         FinishSelectionOperation();
+        UpdateLayoutControlVisuals();
         await RefreshAsync(RefreshAnimationKind.ViewSwitch);
     }
 
     private async void TrashClick(object sender, RoutedEventArgs e)
     {
         _showTrash = !_showTrash;
+        _favoritesOnly = false;
         _externalFolderId = null;
         FinishSelectionOperation();
         _suppressExternalRefresh = true;
@@ -1002,6 +1037,7 @@ public partial class MainWindow : Window
         }
 
         UpdateTrashVisual();
+        UpdateLayoutControlVisuals();
         await RefreshAsync(RefreshAnimationKind.ViewSwitch);
     }
 
@@ -1018,7 +1054,15 @@ public partial class MainWindow : Window
     private void MultiSelectClick(object sender, RoutedEventArgs e)
     {
         _multiSelectMode = !_multiSelectMode;
-        if (!_multiSelectMode) ClearSelection();
+        if (!_multiSelectMode && _selectedItemIds.Count > 1)
+        {
+            var keep = CurrentSelectionId();
+            _selectedItemIds.Clear();
+            if (keep is not null) _selectedItemIds.Add(keep.Value);
+            _selectionAnchorId = keep;
+            _selectionFocusId = keep;
+            ApplySelectionState();
+        }
         UpdateSelectionVisual();
     }
 
@@ -1167,8 +1211,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private void CardMouseEnter(object sender, MouseEventArgs e) => AnimateScale(sender as Border, 1.02);
-    private void CardMouseLeave(object sender, MouseEventArgs e) => AnimateScale(sender as Border, 1.0);
     private static void AnimateScale(Border? border, double to)
     {
         if (border?.RenderTransform is not ScaleTransform transform) return;
@@ -1192,7 +1234,6 @@ public partial class MainWindow : Window
         if (e.ChangedButton != MouseButton.Left) return;
         if (e.ClickCount == 2)
         {
-            CancelClick(card.Id);
             ShowImmersiveViewer(card.Id);
             e.Handled = true;
             return;
@@ -1220,7 +1261,6 @@ public partial class MainWindow : Window
             .ToArray();
         _dragCandidate = null;
         if (paths.Length == 0) return;
-        CancelClick(card.Id);
         _ignoreNextCardClick = true;
         var element = source as FrameworkElement;
         var data = new System.Windows.DataObject(System.Windows.DataFormats.FileDrop, paths);
@@ -1236,7 +1276,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void CardClick(object sender, MouseButtonEventArgs e)
+    private void CardClick(object sender, MouseButtonEventArgs e)
     {
         if (_ignoreNextCardClick)
         {
@@ -1244,40 +1284,17 @@ public partial class MainWindow : Window
             return;
         }
         if ((sender as FrameworkElement)?.DataContext is not GalleryCardViewModel card) return;
-        if (e.ClickCount > 1) { CancelClick(card.Id); return; }
-        CancelClick(card.Id);
-
-        if (_multiSelectMode || Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
-        {
-            _multiSelectMode = true;
-            ToggleCardSelection(card);
-            return;
-        }
-
-        var cts = new CancellationTokenSource();
-        _clicks[card.Id] = cts;
-        try
-        {
-            await Task.Delay(System.Windows.Forms.SystemInformation.DoubleClickTime + 30, cts.Token);
-            Clipboard.SetText(card.Item.Prompt);
-            ToastService.Show(this, "\u63D0\u793A\u8BCD\u5DF2\u590D\u5236");
-        }
-        catch (OperationCanceledException) { }
-        finally { _clicks.Remove(card.Id); cts.Dispose(); }
-    }
-
-    private void ToggleCardSelection(GalleryCardViewModel card)
-    {
-        if (!_selectedItemIds.Add(card.Id)) _selectedItemIds.Remove(card.Id);
-        card.IsSelected = _selectedItemIds.Contains(card.Id);
-        UpdateSelectionVisual();
+        if (e.ClickCount > 1) return;
+        HandleCardSelection(card);
+        FocusGalleryInput();
     }
 
     private void ClearSelection()
     {
         _selectedItemIds.Clear();
-        foreach (var row in Rows) foreach (var card in row.Items) card.IsSelected = false;
-        UpdateSelectionVisual();
+        _selectionAnchorId = null;
+        _selectionFocusId = null;
+        ApplySelectionState();
     }
 
     private void FinishSelectionOperation()
@@ -1345,7 +1362,11 @@ public partial class MainWindow : Window
 
         StatusText.Text = IsExternalMode
             ? "\u5916\u90E8\u6587\u4EF6\u5939\uFF1A\u53EF\u62D6\u51FA\u56FE\u7247\uFF0C\u53F3\u952E\u6216 Alt+M \u6536\u85CF\u5230\u56FE\u5E93"
-            : (_showTrash ? "\u8BB0\u5F55\u5C06\u5728\u79FB\u5165\u56DE\u6536\u7AD9 30 \u5929\u540E\u81EA\u52A8\u6E05\u7406" : (_clipboard.IsEnabled ? "\u590D\u5236\u6216\u62D6\u5165\u4E00\u5F20\u56FE\u7247\u5373\u53EF\u5F00\u59CB\u6536\u5F55" : "\u6536\u5F55\u76D1\u542C\u5DF2\u5173\u95ED\uFF0C\u53EF\u6B63\u5E38\u6D4F\u89C8\u56FE\u7247\u4E0E\u590D\u5236\u63D0\u793A\u8BCD"));
+            : (_showTrash
+                ? "\u8BB0\u5F55\u5C06\u5728\u79FB\u5165\u56DE\u6536\u7AD9 30 \u5929\u540E\u81EA\u52A8\u6E05\u7406"
+                : _favoritesOnly
+                    ? "正在显示已收藏图片"
+                    : (_clipboard.IsEnabled ? "\u590D\u5236\u6216\u62D6\u5165\u4E00\u5F20\u56FE\u7247\u5373\u53EF\u5F00\u59CB\u6536\u5F55" : "\u6536\u5F55\u76D1\u542C\u5DF2\u5173\u95ED\uFF0C\u53EF\u6B63\u5E38\u6D4F\u89C8\u56FE\u7247\u4E0E\u590D\u5236\u63D0\u793A\u8BCD"));
     }
 
     private void ShowSubtleStatus(string message)
@@ -1354,8 +1375,6 @@ public partial class MainWindow : Window
         _subtleStatusTimer.Stop();
         _subtleStatusTimer.Start();
     }
-
-    private void CancelClick(long id) { if (_clicks.Remove(id, out var cts)) cts.Cancel(); }
 
     private void CardContextMenuOpening(object sender, ContextMenuEventArgs e)
     {
@@ -1730,7 +1749,8 @@ public partial class MainWindow : Window
     private sealed record GalleryPreparation(
         IReadOnlyDictionary<long, GalleryCardViewModel> ReusableCards,
         IReadOnlyDictionary<long, GalleryCardViewModel> PreparedCards,
-        int PreparedRows);
+        int PreparedRows,
+        IReadOnlySet<int>? AdditionalRows = null);
 
     private sealed record GalleryApplyResult(
         int ReusedRows,

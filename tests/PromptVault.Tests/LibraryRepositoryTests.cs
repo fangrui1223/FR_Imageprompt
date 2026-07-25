@@ -42,6 +42,48 @@ public sealed class LibraryRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task FavoriteStatePersistsAndDuplicateMetadataUpdateDoesNotClearIt()
+    {
+        var saved = await SaveAsync("favorite-state", "favorite prompt", "", []);
+
+        await _repository.SetFavoriteAsync(saved.ItemId, true);
+        var favorite = Assert.Single(await SearchItemsAsync(new SearchOptions(Query: "favorite prompt")));
+        Assert.True(favorite.IsFavorite);
+        Assert.Equal(
+            saved.ItemId,
+            Assert.Single(await SearchItemsAsync(new SearchOptions(FavoritesOnly: true))).Id);
+
+        await SaveAsync("favorite-state", "favorite prompt updated", "changed", []);
+        var updated = Assert.Single(await SearchItemsAsync(new SearchOptions(Query: "prompt updated")));
+        Assert.True(updated.IsFavorite);
+
+        await _repository.SetFavoriteAsync(saved.ItemId, false);
+        var cleared = Assert.Single(await SearchItemsAsync(new SearchOptions(Query: "prompt updated")));
+        Assert.False(cleared.IsFavorite);
+        Assert.Empty(await SearchItemsAsync(new SearchOptions(FavoritesOnly: true)));
+    }
+
+    [Fact]
+    public async Task InspectorQuickEditUpdatesPromptTagsNotesAndSearchIndex()
+    {
+        var saved = await SaveAsync("inspector-edit", "original inspector prompt", "old note", ["old-tag"]);
+
+        await _repository.UpdateItemDetailsAsync(
+            saved.ItemId,
+            "revised inspector prompt",
+            "portrait, cyan light",
+            "updated from inspector");
+
+        Assert.Empty(await SearchItemsAsync(new SearchOptions(Query: "original inspector")));
+        var updated = Assert.Single(await SearchItemsAsync(new SearchOptions(Query: "revised inspector")));
+        Assert.Equal("revised inspector prompt", updated.Prompt);
+        Assert.Equal("updated from inspector", updated.Notes);
+        Assert.Contains("portrait", updated.Tags);
+        Assert.Contains("cyan light", updated.Tags);
+        Assert.DoesNotContain("old-tag", updated.Tags);
+    }
+
+    [Fact]
     public async Task FullTextSearchSupportsChineseEnglishFragmentsShortWordsAndLiteralSpecialCharacters()
     {
         Assert.True(_repository.FullTextSearchAvailable);
@@ -309,9 +351,9 @@ public sealed class LibraryRepositoryTests : IAsyncLifetime
 
             Assert.NotNull(upgraded.LastMigration);
             Assert.Equal(1, upgraded.LastMigration!.FromVersion);
-            Assert.Equal(5, upgraded.LastMigration.ToVersion);
+            Assert.Equal(6, upgraded.LastMigration.ToVersion);
             Assert.True(File.Exists(upgraded.LastMigration.BackupPath));
-            Assert.Equal(5L, await ExecuteScalarAsync(paths.Database, "SELECT version FROM schema_info;"));
+            Assert.Equal(6L, await ExecuteScalarAsync(paths.Database, "SELECT version FROM schema_info;"));
             Assert.Equal(1L, await ExecuteScalarAsync(
                 upgraded.LastMigration.BackupPath!,
                 "SELECT version FROM schema_info;"));
@@ -344,7 +386,7 @@ public sealed class LibraryRepositoryTests : IAsyncLifetime
             await upgraded.InitializeAsync();
 
             Assert.Equal(2, upgraded.LastMigration!.FromVersion);
-            Assert.Equal(5, upgraded.LastMigration.ToVersion);
+            Assert.Equal(6, upgraded.LastMigration.ToVersion);
             Assert.True(File.Exists(upgraded.LastMigration.BackupPath));
             Assert.Equal(2L, await ExecuteScalarAsync(
                 upgraded.LastMigration.BackupPath!,
@@ -402,7 +444,7 @@ public sealed class LibraryRepositoryTests : IAsyncLifetime
             await upgraded.InitializeAsync();
 
             Assert.Equal(3, upgraded.LastMigration!.FromVersion);
-            Assert.Equal(5, upgraded.LastMigration.ToVersion);
+            Assert.Equal(6, upgraded.LastMigration.ToVersion);
             Assert.True(File.Exists(upgraded.LastMigration.BackupPath));
             Assert.True(upgraded.FullTextSearchAvailable);
             Assert.Equal(1L, await ExecuteScalarAsync(

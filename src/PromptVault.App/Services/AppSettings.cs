@@ -10,7 +10,11 @@ public sealed class AppSettings
     public bool OldestFirst { get; set; }
     public bool CaptureListeningEnabled { get; set; } = true;
     public bool ReducedMotionEnabled { get; set; }
+    public bool InspectorPinned { get; set; }
+    public string EdgeMenuSensitivity { get; set; } = EdgeIntentProfile.NormalSensitivity;
+    public bool EdgeMenusAlwaysVisible { get; set; }
     public List<ExternalFolderSetting> ExternalFolders { get; set; } = [];
+    public Dictionary<string, GalleryLayoutPreference> GalleryLayouts { get; set; } = [];
     [JsonIgnore] public string? RecoveryNotice { get; private set; }
     [JsonIgnore] public string? RecoveryBackupPath { get; private set; }
     [JsonIgnore] private string? StoragePath { get; set; }
@@ -27,6 +31,12 @@ public sealed class AppSettings
             var settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path), JsonOptions)
                 ?? throw new JsonException("设置文件内容为空。");
             settings.ExternalFolders ??= [];
+            settings.GalleryLayouts ??= [];
+            settings.EdgeMenuSensitivity = EdgeIntentProfile.NormalizeSensitivity(settings.EdgeMenuSensitivity);
+            foreach (var preference in settings.GalleryLayouts.Values)
+            {
+                preference.Normalize();
+            }
             settings.StoragePath = path;
             return settings;
         }
@@ -40,6 +50,17 @@ public sealed class AppSettings
                 RecoveryNotice = $"设置文件已损坏，FR_Imageprompt 已保留原文件并恢复默认设置。\n损坏文件：{backupPath}"
             };
         }
+    }
+
+    public GalleryLayoutPreference GetGalleryLayout(string sourceKey)
+    {
+        if (!GalleryLayouts.TryGetValue(sourceKey, out var preference))
+        {
+            preference = new GalleryLayoutPreference();
+            GalleryLayouts[sourceKey] = preference;
+        }
+        preference.Normalize();
+        return preference;
     }
 
     public void Save()
@@ -71,6 +92,62 @@ public sealed class AppSettings
                 $"设置文件已损坏，但无法将原文件移到安全位置“{backupPath}”。请先复制该文件再重试。",
                 ex);
         }
+    }
+}
+
+public sealed class GalleryLayoutPreference
+{
+    public const string WaterfallMode = "Waterfall";
+    public const string JustifiedMode = "Justified";
+    public const string CompactDensity = "Compact";
+    public const string ComfortableDensity = "Comfortable";
+    public const string SpaciousDensity = "Spacious";
+    public const string CustomDensity = "Custom";
+
+    public string Mode { get; set; } = WaterfallMode;
+    public string Density { get; set; } = ComfortableDensity;
+    public double Spacing { get; set; } = GalleryLayoutEngine.DefaultSpacing;
+    public double TargetSize { get; set; } = GalleryLayoutEngine.DefaultTargetSize;
+
+    public GalleryLayoutOptions ToOptions()
+    {
+        Normalize();
+        return new GalleryLayoutOptions(
+            string.Equals(Mode, JustifiedMode, StringComparison.Ordinal)
+                ? GalleryLayoutMode.Justified
+                : GalleryLayoutMode.Waterfall,
+            Spacing,
+            TargetSize);
+    }
+
+    public void ApplyDensity(string density)
+    {
+        Density = density;
+        (Spacing, TargetSize) = density switch
+        {
+            CompactDensity => (8, 240),
+            SpaciousDensity => (22, 400),
+            _ => (GalleryLayoutEngine.DefaultSpacing, GalleryLayoutEngine.DefaultTargetSize)
+        };
+        Normalize();
+    }
+
+    public void Normalize()
+    {
+        Mode = string.Equals(Mode, JustifiedMode, StringComparison.Ordinal)
+            ? JustifiedMode
+            : WaterfallMode;
+        Density = Density is CompactDensity or ComfortableDensity or SpaciousDensity or CustomDensity
+            ? Density
+            : ComfortableDensity;
+        Spacing = Math.Clamp(
+            double.IsFinite(Spacing) ? Spacing : GalleryLayoutEngine.DefaultSpacing,
+            GalleryLayoutEngine.MinimumSpacing,
+            GalleryLayoutEngine.MaximumSpacing);
+        TargetSize = Math.Clamp(
+            double.IsFinite(TargetSize) ? TargetSize : GalleryLayoutEngine.DefaultTargetSize,
+            GalleryLayoutEngine.MinimumTargetSize,
+            GalleryLayoutEngine.MaximumTargetSize);
     }
 }
 

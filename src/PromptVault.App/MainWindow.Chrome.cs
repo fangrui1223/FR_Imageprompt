@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
@@ -9,38 +10,33 @@ namespace PromptVault.App;
 public partial class MainWindow
 {
     private bool _oldestFirst;
-    private readonly DispatcherTimer _topShowTimer = new() { Interval = TimeSpan.FromMilliseconds(280) };
-    private readonly DispatcherTimer _leftShowTimer = new() { Interval = TimeSpan.FromMilliseconds(280) };
-    private readonly DispatcherTimer _topHideTimer = new() { Interval = TimeSpan.FromMilliseconds(1000) };
-    private readonly DispatcherTimer _leftHideTimer = new() { Interval = TimeSpan.FromMilliseconds(1000) };
+    private readonly Stopwatch _edgeIntentClock = Stopwatch.StartNew();
+    private readonly EdgeIntentDetector _edgeIntentDetector = new();
+    private readonly DispatcherTimer _edgeIntentTimer = new() { Interval = TimeSpan.FromMilliseconds(16) };
+    private readonly DispatcherTimer _topHideTimer = new() { Interval = TimeSpan.FromMilliseconds(280) };
+    private readonly DispatcherTimer _leftHideTimer = new() { Interval = TimeSpan.FromMilliseconds(280) };
     private const double HiddenPanelVisibleEdge = 6d;
     private const double TopPanelCollapsedOffsetMinimum = 130d;
     private const double LeftPanelCollapsedOffsetMinimum = 180d;
     private const double TopPanelMouseSafetyMargin = 4d;
-    private bool _topRevealHover;
-    private bool _leftRevealHover;
+    private static readonly TimeSpan SafeCorridorDuration = TimeSpan.FromMilliseconds(900);
+    private TimeSpan _topSafeCorridorUntil;
+    private TimeSpan _leftSafeCorridorUntil;
+    private bool _topPanelRevealed;
+    private bool _leftPanelRevealed;
     private bool _leftPanelMenuOpen;
 
     private void OnSourceInitialized(object? sender, EventArgs e)
     {
         if (!_trueTransparentWindow) BackdropService.Apply(this);
-        _topShowTimer.Tick += (_, _) =>
-        {
-            _topShowTimer.Stop();
-            if (!_topRevealHover) return;
-            UpdateTopPanelHeight();
-            AnimateTop(0);
-        };
-        _leftShowTimer.Tick += (_, _) =>
-        {
-            _leftShowTimer.Stop();
-            if (_leftRevealHover) AnimateLeft(0);
-        };
+        _edgeIntentTimer.Tick += (_, _) => PollEdgeIntent();
         _topHideTimer.Tick += (_, _) =>
         {
             _topHideTimer.Stop();
-            if (IsMouseInsideTopPanel())
+            if (_settings.EdgeMenusAlwaysVisible) return;
+            if (IsMouseInsideTopPanel() || IsInsideTopSafeCorridor())
             {
+                _topHideTimer.Interval = TimeSpan.FromMilliseconds(120);
                 _topHideTimer.Start();
                 return;
             }
@@ -49,30 +45,41 @@ public partial class MainWindow
         _leftHideTimer.Tick += (_, _) =>
         {
             _leftHideTimer.Stop();
-            if (!_leftPanelMenuOpen && !LeftPanel.IsMouseOver) HideLeftPanel();
+            if (_settings.EdgeMenusAlwaysVisible) return;
+            if (_leftPanelMenuOpen || IsMouseInsideLeftPanel() || IsInsideLeftSafeCorridor())
+            {
+                _leftHideTimer.Interval = TimeSpan.FromMilliseconds(120);
+                _leftHideTimer.Start();
+                return;
+            }
+            HideLeftPanel();
         };
         StateChanged += (_, _) => WindowSurface.CornerRadius = WindowState == WindowState.Maximized ? new CornerRadius(0) : new CornerRadius(14);
-        Loaded += (_, _) => { UpdateTopPanelHeight(); HideTopPanel(); HideLeftPanel(); };
+        Loaded += (_, _) =>
+        {
+            UpdateTopPanelHeight();
+            ApplyEdgeMenuPreference();
+        };
     }
 
     private void TopPanelMouseEnter(object sender, MouseEventArgs e)
     {
-        _topRevealHover = true;
         _topHideTimer.Stop();
-        _topShowTimer.Stop();
-        if (TopPanelTransform.Y < -0.5) _topShowTimer.Start();
-        else
+        if (!_topPanelRevealed && !_settings.EdgeMenusAlwaysVisible)
         {
-            UpdateTopPanelHeight();
-            AnimateTop(0);
+            ObserveEdgeIntent(e.GetPosition(this));
+            return;
         }
+        _edgeIntentDetector.Reset();
+        UpdateTopPanelHeight();
+        ShowTopPanel();
     }
 
     private void TopPanelMouseLeave(object sender, MouseEventArgs e)
     {
-        _topRevealHover = false;
-        _topShowTimer.Stop();
+        if (_settings.EdgeMenusAlwaysVisible) return;
         _topHideTimer.Stop();
+        _topHideTimer.Interval = TimeSpan.FromMilliseconds(280);
         _topHideTimer.Start();
     }
 
@@ -97,28 +104,200 @@ public partial class MainWindow
 
     private void LeftPanelMouseEnter(object sender, MouseEventArgs e)
     {
-        _leftRevealHover = true;
         _leftHideTimer.Stop();
-        _leftShowTimer.Stop();
-        if (LeftPanelTransform.X < -0.5) _leftShowTimer.Start();
-        else AnimateLeft(0);
+        if (!_leftPanelRevealed && !_settings.EdgeMenusAlwaysVisible)
+        {
+            ObserveEdgeIntent(e.GetPosition(this));
+            return;
+        }
+        _edgeIntentDetector.Reset();
+        ShowLeftPanel();
     }
 
     private void LeftPanelMouseLeave(object sender, MouseEventArgs e)
     {
-        _leftRevealHover = false;
-        _leftShowTimer.Stop();
+        if (_settings.EdgeMenusAlwaysVisible) return;
         _leftHideTimer.Stop();
+        _leftHideTimer.Interval = TimeSpan.FromMilliseconds(280);
         if (!_leftPanelMenuOpen) _leftHideTimer.Start();
+    }
+
+    private void TopRevealMouseEnter(object sender, MouseEventArgs e) => ObserveEdgeIntent(e.GetPosition(this));
+    private void TopRevealMouseLeave(object sender, MouseEventArgs e) => ObserveEdgeIntent(e.GetPosition(this));
+    private void LeftRevealMouseEnter(object sender, MouseEventArgs e) => ObserveEdgeIntent(e.GetPosition(this));
+    private void LeftRevealMouseLeave(object sender, MouseEventArgs e) => ObserveEdgeIntent(e.GetPosition(this));
+
+    private void ObserveEdgeIntent(Point position)
+    {
+        if (_settings.EdgeMenusAlwaysVisible || ImmersiveViewer.Visibility == Visibility.Visible)
+        {
+            _edgeIntentDetector.Reset();
+            _edgeIntentTimer.Stop();
+            return;
+        }
+
+        var profile = EdgeIntentProfile.FromSensitivity(_settings.EdgeMenuSensitivity);
+        var atTrackableLeftEdge = position.X <= profile.ActivationBand && !_leftPanelRevealed;
+        var atTrackableTopEdge = position.Y <= profile.ActivationBand && !_topPanelRevealed;
+        if (!atTrackableLeftEdge && !atTrackableTopEdge)
+        {
+            _edgeIntentDetector.Reset();
+            _edgeIntentTimer.Stop();
+            return;
+        }
+        var sampleX = _leftPanelRevealed ? profile.ActivationBand + 1 : position.X;
+        var sampleY = _topPanelRevealed ? profile.ActivationBand + 1 : position.Y;
+        _edgeIntentDetector.Observe(
+            sampleX,
+            sampleY,
+            ActualWidth,
+            ActualHeight,
+            _edgeIntentClock.Elapsed,
+            profile);
+        if (_edgeIntentDetector.Candidate == EdgeIntentEdge.None) _edgeIntentTimer.Stop();
+        else if (!_edgeIntentTimer.IsEnabled) _edgeIntentTimer.Start();
+    }
+
+    private void PollEdgeIntent()
+    {
+        if (_settings.EdgeMenusAlwaysVisible || ImmersiveViewer.Visibility == Visibility.Visible)
+        {
+            _edgeIntentDetector.Reset();
+            _edgeIntentTimer.Stop();
+            return;
+        }
+
+        var now = _edgeIntentClock.Elapsed;
+        var profile = EdgeIntentProfile.FromSensitivity(_settings.EdgeMenuSensitivity);
+        var position = Mouse.GetPosition(this);
+        var atTrackableLeftEdge = position.X <= profile.ActivationBand && !_leftPanelRevealed;
+        var atTrackableTopEdge = position.Y <= profile.ActivationBand && !_topPanelRevealed;
+        if (!atTrackableLeftEdge && !atTrackableTopEdge)
+        {
+            _edgeIntentDetector.Reset();
+            _edgeIntentTimer.Stop();
+            return;
+        }
+        var sampleX = _leftPanelRevealed ? profile.ActivationBand + 1 : position.X;
+        var sampleY = _topPanelRevealed ? profile.ActivationBand + 1 : position.Y;
+        var edge = _edgeIntentDetector.Poll(
+            sampleX,
+            sampleY,
+            ActualWidth,
+            ActualHeight,
+            now,
+            profile);
+        if (_edgeIntentDetector.Candidate == EdgeIntentEdge.None)
+        {
+            _edgeIntentTimer.Stop();
+            return;
+        }
+        if (edge == EdgeIntentEdge.None) return;
+
+        var dwell = _edgeIntentDetector.CandidateDwell(now).TotalMilliseconds;
+        _edgeIntentDetector.Reset();
+        _edgeIntentTimer.Stop();
+        RevealEdgePanel(edge);
+        DevelopmentPerformanceTrace.Event("edge-intent-reveal", new
+        {
+            edge = edge.ToString(),
+            dwellMs = Math.Round(dwell, 1),
+            sensitivity = _settings.EdgeMenuSensitivity,
+            alwaysVisible = _settings.EdgeMenusAlwaysVisible
+        });
+    }
+
+    private void RevealEdgePanel(EdgeIntentEdge edge)
+    {
+        if (edge == EdgeIntentEdge.Top)
+        {
+            UpdateTopPanelHeight();
+            _topSafeCorridorUntil = _edgeIntentClock.Elapsed + SafeCorridorDuration;
+            ShowTopPanel();
+        }
+        else if (edge == EdgeIntentEdge.Left)
+        {
+            _leftSafeCorridorUntil = _edgeIntentClock.Elapsed + SafeCorridorDuration;
+            ShowLeftPanel();
+        }
+    }
+
+    private bool IsInsideTopSafeCorridor()
+    {
+        if (_edgeIntentClock.Elapsed >= _topSafeCorridorUntil) return false;
+        var position = Mouse.GetPosition(this);
+        return position.X >= -8 && position.X <= ActualWidth + 8
+            && position.Y >= -8 && position.Y <= TopPanel.ActualHeight + 36;
+    }
+
+    private bool IsInsideLeftSafeCorridor()
+    {
+        if (_edgeIntentClock.Elapsed >= _leftSafeCorridorUntil) return false;
+        var position = Mouse.GetPosition(this);
+        return position.Y >= -8 && position.Y <= ActualHeight + 8
+            && position.X >= -8 && position.X <= LeftPanel.ActualWidth + 36;
+    }
+
+    private void EdgeSensitivityClick(object sender, RoutedEventArgs e)
+    {
+        _settings.EdgeMenuSensitivity = EdgeIntentProfile.NormalizeSensitivity(_settings.EdgeMenuSensitivity) switch
+        {
+            EdgeIntentProfile.LowSensitivity => EdgeIntentProfile.NormalSensitivity,
+            EdgeIntentProfile.NormalSensitivity => EdgeIntentProfile.HighSensitivity,
+            _ => EdgeIntentProfile.LowSensitivity
+        };
+        _settings.Save();
+        UpdateEdgeMenuVisuals();
+    }
+
+    private void EdgeAlwaysVisibleClick(object sender, RoutedEventArgs e)
+    {
+        _settings.EdgeMenusAlwaysVisible = !_settings.EdgeMenusAlwaysVisible;
+        _settings.Save();
+        ApplyEdgeMenuPreference();
+    }
+
+    private void ApplyEdgeMenuPreference()
+    {
+        UpdateEdgeMenuVisuals();
+        _edgeIntentDetector.Reset();
+        _edgeIntentTimer.Stop();
+        _topHideTimer.Stop();
+        _leftHideTimer.Stop();
+        if (_settings.EdgeMenusAlwaysVisible)
+        {
+            UpdateTopPanelHeight();
+            ShowTopPanel();
+            ShowLeftPanel();
+        }
+        else
+        {
+            HideTopPanel();
+            HideLeftPanel();
+        }
+    }
+
+    private void UpdateEdgeMenuVisuals()
+    {
+        if (EdgeSensitivityButton is null || EdgeAlwaysVisibleButton is null) return;
+        EdgeSensitivityButton.Content = EdgeIntentProfile.NormalizeSensitivity(_settings.EdgeMenuSensitivity) switch
+        {
+            EdgeIntentProfile.LowSensitivity => "边缘：低",
+            EdgeIntentProfile.HighSensitivity => "边缘：高",
+            _ => "边缘：标准"
+        };
+        EdgeAlwaysVisibleButton.Content = _settings.EdgeMenusAlwaysVisible ? "边栏：常显" : "边栏：智能";
+        EdgeAlwaysVisibleButton.Background = _settings.EdgeMenusAlwaysVisible
+            ? VisualModeService.ResourceBrush("AccentSoftBrush")
+            : VisualModeService.ResourceBrush("ButtonSurfaceBrush");
     }
 
     private void TopControlsWrapSizeChanged(object sender, SizeChangedEventArgs e) => UpdateTopPanelHeight();
     private void HoldLeftPanelForMenu(System.Windows.Controls.ContextMenu menu)
     {
         _leftPanelMenuOpen = true;
-        _leftShowTimer.Stop();
         _leftHideTimer.Stop();
-        AnimateLeft(0);
+        ShowLeftPanel();
         menu.Closed -= SidebarContextMenuClosed;
         menu.Closed += SidebarContextMenuClosed;
     }
@@ -141,18 +320,22 @@ public partial class MainWindow
 
     private void StabilizeHiddenPanelsForResize()
     {
+        if (_settings.EdgeMenusAlwaysVisible)
+        {
+            UpdateTopPanelHeight();
+            ShowTopPanel();
+            ShowLeftPanel();
+            return;
+        }
+
         if (!IsMouseInsideTopPanel())
         {
-            _topRevealHover = false;
-            _topShowTimer.Stop();
             _topHideTimer.Stop();
             SetTopPanelHiddenPosition();
         }
 
         if (!_leftPanelMenuOpen && !IsMouseInsideLeftPanel())
         {
-            _leftRevealHover = false;
-            _leftShowTimer.Stop();
             _leftHideTimer.Stop();
             SetLeftPanelHiddenPosition();
         }
@@ -172,18 +355,41 @@ public partial class MainWindow
 
     private void SetTopPanelHiddenPosition()
     {
+        _topPanelRevealed = false;
         TopPanelTransform.BeginAnimation(System.Windows.Media.TranslateTransform.YProperty, null);
         TopPanelTransform.Y = TopPanelHiddenOffset();
     }
 
     private void SetLeftPanelHiddenPosition()
     {
+        _leftPanelRevealed = false;
         LeftPanelTransform.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty, null);
         LeftPanelTransform.X = LeftPanelHiddenOffset();
     }
 
-    private void HideTopPanel() => AnimateTop(TopPanelHiddenOffset());
-    private void HideLeftPanel() => AnimateLeft(LeftPanelHiddenOffset());
+    private void ShowTopPanel()
+    {
+        _topPanelRevealed = true;
+        AnimateTop(0);
+    }
+
+    private void ShowLeftPanel()
+    {
+        _leftPanelRevealed = true;
+        AnimateLeft(0);
+    }
+
+    private void HideTopPanel()
+    {
+        _topPanelRevealed = false;
+        AnimateTop(TopPanelHiddenOffset());
+    }
+
+    private void HideLeftPanel()
+    {
+        _leftPanelRevealed = false;
+        AnimateLeft(LeftPanelHiddenOffset());
+    }
     private void AnimateTop(double value) => TopPanelTransform.BeginAnimation(
         System.Windows.Media.TranslateTransform.YProperty, PanelAnimation(value));
 

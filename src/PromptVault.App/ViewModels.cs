@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Windows;
 using System.Windows.Media.Imaging;
 using PromptVault.App.Services;
 using PromptVault.Core;
@@ -24,7 +25,8 @@ public sealed record GalleryEntry(
     DateTimeOffset CreatedAt,
     DateTimeOffset? DeletedAt,
     bool IsExternal,
-    string? ExternalFolderId)
+    string? ExternalFolderId,
+    bool IsFavorite = false)
 {
     public static GalleryEntry FromLibrary(GalleryItem item) => new(
         item.Id,
@@ -43,7 +45,8 @@ public sealed record GalleryEntry(
         item.CreatedAt,
         item.DeletedAt,
         false,
-        null);
+        null,
+        item.IsFavorite);
 
     public static GalleryEntry FromExternal(ExternalFileIndexItem item, string rootPath) => new(
         -item.Id,
@@ -62,7 +65,8 @@ public sealed record GalleryEntry(
         item.ModifiedAt,
         null,
         true,
-        item.FolderId);
+        item.FolderId,
+        false);
 
     public GalleryItem ToLibraryItem() => new(
         Id,
@@ -79,7 +83,8 @@ public sealed record GalleryEntry(
         CategoryName,
         Tags,
         CreatedAt,
-        DeletedAt);
+        DeletedAt,
+        IsFavorite);
 }
 
 public sealed class GalleryCardViewModel : INotifyPropertyChanged
@@ -89,6 +94,8 @@ public sealed class GalleryCardViewModel : INotifyPropertyChanged
     private BitmapSource? _thumbnail;
     private bool _thumbnailLoadFailed;
     private bool _isSelected;
+    private double _layoutX;
+    private double _layoutY;
     private double _layoutWidth;
     private double _imageHeight;
     private ThumbnailRequestPriority _thumbnailPriority = ThumbnailRequestPriority.Prefetch;
@@ -99,9 +106,23 @@ public sealed class GalleryCardViewModel : INotifyPropertyChanged
     private int _thumbnailLoadGeneration;
 
     public GalleryCardViewModel(GalleryEntry item, LibraryPaths paths, double layoutWidth, double imageHeight, bool isSelected = false)
+        : this(item, paths, 0, 0, layoutWidth, imageHeight, isSelected)
+    {
+    }
+
+    public GalleryCardViewModel(
+        GalleryEntry item,
+        LibraryPaths paths,
+        double layoutX,
+        double layoutY,
+        double layoutWidth,
+        double imageHeight,
+        bool isSelected = false)
     {
         Item = item;
         Paths = paths;
+        _layoutX = layoutX;
+        _layoutY = layoutY;
         _layoutWidth = layoutWidth;
         _imageHeight = imageHeight;
         _isSelected = isSelected;
@@ -114,18 +135,43 @@ public sealed class GalleryCardViewModel : INotifyPropertyChanged
     public string CategoryName => Item.CategoryName;
     public string Tags => Item.Tags;
     public double AspectRatio => Item.Height <= 0 ? 1 : Item.Width / (double)Item.Height;
+    public double LayoutX { get => _layoutX; private set { if (Math.Abs(_layoutX - value) < 0.1) return; _layoutX = value; OnPropertyChanged(); } }
+    public double LayoutY { get => _layoutY; private set { if (Math.Abs(_layoutY - value) < 0.1) return; _layoutY = value; OnPropertyChanged(); } }
     public double LayoutWidth { get => _layoutWidth; private set { if (Math.Abs(_layoutWidth - value) < 0.1) return; _layoutWidth = value; OnPropertyChanged(); } }
     public double ImageHeight { get => _imageHeight; private set { if (Math.Abs(_imageHeight - value) < 0.1) return; _imageHeight = value; OnPropertyChanged(); OnPropertyChanged(nameof(CardHeight)); } }
-    public double CardHeight => ImageHeight + 42;
+    public double CardHeight => ImageHeight;
     public BitmapSource? Thumbnail { get => _thumbnail; private set { _thumbnail = value; OnPropertyChanged(); } }
     public bool ThumbnailLoadFailed { get => _thumbnailLoadFailed; private set { if (_thumbnailLoadFailed == value) return; _thumbnailLoadFailed = value; OnPropertyChanged(); } }
     public bool IsSelected { get => _isSelected; set { if (_isSelected == value) return; _isSelected = value; OnPropertyChanged(); } }
+    public bool IsFavorite
+    {
+        get => Item.IsFavorite;
+        set
+        {
+            if (Item.IsFavorite == value) return;
+            Item = Item with { IsFavorite = value };
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(FavoriteGlyph));
+            OnPropertyChanged(nameof(FavoriteLabel));
+        }
+    }
+    public string FavoriteGlyph => IsFavorite ? "★" : "☆";
+    public string FavoriteLabel => IsFavorite ? "取消收藏" : "收藏";
     public string OriginalPath => Item.IsExternal ? Item.OriginalPath : Paths.ToAbsolute(Item.OriginalPath);
     public string ThumbnailPath => Item.IsExternal ? Item.ThumbnailPath : Paths.ToAbsolute(Item.ThumbnailPath);
     public string MediumThumbnailPath => Item.IsExternal ? Item.MediumThumbnailPath : Paths.ToAbsolute(Item.MediumThumbnailPath);
 
     public void UpdateLayout(double layoutWidth, double imageHeight)
+        => UpdateLayout(0, 0, layoutWidth, imageHeight);
+
+    public void UpdateLayout(
+        double layoutX,
+        double layoutY,
+        double layoutWidth,
+        double imageHeight)
     {
+        LayoutX = layoutX;
+        LayoutY = layoutY;
         LayoutWidth = layoutWidth;
         ImageHeight = imageHeight;
     }
@@ -139,6 +185,8 @@ public sealed class GalleryCardViewModel : INotifyPropertyChanged
 
     public void UpdateFrom(
         GalleryEntry item,
+        double layoutX,
+        double layoutY,
         double layoutWidth,
         double imageHeight,
         bool isSelected)
@@ -151,7 +199,7 @@ public sealed class GalleryCardViewModel : INotifyPropertyChanged
         var canKeepThumbnail = CanReuseFor(item);
         var itemChanged = Item != item;
         Item = item;
-        UpdateLayout(layoutWidth, imageHeight);
+        UpdateLayout(layoutX, layoutY, layoutWidth, imageHeight);
         IsSelected = isSelected;
 
         if (itemChanged)
@@ -160,6 +208,9 @@ public sealed class GalleryCardViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(IsExternal));
             OnPropertyChanged(nameof(CategoryName));
             OnPropertyChanged(nameof(Tags));
+            OnPropertyChanged(nameof(IsFavorite));
+            OnPropertyChanged(nameof(FavoriteGlyph));
+            OnPropertyChanged(nameof(FavoriteLabel));
             OnPropertyChanged(nameof(AspectRatio));
             OnPropertyChanged(nameof(OriginalPath));
             OnPropertyChanged(nameof(ThumbnailPath));
@@ -349,6 +400,8 @@ public sealed class GalleryCardViewModel : INotifyPropertyChanged
 
 public sealed record GalleryCardLayout(
     GalleryEntry Item,
+    double LayoutX,
+    double LayoutY,
     double LayoutWidth,
     double ImageHeight);
 
@@ -360,11 +413,16 @@ public sealed class GalleryRow : INotifyPropertyChanged
 {
     private IReadOnlyList<GalleryCardLayout> _layoutItems;
     private IReadOnlyList<GalleryCardViewModel> _items = [];
+    private double _bottomSpacing;
 
-    public GalleryRow(IReadOnlyList<GalleryCardLayout> layoutItems, bool isFilled)
+    public GalleryRow(
+        IReadOnlyList<GalleryCardLayout> layoutItems,
+        bool isFilled,
+        double bottomSpacing = GalleryLayoutEngine.DefaultSpacing)
     {
         _layoutItems = layoutItems;
         IsFilled = isFilled;
+        _bottomSpacing = bottomSpacing;
     }
 
     public IReadOnlyList<GalleryCardLayout> LayoutItems => _layoutItems;
@@ -384,7 +442,8 @@ public sealed class GalleryRow : INotifyPropertyChanged
     public bool IsRealized => Items.Count > 0;
     public double RowHeight => _layoutItems.Count == 0
         ? 0
-        : _layoutItems.Max(item => item.ImageHeight + 42);
+        : _layoutItems.Max(item => item.LayoutY + item.ImageHeight);
+    public Thickness RowMargin => new(0, 0, 0, _bottomSpacing);
 
     public void Realize(
         LibraryPaths paths,
@@ -402,6 +461,8 @@ public sealed class GalleryRow : INotifyPropertyChanged
                 {
                     reusable.UpdateFrom(
                         layout.Item,
+                        layout.LayoutX,
+                        layout.LayoutY,
                         layout.LayoutWidth,
                         layout.ImageHeight,
                         isSelected(layout.Item.Id));
@@ -412,6 +473,8 @@ public sealed class GalleryRow : INotifyPropertyChanged
                 return new GalleryCardViewModel(
                     layout.Item,
                     paths,
+                    layout.LayoutX,
+                    layout.LayoutY,
                     layout.LayoutWidth,
                     layout.ImageHeight,
                     isSelected(layout.Item.Id));
@@ -458,11 +521,15 @@ public sealed class GalleryRow : INotifyPropertyChanged
 
         _layoutItems = other._layoutItems;
         IsFilled = other.IsFilled;
+        _bottomSpacing = other._bottomSpacing;
         OnPropertyChanged(nameof(RowHeight));
+        OnPropertyChanged(nameof(RowMargin));
         for (var index = 0; index < Items.Count; index++)
         {
             Items[index].UpdateFrom(
                 _layoutItems[index].Item,
+                _layoutItems[index].LayoutX,
+                _layoutItems[index].LayoutY,
                 _layoutItems[index].LayoutWidth,
                 _layoutItems[index].ImageHeight,
                 isSelected(_layoutItems[index].Item.Id));
@@ -474,34 +541,131 @@ public sealed class GalleryRow : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
+public enum GalleryLayoutMode
+{
+    Waterfall,
+    Justified
+}
+
+public sealed record GalleryLayoutOptions(
+    GalleryLayoutMode Mode,
+    double Spacing,
+    double TargetSize)
+{
+    public static GalleryLayoutOptions Default { get; } = new(
+        GalleryLayoutMode.Waterfall,
+        GalleryLayoutEngine.DefaultSpacing,
+        GalleryLayoutEngine.DefaultTargetSize);
+
+    public GalleryLayoutOptions Normalize() => new(
+        Mode,
+        Math.Clamp(Spacing, GalleryLayoutEngine.MinimumSpacing, GalleryLayoutEngine.MaximumSpacing),
+        Math.Clamp(TargetSize, GalleryLayoutEngine.MinimumTargetSize, GalleryLayoutEngine.MaximumTargetSize));
+}
+
 public static class GalleryLayoutEngine
 {
-    public const double TargetImageHeight = 210;
-    public const double HorizontalMargin = 14;
+    public const double DefaultSpacing = 14;
+    public const double MinimumSpacing = 6;
+    public const double MaximumSpacing = 30;
+    public const double DefaultTargetSize = 320;
+    public const double MinimumTargetSize = 180;
+    public const double MaximumTargetSize = 520;
+    private const int WaterfallSectionDepth = 4;
 
     public static IReadOnlyList<GalleryRow> CreateRows(
         IReadOnlyList<GalleryEntry> items,
-        double availableWidth)
+        double availableWidth,
+        GalleryLayoutOptions? options = null)
+    {
+        options = (options ?? GalleryLayoutOptions.Default).Normalize();
+        return options.Mode == GalleryLayoutMode.Waterfall
+            ? CreateWaterfallRows(items, availableWidth, options)
+            : CreateJustifiedRows(items, availableWidth, options);
+    }
+
+    private static IReadOnlyList<GalleryRow> CreateWaterfallRows(
+        IReadOnlyList<GalleryEntry> items,
+        double availableWidth,
+        GalleryLayoutOptions options)
     {
         var rows = new List<GalleryRow>();
         if (items.Count == 0) return rows;
 
+        var columnCount = Math.Clamp(
+            (int)Math.Floor((availableWidth + options.Spacing) / (options.TargetSize + options.Spacing)),
+            1,
+            12);
+        var cardWidth = Math.Max(
+            92,
+            (availableWidth - (columnCount - 1) * options.Spacing) / columnCount);
+        var sectionSize = columnCount * WaterfallSectionDepth;
+        for (var offset = 0; offset < items.Count; offset += sectionSize)
+        {
+            var count = Math.Min(sectionSize, items.Count - offset);
+            var columnHeights = new double[columnCount];
+            var layouts = new GalleryCardLayout[count];
+            for (var index = 0; index < count; index++)
+            {
+                var item = items[offset + index];
+                var column = ShortestColumn(columnHeights);
+                var imageHeight = cardWidth / LayoutRatio(item);
+                layouts[index] = new GalleryCardLayout(
+                    item,
+                    column * (cardWidth + options.Spacing),
+                    columnHeights[column],
+                    cardWidth,
+                    imageHeight);
+                columnHeights[column] += imageHeight + options.Spacing;
+            }
+
+            rows.Add(new GalleryRow(
+                layouts,
+                count == sectionSize,
+                options.Spacing));
+        }
+
+        return rows;
+    }
+
+    private static IReadOnlyList<GalleryRow> CreateJustifiedRows(
+        IReadOnlyList<GalleryEntry> items,
+        double availableWidth,
+        GalleryLayoutOptions options)
+    {
+        var rows = new List<GalleryRow>();
+        if (items.Count == 0) return rows;
+
+        var targetImageHeight = options.TargetSize * 0.7;
         var pending = new List<GalleryEntry>();
         var ratioSum = 0d;
         foreach (var item in items)
         {
             pending.Add(item);
             ratioSum += LayoutRatio(item);
-            var projectedWidth = ratioSum * TargetImageHeight + pending.Count * HorizontalMargin;
-            if (projectedWidth < availableWidth && pending.Count < 7) continue;
-            rows.Add(CreateRow(pending, ratioSum, availableWidth, true));
+            var projectedWidth = ratioSum * targetImageHeight
+                + Math.Max(0, pending.Count - 1) * options.Spacing;
+            if (projectedWidth < availableWidth && pending.Count < 12) continue;
+            rows.Add(CreateJustifiedRow(
+                pending,
+                ratioSum,
+                availableWidth,
+                targetImageHeight,
+                options.Spacing,
+                true));
             pending.Clear();
             ratioSum = 0;
         }
 
         if (pending.Count > 0)
         {
-            rows.Add(CreateRow(pending, ratioSum, availableWidth, false));
+            rows.Add(CreateJustifiedRow(
+                pending,
+                ratioSum,
+                availableWidth,
+                targetImageHeight,
+                options.Spacing,
+                false));
         }
 
         return rows;
@@ -510,7 +674,8 @@ public static class GalleryLayoutEngine
     public static GalleryLayoutAppend CreateAppend(
         IReadOnlyList<GalleryRow> existingRows,
         IReadOnlyList<GalleryEntry> appendedItems,
-        double availableWidth)
+        double availableWidth,
+        GalleryLayoutOptions? options = null)
     {
         if (appendedItems.Count == 0)
         {
@@ -526,28 +691,45 @@ public static class GalleryLayoutEngine
         tail.AddRange(appendedItems);
         return new GalleryLayoutAppend(
             replaceIncompleteTail,
-            CreateRows(tail, availableWidth));
+            CreateRows(tail, availableWidth, options));
     }
 
-    private static GalleryRow CreateRow(
+    private static GalleryRow CreateJustifiedRow(
         IReadOnlyList<GalleryEntry> items,
         double ratioSum,
         double availableWidth,
+        double targetImageHeight,
+        double spacing,
         bool fill)
     {
         var imageHeight = fill
             ? Math.Clamp(
-                (availableWidth - items.Count * HorizontalMargin) / Math.Max(ratioSum, 0.01),
-                140,
-                270)
-            : TargetImageHeight;
-        var layouts = items
-            .Select(item => new GalleryCardLayout(
-                item,
-                Math.Max(92, LayoutRatio(item) * imageHeight),
-                imageHeight))
-            .ToArray();
-        return new GalleryRow(layouts, fill);
+                (availableWidth - Math.Max(0, items.Count - 1) * spacing) / Math.Max(ratioSum, 0.01),
+                targetImageHeight * 0.64,
+                targetImageHeight * 1.3)
+            : targetImageHeight;
+        var layouts = new GalleryCardLayout[items.Count];
+        var totalWidth = items.Sum(item => Math.Max(92, LayoutRatio(item) * imageHeight))
+            + Math.Max(0, items.Count - 1) * spacing;
+        var x = Math.Max(0, (availableWidth - totalWidth) / 2);
+        for (var index = 0; index < items.Count; index++)
+        {
+            var item = items[index];
+            var width = Math.Max(92, LayoutRatio(item) * imageHeight);
+            layouts[index] = new GalleryCardLayout(item, x, 0, width, imageHeight);
+            x += width + spacing;
+        }
+        return new GalleryRow(layouts, fill, spacing);
+    }
+
+    private static int ShortestColumn(IReadOnlyList<double> heights)
+    {
+        var shortest = 0;
+        for (var index = 1; index < heights.Count; index++)
+        {
+            if (heights[index] < heights[shortest]) shortest = index;
+        }
+        return shortest;
     }
 
     public static double LayoutRatio(GalleryEntry item)

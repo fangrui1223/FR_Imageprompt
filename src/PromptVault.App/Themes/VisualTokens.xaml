@@ -49,6 +49,12 @@
   <SolidColorBrush x:Key="SelectionStrokeBrush" Color="{StaticResource AccentColor}" />
   <SolidColorBrush x:Key="ImmersiveBackdropBrush" Color="#FC05080C" />
   <SolidColorBrush x:Key="TransparentHitBrush" Color="#01000000" />
+  <SolidColorBrush x:Key="OverlayChipBrush" Color="#B20B1118" />
+  <LinearGradientBrush x:Key="HoverOverlayBrush" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#00070B10" Offset="0" />
+    <GradientStop Color="#18070B10" Offset=".42" />
+    <GradientStop Color="#F2070B10" Offset="1" />
+  </LinearGradientBrush>
 
   <LinearGradientBrush x:Key="TopPanelBrush" StartPoint="0,0" EndPoint="1,1">
     <GradientStop Color="#F510151D" />

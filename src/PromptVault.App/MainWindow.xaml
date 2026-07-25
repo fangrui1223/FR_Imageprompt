@@ -16,7 +16,12 @@
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <Grid Margin="4,0,2,14" Background="Transparent" MouseLeftButtonDown="DragAreaMouseDown" Cursor="SizeAll">
      <TextBlock x:Name="CountText" FontSize="{StaticResource FontSizeHeading}" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" Text="图片收藏"/>
-     <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{DynamicResource HeaderHintBrush}" Text="移至顶部搜索 · 左侧分类 · 可拖入图片"/>
+     <WrapPanel HorizontalAlignment="Right" VerticalAlignment="Center" Cursor="Arrow">
+      <Button x:Name="LayoutModeButton" Height="30" MinWidth="82" Margin="0,0,6,0" Padding="10,4" Click="LayoutModeClick" Content="布局：瀑布"/>
+      <Button x:Name="LayoutDensityButton" Height="30" MinWidth="82" Margin="0,0,6,0" Padding="10,4" Click="LayoutDensityClick" Content="密度：舒适"/>
+      <Button x:Name="LayoutSpacingButton" Height="30" MinWidth="72" Margin="0,0,6,0" Padding="10,4" Click="LayoutSpacingClick" Content="间距 14"/>
+      <Button x:Name="LayoutTargetSizeButton" Height="30" MinWidth="78" Padding="10,4" Click="LayoutTargetSizeClick" Content="尺寸 320"/>
+     </WrapPanel>
     </Grid>
     <Grid Grid.Row="1">
      <ListBox x:Name="RowsList" ItemsSource="{Binding Rows}" Background="Transparent" BorderThickness="0" PreviewMouseWheel="RowsListPreviewMouseWheel"
@@ -27,7 +32,7 @@
       <ListBox.ItemContainerStyle>
        <Style TargetType="ListBoxItem">
         <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="0"/>
-        <Setter Property="Margin" Value="0,0,0,14"/><Setter Property="Background" Value="Transparent"/><Setter Property="Focusable" Value="False"/>
+        <Setter Property="Margin" Value="{Binding RowMargin}"/><Setter Property="Background" Value="Transparent"/><Setter Property="Focusable" Value="False"/>
         <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><ContentPresenter/></ControlTemplate></Setter.Value></Setter>
        </Style>
       </ListBox.ItemContainerStyle>
@@ -35,23 +40,26 @@
        <DataTemplate>
         <ItemsControl Height="{Binding RowHeight}" ItemsSource="{Binding Items}" Loaded="GalleryRowLoaded" Unloaded="GalleryRowUnloaded"
          DataContextChanged="GalleryRowDataContextChanged">
-         <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" HorizontalAlignment="Center"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+         <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+         <ItemsControl.ItemContainerStyle>
+          <Style TargetType="ContentPresenter">
+           <Setter Property="Canvas.Left" Value="{Binding LayoutX}"/>
+           <Setter Property="Canvas.Top" Value="{Binding LayoutY}"/>
+          </Style>
+         </ItemsControl.ItemContainerStyle>
          <ItemsControl.ItemTemplate>
           <DataTemplate>
-           <Border Margin="{StaticResource SpacingCard}" Width="{Binding LayoutWidth}" Height="{Binding CardHeight}" Background="{DynamicResource CardSurfaceBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
-            CornerRadius="{StaticResource CornerRadiusWindow}" ClipToBounds="True" Cursor="Hand" MouseEnter="CardMouseEnter" MouseLeave="CardMouseLeave"
-            MouseLeftButtonDown="CardMouseDown" MouseMove="CardMouseMove" MouseLeftButtonUp="CardClick" ContextMenuOpening="CardContextMenuOpening"
+            <Border Width="{Binding LayoutWidth}" Height="{Binding CardHeight}" Background="{DynamicResource CardSurfaceBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+             Focusable="True" FocusVisualStyle="{x:Null}"
+             CornerRadius="{StaticResource CornerRadiusWindow}" ClipToBounds="True" Cursor="Hand" MouseEnter="CardMouseEnter" MouseLeave="CardMouseLeave"
+             Unloaded="CardUnloaded"
+             MouseLeftButtonDown="CardMouseDown" MouseDown="CardAuxiliaryMouseDown" MouseMove="CardMouseMove" MouseLeftButtonUp="CardClick" ContextMenuOpening="CardContextMenuOpening"
             RenderTransformOrigin="0.5,0.5">
             <Border.RenderTransform><ScaleTransform ScaleX="1" ScaleY="1"/></Border.RenderTransform>
             <Border.ContextMenu><ContextMenu><MenuItem Header="移到回收站" Click="DeleteCardClick"/></ContextMenu></Border.ContextMenu>
             <Grid>
-             <Grid.RowDefinitions><RowDefinition Height="{Binding ImageHeight}"/><RowDefinition Height="42"/></Grid.RowDefinitions>
-             <Border Grid.RowSpan="2" CornerRadius="{StaticResource CornerRadiusWindow}" BorderBrush="{DynamicResource SelectionStrokeBrush}" BorderThickness="2" Background="{DynamicResource SelectionSurfaceBrush}" IsHitTestVisible="False" Panel.ZIndex="2">
+             <Border CornerRadius="{StaticResource CornerRadiusWindow}" BorderBrush="{DynamicResource SelectionStrokeBrush}" BorderThickness="2" Background="Transparent" IsHitTestVisible="False" Panel.ZIndex="4">
               <Border.Style><Style TargetType="Border"><Setter Property="Opacity" Value="0"/><Style.Triggers><DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter Property="Opacity" Value="1"/></DataTrigger></Style.Triggers></Style></Border.Style>
-             </Border>
-             <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,10,0" Width="30" Height="30" CornerRadius="15" Background="{DynamicResource AccentBrush}" BorderBrush="{DynamicResource PrimaryTextBrush}" BorderThickness="1" IsHitTestVisible="False" Panel.ZIndex="3">
-              <Border.Style><Style TargetType="Border"><Setter Property="Opacity" Value="0"/><Style.Triggers><DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter Property="Opacity" Value="1"/></DataTrigger></Style.Triggers></Style></Border.Style>
-              <TextBlock Text="✓" Foreground="{DynamicResource ButtonHoverTextBrush}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
              </Border>
              <Border Background="{DynamicResource ImageWellBrush}" ClipToBounds="True">
               <Grid>
@@ -72,11 +80,25 @@
                </TextBlock>
               </Grid>
              </Border>
-             <Border Grid.Row="1" Padding="12,0" Background="{DynamicResource CardLabelBrush}">
-              <Grid>
-               <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-               <TextBlock Grid.Column="0" Text="{Binding CategoryName}" Foreground="{DynamicResource CardTextBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-               <TextBlock Grid.Column="2" Text="{Binding Tags}" Foreground="{DynamicResource CardMetaTextBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+             <Border x:Name="HoverOverlay" Panel.ZIndex="3" Opacity="0" IsHitTestVisible="False"
+              Background="{DynamicResource HoverOverlayBrush}">
+              <Grid Margin="12">
+               <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+               <StackPanel Grid.Row="1">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,9">
+                 <Border Background="{DynamicResource OverlayChipBrush}" CornerRadius="6" Padding="8,4" Margin="0,0,6,0">
+                  <TextBlock Text="{Binding CategoryName}" Foreground="{DynamicResource PrimaryTextBrush}" TextTrimming="CharacterEllipsis" MaxWidth="150"/>
+                 </Border>
+                 <Border Background="{DynamicResource OverlayChipBrush}" CornerRadius="6" Padding="8,4">
+                  <TextBlock Text="{Binding Tags}" Foreground="{DynamicResource SecondaryTextBrush}" TextTrimming="CharacterEllipsis" MaxWidth="190"/>
+                 </Border>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                 <Button Style="{StaticResource OverlayActionButtonStyle}" Content="复制" ToolTip="复制提示词" Click="CopyCardPromptClick"/>
+                 <Button Style="{StaticResource OverlayActionButtonStyle}" Content="{Binding FavoriteGlyph}" ToolTip="{Binding FavoriteLabel}" Click="ToggleFavoriteClick"/>
+                 <Button Style="{StaticResource OverlayActionButtonStyle}" Content="画板" ToolTip="加入画板" Click="AddCardToBoardClick"/>
+                </StackPanel>
+               </StackPanel>
               </Grid>
              </Border>
             </Grid>
@@ -112,11 +134,13 @@
       </StackPanel>
      </Grid>
      <WrapPanel x:Name="TopControlsWrap" Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Top" ItemHeight="58" SizeChanged="TopControlsWrapSizeChanged" Margin="0,6,0,0">
-      <Grid Width="190" Height="58" Margin="0,0,8,0"><TextBlock Text="搜索提示词或备注" Margin="10,1,0,0" Foreground="{DynamicResource HeaderHintBrush}"/><TextBox x:Name="SearchBox" Height="42" Margin="0,16,0,0" VerticalContentAlignment="Center" TextChanged="SearchChanged"/></Grid>
+      <Grid Width="190" Height="58" Margin="0,0,8,0"><TextBlock Text="搜索提示词或备注" Margin="10,1,0,0" Foreground="{DynamicResource HeaderHintBrush}"/><TextBox x:Name="SearchBox" Height="42" Margin="0,16,0,0" VerticalContentAlignment="Center" TextChanged="SearchChanged" PreviewKeyDown="SearchBoxPreviewKeyDown"/></Grid>
       <Grid Width="135" Height="58" Margin="0,0,8,0"><TextBlock Text="标签筛选" Margin="10,1,0,0" Foreground="{DynamicResource HeaderHintBrush}"/><TextBox x:Name="TagBox" Height="42" Margin="0,16,0,0" VerticalContentAlignment="Center" TextChanged="SearchChanged"/></Grid>
       <Button x:Name="SortButton" Height="42" MinWidth="104" Margin="0,16,8,0" HorizontalContentAlignment="Left" Content="最新优先 ↕" Click="SortButtonClick"/>
       <Button x:Name="CaptureToggleButton" Height="42" MinWidth="104" Margin="0,16,8,0" Content="收录监听：开" Click="CaptureToggleClick"/>
       <Button x:Name="TransparentToggleButton" Height="42" MinWidth="78" Margin="0,16,8,0" Content="透明" Click="TransparentToggleClick" ToolTip="Ctrl+M 切换透明模式"/>
+      <Button x:Name="EdgeSensitivityButton" Height="42" MinWidth="104" Margin="0,16,8,0" Content="边缘：标准" Click="EdgeSensitivityClick" ToolTip="切换边缘菜单触发灵敏度"/>
+      <Button x:Name="EdgeAlwaysVisibleButton" Height="42" MinWidth="104" Margin="0,16,8,0" Content="边栏：智能" Click="EdgeAlwaysVisibleClick" ToolTip="让顶部和左侧菜单始终显示"/>
       <Button x:Name="MultiSelectButton" Height="42" MinWidth="68" Margin="0,16,8,0" Content="多选" Click="MultiSelectClick"/>
       <Button x:Name="DeleteSelectedButton" Height="42" MinWidth="82" Margin="0,16,8,0" Content="删除选中" Click="DeleteSelectedClick" IsEnabled="False"/>
       <Button x:Name="TrashButton" Height="42" MinWidth="68" Margin="0,16,8,0" Content="回收站" Click="TrashClick"/>
@@ -176,10 +200,156 @@
      </StackPanel>
     </Grid>   </Border>
 
-   <Border Height="22" VerticalAlignment="Top" Background="{DynamicResource TransparentHitBrush}" Panel.ZIndex="18"
-    MouseEnter="TopPanelMouseEnter" MouseLeave="TopPanelMouseLeave"/>
+    <Border x:Name="InspectorPanel" Width="380" Margin="0,18,18,18" HorizontalAlignment="Right" Panel.ZIndex="22"
+     Visibility="Collapsed" Opacity="0" IsHitTestVisible="False"
+     Background="{DynamicResource FloatingSurfaceBrush}" BorderBrush="{DynamicResource FloatingBorderBrush}" BorderThickness="1"
+     CornerRadius="{StaticResource CornerRadiusOverlay}" Effect="{DynamicResource FloatingPanelShadow}">
+     <Border.RenderTransform><TranslateTransform x:Name="InspectorTransform" X="408"/></Border.RenderTransform>
+     <Grid Margin="18,16,14,16">
+      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <Grid Grid.Row="0" Margin="2,0,2,14">
+       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+       <StackPanel>
+        <TextBlock x:Name="InspectorTitle" Text="图片检查器" FontSize="{StaticResource FontSizeSubheading}" FontWeight="SemiBold"
+         Foreground="{DynamicResource PrimaryTextBrush}" TextTrimming="CharacterEllipsis"/>
+        <TextBlock x:Name="InspectorMetaText" Margin="0,3,0,0" Foreground="{DynamicResource SecondaryTextBrush}"
+         FontSize="{StaticResource FontSizeCaption}" TextTrimming="CharacterEllipsis"/>
+       </StackPanel>
+       <Button x:Name="InspectorPinButton" Grid.Column="1" MinWidth="54" Height="30" Margin="8,0,6,0" Padding="10,0"
+        Content="固定" ToolTip="固定检查器" Click="InspectorPinClick"/>
+       <Button Grid.Column="2" Width="30" Height="30" Padding="0" Content="×" ToolTip="关闭检查器" Click="CloseInspectorClick"/>
+      </Grid>
+      <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+       <StackPanel Margin="2,0,6,0">
+        <Border Height="164" Margin="0,0,0,16" Background="{DynamicResource ImageWellBrush}" CornerRadius="{StaticResource CornerRadiusSurface}" ClipToBounds="True">
+         <Image x:Name="InspectorPreview" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+        </Border>
+
+        <TextBlock Text="原图信息" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="{StaticResource FontSizeCaption}"/>
+        <TextBlock x:Name="InspectorOriginalInfoText" Margin="0,4,0,12" Foreground="{DynamicResource PrimaryTextBrush}" TextWrapping="Wrap"/>
+
+        <TextBlock Text="提示词" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="{StaticResource FontSizeCaption}"/>
+        <TextBox x:Name="InspectorPromptEditor" MinHeight="96" MaxHeight="180" Margin="0,4,0,12" Padding="10,8"
+         AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+
+        <TextBlock Text="用户标签" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="{StaticResource FontSizeCaption}"/>
+        <TextBox x:Name="InspectorTagsEditor" Height="40" Margin="0,4,0,12" Padding="10,7"
+         ToolTip="使用逗号、分号或换行分隔标签"/>
+
+        <TextBlock Text="备注" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="{StaticResource FontSizeCaption}"/>
+        <TextBox x:Name="InspectorNotesEditor" MinHeight="68" MaxHeight="130" Margin="0,4,0,12" Padding="10,8"
+         AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+
+        <TextBlock Text="AI 草稿" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="{StaticResource FontSizeCaption}"/>
+        <Border Margin="0,4,0,12" Padding="10,9" Background="{DynamicResource PanelBrush}" CornerRadius="{StaticResource CornerRadiusControl}">
+         <TextBlock x:Name="InspectorAiDraftText" Text="尚无 AI 草稿 · M4 分析后显示"
+          Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap"/>
+        </Border>
+
+        <TextBlock Text="来源" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="{StaticResource FontSizeCaption}"/>
+        <TextBlock x:Name="InspectorSourceText" Margin="0,4,0,12" Foreground="{DynamicResource PrimaryTextBrush}" TextWrapping="Wrap"/>
+
+        <TextBlock Text="审美属性" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="{StaticResource FontSizeCaption}"/>
+        <Border Margin="0,4,0,6" Padding="10,9" Background="{DynamicResource PanelBrush}" CornerRadius="{StaticResource CornerRadiusControl}">
+         <TextBlock x:Name="InspectorAestheticText" Text="尚无审美属性 · M4 分析后显示"
+          Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap"/>
+        </Border>
+       </StackPanel>
+      </ScrollViewer>
+      <WrapPanel Grid.Row="2" Margin="2,14,2,0" HorizontalAlignment="Right">
+       <Button x:Name="InspectorConfirmAiButton" Height="36" MinWidth="76" Margin="0,0,7,0" Content="确认 AI"
+        IsEnabled="False" Click="ConfirmInspectorAiClick"/>
+       <Button Height="36" MinWidth="76" Margin="0,0,7,0" Content="加入画板" Click="AddInspectorToBoardClick"/>
+       <Button Height="36" MinWidth="76" Margin="0,0,7,0" Content="打开原图" Click="OpenInspectorSourceClick"/>
+       <Button x:Name="InspectorSaveButton" Height="36" MinWidth="76" Content="保存修改" Click="SaveInspectorClick"/>
+      </WrapPanel>
+     </Grid>
+    </Border>
+
+    <Grid x:Name="CommandPaletteOverlay" Panel.ZIndex="44" Visibility="Collapsed" IsHitTestVisible="False"
+     Background="#78000000" MouseLeftButtonDown="CommandPaletteOverlayMouseDown">
+     <Border Width="720" MaxHeight="720" Margin="32" Padding="18"
+      HorizontalAlignment="Center" VerticalAlignment="Center"
+      Background="{DynamicResource FloatingSurfaceBrush}" BorderBrush="{DynamicResource FloatingBorderBrush}" BorderThickness="1"
+      CornerRadius="{StaticResource CornerRadiusOverlay}" Effect="{DynamicResource FloatingPanelShadow}">
+      <Grid>
+       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+       <Grid Grid.Row="0" Margin="2,0,2,12">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <StackPanel>
+         <TextBlock Text="命令面板" FontSize="{StaticResource FontSizeHeading}" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
+         <TextBlock Text="输入命令、分类、标签或来源" Margin="0,3,0,0" Foreground="{DynamicResource SecondaryTextBrush}"/>
+        </StackPanel>
+        <TextBlock Grid.Column="1" Text="Ctrl+K · Esc 关闭" VerticalAlignment="Center" Foreground="{DynamicResource MutedTextBrush}"/>
+       </Grid>
+       <TextBox x:Name="CommandSearchBox" Grid.Row="1" Height="50" Padding="14,9" Margin="0,0,0,12"
+        VerticalContentAlignment="Center" FontSize="{StaticResource FontSizeBody}"
+        AutomationProperties.Name="搜索命令" TextChanged="CommandSearchChanged" PreviewKeyDown="CommandSearchPreviewKeyDown"/>
+       <Grid Grid.Row="2">
+        <ListBox x:Name="CommandList" ItemsSource="{Binding CommandResults}" MaxHeight="520"
+         Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+         MouseDoubleClick="CommandListDoubleClick" AutomationProperties.Name="命令结果">
+         <ListBox.ItemContainerStyle>
+          <Style TargetType="ListBoxItem">
+           <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+           <Setter Property="Padding" Value="0"/>
+           <Setter Property="Margin" Value="0,2"/>
+           <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+           <Setter Property="Background" Value="Transparent"/>
+           <Setter Property="Template">
+            <Setter.Value>
+             <ControlTemplate TargetType="ListBoxItem">
+              <Border x:Name="CommandItemBorder" MinHeight="60" Padding="13,9" Background="{TemplateBinding Background}"
+               BorderBrush="Transparent" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusControl}">
+               <ContentPresenter/>
+              </Border>
+              <ControlTemplate.Triggers>
+               <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="CommandItemBorder" Property="Background" Value="{DynamicResource PanelHoverBrush}"/>
+                <Setter TargetName="CommandItemBorder" Property="BorderBrush" Value="{DynamicResource HairlineBrush}"/>
+               </Trigger>
+               <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="CommandItemBorder" Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+                <Setter TargetName="CommandItemBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+               </Trigger>
+              </ControlTemplate.Triggers>
+             </ControlTemplate>
+            </Setter.Value>
+           </Setter>
+          </Style>
+         </ListBox.ItemContainerStyle>
+         <ListBox.ItemTemplate>
+          <DataTemplate>
+           <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <StackPanel>
+             <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
+             <TextBlock Text="{Binding Description}" Margin="0,3,0,0" Foreground="{DynamicResource SecondaryTextBrush}" TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+            <Border Grid.Column="1" Margin="12,0,0,0" Padding="8,3" VerticalAlignment="Center"
+             Background="{DynamicResource OverlayChipBrush}" CornerRadius="6">
+             <TextBlock Text="{Binding Scope}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="{StaticResource FontSizeCaption}"/>
+            </Border>
+           </Grid>
+          </DataTemplate>
+         </ListBox.ItemTemplate>
+        </ListBox>
+        <TextBlock x:Name="CommandEmptyState" Text="没有匹配的命令" Visibility="Collapsed"
+         HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}"/>
+       </Grid>
+       <Grid Grid.Row="3" Margin="2,12,2,0">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <TextBlock x:Name="CommandResultCount" Text="0 个命令" Foreground="{DynamicResource MutedTextBrush}"/>
+        <TextBlock Grid.Column="1" Text="↑↓ 选择 · Enter 执行" Foreground="{DynamicResource MutedTextBrush}"/>
+       </Grid>
+      </Grid>
+     </Border>
+    </Grid>
+
+    <Border Height="22" VerticalAlignment="Top" Background="{DynamicResource TransparentHitBrush}" Panel.ZIndex="18"
+    MouseEnter="TopRevealMouseEnter" MouseLeave="TopRevealMouseLeave"/>
    <Border Width="22" HorizontalAlignment="Left" Background="{DynamicResource TransparentHitBrush}" Panel.ZIndex="18"
-    MouseEnter="LeftPanelMouseEnter" MouseLeave="LeftPanelMouseLeave"/>
+    MouseEnter="LeftRevealMouseEnter" MouseLeave="LeftRevealMouseLeave"/>
    <Grid x:Name="ImmersiveViewer" Panel.ZIndex="36" Visibility="Collapsed" Background="{DynamicResource ImmersiveBackdropBrush}" ClipToBounds="True">
     <Image x:Name="ImmersiveImage" Stretch="Uniform" RenderTransformOrigin="0.5,0.5"
      MouseWheel="ImmersiveMouseWheel" MouseLeftButtonDown="ImmersiveMouseDown" MouseLeftButtonUp="ImmersiveMouseUp" MouseMove="ImmersiveMouseMove">
@@ -210,8 +380,8 @@
      <TextBlock Text="支持 PNG · JPEG · WebP · BMP · GIF" Margin="0,8,0,0" HorizontalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}"/>
     </StackPanel>
    </Border>
-   <Border Height="2" Width="120" VerticalAlignment="Top" HorizontalAlignment="Center" Background="{DynamicResource AccentSoftBrush}" CornerRadius="2" Panel.ZIndex="30" IsHitTestVisible="False"/>
-   <Border Width="2" Height="100" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource AccentSoftBrush}" CornerRadius="2" Panel.ZIndex="30" IsHitTestVisible="False"/>
-  </Grid>
+    <Border Height="2" Width="120" VerticalAlignment="Top" HorizontalAlignment="Center" Background="{DynamicResource AccentSoftBrush}" CornerRadius="2" Panel.ZIndex="30" IsHitTestVisible="False"/>
+    <Border Width="2" Height="100" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource AccentSoftBrush}" CornerRadius="2" Panel.ZIndex="30" IsHitTestVisible="False"/>
+   </Grid>
  </Border>
 </Window>

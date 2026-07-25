@@ -14,6 +14,7 @@ public sealed record MainWindowSnapshot(
     long? CategoryId,
     string? ExternalFolderId,
     bool ShowTrash,
+    bool FavoritesOnly,
     bool OldestFirst,
     bool MultiSelectMode,
     long[] SelectedItemIds,

@@ -17,7 +17,8 @@ public sealed record GalleryItem(
     string CategoryName,
     string Tags,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? DeletedAt);
+    DateTimeOffset? DeletedAt,
+    bool IsFavorite = false);
 
 public sealed record AssetInput(
     string Hash,
@@ -161,6 +162,7 @@ public sealed record SearchOptions(
     GalleryTrashScope Trash = GalleryTrashScope.Active,
     GallerySourceKind Source = GallerySourceKind.Library,
     string? SourceId = null,
+    bool FavoritesOnly = false,
     GallerySortOrder Sort = GallerySortOrder.NewestFirst,
     int PageSize = 240,
     GalleryPageCursor? Cursor = null);
