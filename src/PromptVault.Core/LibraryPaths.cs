@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace PromptVault.Core;
 
 public sealed class LibraryPaths
@@ -26,17 +24,6 @@ public sealed class LibraryPaths
         Directory.CreateDirectory(MediumThumbnails);
         Directory.CreateDirectory(Models);
         Directory.CreateDirectory(Staging);
-        foreach (var file in Directory.EnumerateFiles(Staging).Where(path => File.GetLastWriteTimeUtc(path) < DateTime.UtcNow.AddDays(-1)))
-        {
-            try
-            {
-                File.Delete(file);
-            }
-            catch (Exception ex)
-            {
-                Trace.TraceWarning($"PromptVault stale staging cleanup failed for '{file}': {ex}");
-            }
-        }
     }
 
     public string ToRelative(string absolutePath) => Path.GetRelativePath(Root, absolutePath);

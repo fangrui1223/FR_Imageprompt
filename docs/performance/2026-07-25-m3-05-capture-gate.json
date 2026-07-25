@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "stage": "M3-05",
+  "capturedAt": "2026-07-25",
+  "environment": {
+    "os": "Windows 10.0.26200",
+    "dotnet": "10.0.9",
+    "logicalProcessors": 32,
+    "displayPhysical": "3840x2560",
+    "windowsScalePercent": 150,
+    "buildConfiguration": "Debug"
+  },
+  "isolation": {
+    "settingsArgumentWasExplicit": true,
+    "captureListeningEnabledForSyntheticRun": true,
+    "libraryKind": "workspace synthetic library",
+    "clipboardInputs": "workspace synthetic images and synthetic English prompts only",
+    "realLibraryOpened": false,
+    "realLibraryModified": false,
+    "onlineApiUsed": false,
+    "modelKeyUsed": false
+  },
+  "thresholds": {
+    "captureFeedbackMs": 100,
+    "promptDebounceMs": 600,
+    "promptWaitMs": 120000,
+    "mixedClipboardEventsLost": 0,
+    "mixedClipboardDuplicateSaves": 0
+  },
+  "measurements": {
+    "captureFeedback": {
+      "samples": 15,
+      "minMs": 0.0115,
+      "p50Ms": 0.0331,
+      "p95MsNearestRank": 34.948,
+      "maxMs": 34.948,
+      "passed": true
+    },
+    "automaticSaveFromLastTextEvent": {
+      "samples": 4,
+      "valuesMs": [
+        613.471,
+        615.178,
+        611.578,
+        605.628
+      ],
+      "maxMs": 615.178,
+      "note": "Values include the configured 600ms stability window plus repository save, gallery refresh and diagnostic emission."
+    },
+    "galleryContinuity": {
+      "refreshSamples": 13,
+      "minimumRowsOpacity": 1.0,
+      "nearBlackFramesObserved": 0
+    },
+    "duplicateWindowsEvents": {
+      "hashCoalesced": 5,
+      "filePathCoalescedAfterFix": 1
+    },
+    "restartRecovery": {
+      "activeSessions": 1,
+      "rehydratedPendingCaptures": 1,
+      "result": "waiting-for-prompt capsule restored"
+    },
+    "inbox": {
+      "sourceImagePixels": "3840x2160",
+      "capsuleLogicalPixels": "430x102",
+      "windowDip": "980x720",
+      "manualSupplementResult": "inbox 1 to 0; gallery 1 to 2"
+    },
+    "automatedTests": {
+      "passed": 116,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 681,
+      "mixedEventStressCount": 1000,
+      "debouncedUpdateStressCount": 1000
+    }
+  },
+  "scenarios": [
+    {
+      "name": "text copied while image processing",
+      "result": "passed",
+      "evidence": "SequentialEventPump test delays image preparation by 100ms and applies the queued text only after image-ready."
+    },
+    {
+      "name": "two images copied consecutively",
+      "result": "passed",
+      "evidence": "Two unique sessions received prompts newest-first and older-second; exactly two capture-auto-saved events were emitted and the two-item gallery stayed at two items."
+    },
+    {
+      "name": "duplicate image",
+      "result": "passed",
+      "evidence": "Pixel-hash duplicate updated the existing item with WasDuplicate=true; gallery item count stayed unchanged and the refresh reused existing rows/cards."
+    },
+    {
+      "name": "locked source file",
+      "result": "passed",
+      "evidence": "Exclusive file lock produced IOException without creating an incomplete capture session."
+    },
+    {
+      "name": "corrupt image",
+      "result": "passed-after-fix",
+      "evidence": "Failure persisted with a friendly damaged/unsupported message and appeared in the capsule/inbox. A repeated Windows file-drop event initially created two failures; path-and-time coalescing was added, and sequences 610/612 then produced one failure while sequence 612 was explicitly coalesced."
+    },
+    {
+      "name": "exit before save",
+      "result": "passed",
+      "evidence": "After process restart the diagnostic reported sessions=1 and pending=1; thumbnail, hash and prompt-wait state were restored."
+    },
+    {
+      "name": "exit after save",
+      "result": "passed",
+      "evidence": "Saved state, item ID, hash and remaining undo deadline survived repository restart."
+    },
+    {
+      "name": "AI worker unavailable",
+      "result": "passed",
+      "evidence": "Capture saved and remained searchable with an empty model directory and no AI invocation. AI summary expiration is independent of the undo timer."
+    }
+  ]
+}

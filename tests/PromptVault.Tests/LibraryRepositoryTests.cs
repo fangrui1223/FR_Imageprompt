@@ -351,9 +351,9 @@ public sealed class LibraryRepositoryTests : IAsyncLifetime
 
             Assert.NotNull(upgraded.LastMigration);
             Assert.Equal(1, upgraded.LastMigration!.FromVersion);
-            Assert.Equal(6, upgraded.LastMigration.ToVersion);
+            Assert.Equal(7, upgraded.LastMigration.ToVersion);
             Assert.True(File.Exists(upgraded.LastMigration.BackupPath));
-            Assert.Equal(6L, await ExecuteScalarAsync(paths.Database, "SELECT version FROM schema_info;"));
+            Assert.Equal(7L, await ExecuteScalarAsync(paths.Database, "SELECT version FROM schema_info;"));
             Assert.Equal(1L, await ExecuteScalarAsync(
                 upgraded.LastMigration.BackupPath!,
                 "SELECT version FROM schema_info;"));
@@ -386,7 +386,7 @@ public sealed class LibraryRepositoryTests : IAsyncLifetime
             await upgraded.InitializeAsync();
 
             Assert.Equal(2, upgraded.LastMigration!.FromVersion);
-            Assert.Equal(6, upgraded.LastMigration.ToVersion);
+            Assert.Equal(7, upgraded.LastMigration.ToVersion);
             Assert.True(File.Exists(upgraded.LastMigration.BackupPath));
             Assert.Equal(2L, await ExecuteScalarAsync(
                 upgraded.LastMigration.BackupPath!,
@@ -444,7 +444,7 @@ public sealed class LibraryRepositoryTests : IAsyncLifetime
             await upgraded.InitializeAsync();
 
             Assert.Equal(3, upgraded.LastMigration!.FromVersion);
-            Assert.Equal(6, upgraded.LastMigration.ToVersion);
+            Assert.Equal(7, upgraded.LastMigration.ToVersion);
             Assert.True(File.Exists(upgraded.LastMigration.BackupPath));
             Assert.True(upgraded.FullTextSearchAvailable);
             Assert.Equal(1L, await ExecuteScalarAsync(

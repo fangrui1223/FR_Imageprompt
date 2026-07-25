@@ -5,6 +5,7 @@ namespace PromptVault.App.Services;
 
 public sealed class PendingCapture : IDisposable
 {
+    public required Guid SessionId { get; init; }
     public required string StagedOriginal { get; init; }
     public required string StagedSmall { get; init; }
     public required string StagedMedium { get; init; }
@@ -15,7 +16,7 @@ public sealed class PendingCapture : IDisposable
     public required int Height { get; init; }
     public required BitmapSource Preview { get; init; }
     public GalleryItem? ExistingItem { get; init; }
-    public DateTimeOffset CapturedAt { get; } = DateTimeOffset.UtcNow;
+    public required DateTimeOffset CapturedAt { get; init; }
 
     public void Dispose()
     {

@@ -15,7 +15,8 @@ public partial class CaptureWindow : Window
     private readonly IReadOnlyList<CategoryRecord> _categories;
     private bool _closingInternally;
     public event Func<string, string, long?, string, Task>? SaveRequested;
-    public event Action? CancelRequested;
+    public event Action? CloseRequested;
+    public event Action? DeleteRequested;
 
     public CaptureWindow(PendingCapture pending, IReadOnlyList<CategoryRecord> categories)
     {
@@ -56,7 +57,24 @@ public partial class CaptureWindow : Window
     public void SetPrompt(string prompt)
     {
         PromptBox.Text = prompt.Trim();
-        StateText.Text = "已捕获提示词，请确认分类后保存";
+        StateText.Text = "已捕获提示词，文本稳定后会自动保存";
+    }
+
+    public void SetDraft(CaptureSessionRecord session)
+    {
+        PromptBox.Text = session.Prompt;
+        NotesBox.Text = session.Notes;
+        TagsBox.Text = session.Tags;
+        CategoryBox.SelectedValue = session.CategoryId;
+        if (session.State == CaptureState.NeedsPrompt)
+        {
+            StateText.Text = "这张图片正在待补提示词收件箱中";
+        }
+        else if (session.State == CaptureState.Failed)
+        {
+            StateText.Text = "上次收录失败，内容已保留";
+            ErrorText.Text = session.Error ?? "";
+        }
     }
 
     public void ShowError(string message) { ErrorText.Text = message; SaveButton.IsEnabled = true; }
@@ -64,7 +82,7 @@ public partial class CaptureWindow : Window
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
-        if (!_closingInternally) CancelRequested?.Invoke();
+        if (!_closingInternally) CloseRequested?.Invoke();
         base.OnClosing(e);
     }
 
@@ -94,11 +112,11 @@ public partial class CaptureWindow : Window
         if (SaveRequested is { } handler) await handler(PromptBox.Text, NotesBox.Text, category, TagsBox.Text);
     }
 
-    private void CancelClick(object sender, RoutedEventArgs e) => CancelRequested?.Invoke();
-    private void DeletePendingClick(object sender, RoutedEventArgs e) => CancelRequested?.Invoke();
+    private void CancelClick(object sender, RoutedEventArgs e) => Close();
+    private void DeletePendingClick(object sender, RoutedEventArgs e) => DeleteRequested?.Invoke();
     private async void OnKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape) { CancelRequested?.Invoke(); e.Handled = true; }
+        if (e.Key == Key.Escape) { Close(); e.Handled = true; }
         else if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.None) { await RequestSaveAsync(); e.Handled = true; }
     }
 

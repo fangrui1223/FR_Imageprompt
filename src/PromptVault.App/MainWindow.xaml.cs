@@ -93,7 +93,13 @@ public partial class MainWindow : Window
         _resizeTimer.Tick += (_, _) => { _resizeTimer.Stop(); RegroupIfNeeded(); };
         _subtleStatusTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1200) };
         _subtleStatusTimer.Tick += (_, _) => { _subtleStatusTimer.Stop(); UpdateBaseStatus(); };
-        _clipboard = new ClipboardMonitor(this, capture, () => _categories, SaveCaptureAsync);
+        _clipboard = new ClipboardMonitor(
+            this,
+            repository,
+            capture,
+            () => _categories,
+            SaveCaptureAsync,
+            RefreshAfterCaptureChangeAsync);
         _clipboard.SetEnabled(_settings.CaptureListeningEnabled);
         UpdateCaptureToggleVisual();
         UpdateSelectionVisual();
@@ -873,16 +879,36 @@ public partial class MainWindow : Window
             resetScroll: false);
     }
 
-    private async Task SaveCaptureAsync(PendingCapture pending, string prompt, string notes, long? category, string tags)
+    private async Task<CaptureSaveResult> SaveCaptureAsync(
+        PendingCapture pending,
+        string prompt,
+        string notes,
+        long? category,
+        string tags)
     {
         var result = await _capture.SaveAsync(pending, prompt, notes, category, [tags]);
-        await Dispatcher.InvokeAsync(async () =>
+        if (Dispatcher.CheckAccess())
         {
-            ToastService.Show(this, result.WasDuplicate ? "\u5DF2\u66F4\u65B0\u539F\u6709\u6536\u85CF" : "\u56FE\u7247\u4E0E\u63D0\u793A\u8BCD\u5DF2\u4FDD\u5B58");
             await RefreshAsync();
-        });
+        }
+        else
+        {
+            await Dispatcher.InvokeAsync(() => RefreshAsync()).Task.Unwrap();
+        }
+        return result;
     }
 
+    private async Task RefreshAfterCaptureChangeAsync()
+    {
+        if (Dispatcher.CheckAccess())
+        {
+            await RefreshAsync();
+        }
+        else
+        {
+            await Dispatcher.InvokeAsync(() => RefreshAsync()).Task.Unwrap();
+        }
+    }
 
     private void RowsListPreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {

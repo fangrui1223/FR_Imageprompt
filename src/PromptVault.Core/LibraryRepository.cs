@@ -155,6 +155,17 @@ public sealed partial class LibraryRepository
     {
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        var result = await SaveItemCoreAsync(connection, transaction, input, cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        return result;
+    }
+
+    private async Task<SaveResult> SaveItemCoreAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        SaveItemInput input,
+        CancellationToken cancellationToken)
+    {
         var existing = connection.CreateCommand();
         existing.Transaction = transaction;
         existing.CommandText = "SELECT ci.id FROM image_assets a JOIN collection_items ci ON ci.asset_id = a.id WHERE a.hash = $hash LIMIT 1;";
@@ -211,7 +222,6 @@ public sealed partial class LibraryRepository
         }
 
         await ReplaceTagsAsync(connection, transaction, itemId, input.Tags, cancellationToken).ConfigureAwait(false);
-        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
         return new SaveResult(itemId, wasDuplicate);
     }
 

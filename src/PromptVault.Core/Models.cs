@@ -38,6 +38,73 @@ public sealed record SaveItemInput(
 
 public sealed record SaveResult(long ItemId, bool WasDuplicate);
 
+public enum CaptureState
+{
+    ImageDetected = 0,
+    PreparingImage = 1,
+    WaitingForPrompt = 2,
+    PromptDebouncing = 3,
+    Saved = 4,
+    WaitingForAi = 5,
+    NeedsPrompt = 6,
+    Failed = 7,
+    Undone = 8
+}
+
+public sealed record CaptureSessionRecord(
+    Guid Id,
+    CaptureState State,
+    string StagedOriginalPath,
+    string? StagedSmallPath,
+    string? StagedMediumPath,
+    string? Hash,
+    string Extension,
+    string? Format,
+    int Width,
+    int Height,
+    string Prompt,
+    string Notes,
+    long? CategoryId,
+    string Tags,
+    DateTimeOffset CapturedAt,
+    DateTimeOffset UpdatedAt,
+    DateTimeOffset PromptDeadlineAt,
+    long? SavedItemId,
+    bool WasDuplicate,
+    DateTimeOffset? UndoDeadlineAt,
+    string? Error,
+    uint? LastClipboardSequence,
+    string? AiSummary);
+
+public sealed record CaptureSessionInput(
+    Guid Id,
+    string StagedOriginalPath,
+    string Extension,
+    DateTimeOffset CapturedAt,
+    DateTimeOffset PromptDeadlineAt,
+    uint? ClipboardSequence = null);
+
+public sealed record PreparedCaptureInput(
+    string StagedSmallPath,
+    string StagedMediumPath,
+    string Hash,
+    string Format,
+    int Width,
+    int Height);
+
+public sealed record CaptureSaveResult(
+    Guid CaptureId,
+    long ItemId,
+    bool WasDuplicate,
+    DateTimeOffset UndoDeadlineAt);
+
+public sealed record CaptureUndoResult(
+    Guid CaptureId,
+    long? ItemId,
+    bool RestoredDuplicate,
+    IReadOnlyList<string> DeletedRelativePaths,
+    IReadOnlyList<FileDeletionFailure> FileDeletionFailures);
+
 public sealed record FileDeletionFailure(string RelativePath, string Error);
 
 public sealed record TrashPurgeResult(

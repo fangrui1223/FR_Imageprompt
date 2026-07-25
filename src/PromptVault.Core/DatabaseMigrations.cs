@@ -32,7 +32,7 @@ public sealed class DatabaseMigrationException : Exception
 
 internal static class DatabaseMigrations
 {
-    public const int LatestVersion = 6;
+    public const int LatestVersion = 7;
 
     private static readonly IReadOnlyList<Migration> Steps =
     [
@@ -94,6 +94,41 @@ internal static class DatabaseMigrations
                 ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0 CHECK(is_favorite IN (0, 1));
             CREATE INDEX IF NOT EXISTS ix_items_favorite_created
                 ON collection_items(is_favorite, deleted_at, created_at DESC, id DESC);
+            """),
+        new(7, """
+            CREATE TABLE IF NOT EXISTS capture_inbox(
+                id TEXT PRIMARY KEY,
+                state INTEGER NOT NULL CHECK(state BETWEEN 0 AND 8),
+                staged_original_path TEXT NOT NULL,
+                staged_small_path TEXT NULL,
+                staged_medium_path TEXT NULL,
+                hash TEXT NULL,
+                extension TEXT NOT NULL,
+                format TEXT NULL,
+                width INTEGER NOT NULL DEFAULT 0,
+                height INTEGER NOT NULL DEFAULT 0,
+                prompt TEXT NOT NULL DEFAULT '',
+                notes TEXT NOT NULL DEFAULT '',
+                category_id INTEGER NULL REFERENCES categories(id) ON DELETE SET NULL,
+                tags TEXT NOT NULL DEFAULT '',
+                captured_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                prompt_deadline_at TEXT NOT NULL,
+                saved_item_id INTEGER NULL REFERENCES collection_items(id) ON DELETE SET NULL,
+                was_duplicate INTEGER NOT NULL DEFAULT 0 CHECK(was_duplicate IN (0, 1)),
+                undo_deadline_at TEXT NULL,
+                previous_prompt TEXT NULL,
+                previous_notes TEXT NULL,
+                previous_category_id INTEGER NULL,
+                previous_tags TEXT NULL,
+                previous_deleted_at TEXT NULL,
+                error TEXT NULL,
+                last_clipboard_sequence INTEGER NULL,
+                ai_summary TEXT NULL);
+            CREATE INDEX IF NOT EXISTS ix_capture_inbox_state_updated
+                ON capture_inbox(state, updated_at DESC);
+            CREATE INDEX IF NOT EXISTS ix_capture_inbox_prompt_deadline
+                ON capture_inbox(state, prompt_deadline_at);
             """)
     ];
 
