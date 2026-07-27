@@ -39,5 +39,13 @@ var report = new
     thresholdMs = 100,
     passed = samples[(int)Math.Ceiling(samples.Length * 0.95) - 1] <= 100
 };
-Console.WriteLine(JsonSerializer.Serialize(report));
+var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
+Console.WriteLine(json);
+if (args.Length > 0)
+{
+    var outputPath = Path.GetFullPath(args[0]);
+    Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+    await File.WriteAllTextAsync(outputPath, json);
+    Console.WriteLine($"Report: {outputPath}");
+}
 return report.passed ? 0 : 1;

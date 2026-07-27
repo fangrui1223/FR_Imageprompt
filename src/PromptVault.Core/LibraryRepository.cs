@@ -33,23 +33,64 @@ public sealed partial class LibraryRepository
 
     public LibraryPaths Paths { get; }
     public DatabaseMigrationResult? LastMigration { get; private set; }
+    public LibraryUpgradeReport? LastUpgrade { get; private set; }
+    public LibraryUpgradeRecovery? LastUpgradeRecovery { get; private set; }
     public bool FullTextSearchAvailable => _searchIndexBackend == SearchIndexBackend.Trigram;
     public event EventHandler<RepositoryDiagnostic>? Diagnostic;
 
-    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    public Task InitializeAsync(CancellationToken cancellationToken = default) =>
+        InitializeAsync(null, cancellationToken);
+
+    public async Task InitializeAsync(
+        LibraryUpgradeOptions? upgradeOptions,
+        CancellationToken cancellationToken = default)
     {
         Paths.EnsureCreated();
+        var upgrade = new LibraryUpgradeManager(Paths, upgradeOptions);
+        LastUpgradeRecovery = await upgrade.RecoverInterruptedAsync(cancellationToken).ConfigureAwait(false);
         var databaseExisted = File.Exists(Paths.Database) && new FileInfo(Paths.Database).Length > 0;
-        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
-        await ExecuteAsync(connection, "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=3000;", cancellationToken);
-        LastMigration = await DatabaseMigrations.ApplyAsync(
-            connection,
-            Paths,
-            databaseExisted,
-            cancellationToken).ConfigureAwait(false);
-        _searchIndexBackend = await InitializeSearchIndexAsync(connection, cancellationToken).ConfigureAwait(false);
-        await SeedCategoriesAsync(connection, cancellationToken).ConfigureAwait(false);
-        await PurgeTrashAsync(30, cancellationToken).ConfigureAwait(false);
+        SqliteConnection? connection = null;
+        LibraryUpgradePreflight? preflight = null;
+        try
+        {
+            connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+            await ExecuteAsync(connection, "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=3000;", cancellationToken);
+            var fromVersion = await DatabaseMigrations.ReadVersionAsync(connection, cancellationToken).ConfigureAwait(false);
+            preflight = await upgrade.PrepareAsync(
+                connection,
+                fromVersion,
+                DatabaseMigrations.LatestVersion,
+                cancellationToken).ConfigureAwait(false);
+            LastMigration = await DatabaseMigrations.ApplyAsync(
+                connection,
+                Paths,
+                databaseExisted,
+                upgrade.RecordMigrationCheckpointAsync,
+                cancellationToken).ConfigureAwait(false);
+            _searchIndexBackend = await InitializeSearchIndexAsync(connection, cancellationToken).ConfigureAwait(false);
+            await SeedCategoriesAsync(connection, cancellationToken).ConfigureAwait(false);
+            await PurgeTrashAsync(30, cancellationToken).ConfigureAwait(false);
+            LastUpgrade = await upgrade.CompleteAsync(
+                preflight,
+                LastUpgradeRecovery,
+                connection,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            if (connection is not null)
+            {
+                await connection.DisposeAsync().ConfigureAwait(false);
+                connection = null;
+            }
+            LastUpgradeRecovery = await upgrade.FailAndRollbackAsync(ex, CancellationToken.None).ConfigureAwait(false)
+                ?? LastUpgradeRecovery;
+            throw;
+        }
+        finally
+        {
+            if (connection is not null) await connection.DisposeAsync().ConfigureAwait(false);
+        }
     }
 
     public async Task<IReadOnlyList<CategoryRecord>> GetCategoriesAsync(CancellationToken cancellationToken = default)

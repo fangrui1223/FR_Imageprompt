@@ -15,6 +15,8 @@
     <Project Path="tools/PromptVault.SimilarityProbe/PromptVault.SimilarityProbe.csproj" />
     <Project Path="tools/PromptVault.M4UiSeed/PromptVault.M4UiSeed.csproj" />
     <Project Path="tools/PromptVault.M5BoardProbe/PromptVault.M5BoardProbe.csproj" />
+    <Project Path="tools/PromptVault.M6Gate/PromptVault.M6Gate.csproj" />
+    <Project Path="tools/PromptVault.MigrationProbe/PromptVault.MigrationProbe.csproj" />
     <Project Path="tools/PromptVault.VirtualizationProbe/PromptVault.VirtualizationProbe.csproj" />
   </Folder>
 </Solution>

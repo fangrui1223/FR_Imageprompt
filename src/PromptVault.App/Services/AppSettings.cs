@@ -17,6 +17,7 @@ public sealed class AppSettings
     public string OnlineAiEndpoint { get; set; } = "";
     public string OnlineAiModel { get; set; } = "";
     public bool OnlineAiIncludeExistingPrompt { get; set; }
+    public int ModelBackupRetentionCount { get; set; } = 2;
     public List<ExternalFolderSetting> ExternalFolders { get; set; } = [];
     public Dictionary<string, GalleryLayoutPreference> GalleryLayouts { get; set; } = [];
     [JsonIgnore] public string? RecoveryNotice { get; private set; }
@@ -38,6 +39,7 @@ public sealed class AppSettings
             settings.ExternalFolders ??= [];
             settings.GalleryLayouts ??= [];
             settings.EdgeMenuSensitivity = EdgeIntentProfile.NormalizeSensitivity(settings.EdgeMenuSensitivity);
+            settings.ModelBackupRetentionCount = Math.Clamp(settings.ModelBackupRetentionCount, 0, 10);
             foreach (var preference in settings.GalleryLayouts.Values)
             {
                 preference.Normalize();

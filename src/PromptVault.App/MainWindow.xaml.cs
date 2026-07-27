@@ -127,6 +127,25 @@ public partial class MainWindow : Window
                 _searchTimer.Stop();
                 _resizeTimer.Stop();
                 RegroupIfNeeded();
+                if (DevelopmentPerformanceTrace.AutoRunScrollProbeCount > 0)
+                {
+                    _ = Dispatcher.BeginInvoke(
+                        DispatcherPriority.ApplicationIdle,
+                        new Action(async () =>
+                        {
+                            await Task.Delay(1500);
+                            for (var probe = 0;
+                                 probe < DevelopmentPerformanceTrace.AutoRunScrollProbeCount;
+                                 probe++)
+                            {
+                                StartDevelopmentScrollProbe();
+                                if (probe + 1 < DevelopmentPerformanceTrace.AutoRunScrollProbeCount)
+                                {
+                                    await Task.Delay(5000);
+                                }
+                            }
+                        }));
+                }
             }
         };
         SizeChanged += (_, _) =>
@@ -1184,7 +1203,8 @@ public partial class MainWindow : Window
         {
             await using var stream = File.OpenRead(picker.FileName);
             var hash = await ContentHasher.Sha256Async(stream);
-            await new ModelPackInstaller().VerifyAndInstallAsync(picker.FileName, hash, _repository.Paths.Models);
+            await new ModelPackInstaller(retainedBackups: _settings.ModelBackupRetentionCount)
+                .VerifyAndInstallAsync(picker.FileName, hash, _repository.Paths.Models);
             ToastService.Show(this, "\u6A21\u578B\u5305\u5DF2\u5BFC\u5165");
         }
         catch (Exception ex) { ToastService.Show(this, $"\u6A21\u578B\u5305\u5BFC\u5165\u5931\u8D25\uFF1A{ex.Message}"); }

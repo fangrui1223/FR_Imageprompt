@@ -16,15 +16,17 @@ internal static class Program
     public static int Main(string[] args)
     {
         var outputPath = Path.GetFullPath(
-            args.Length > 0
+            args.Length > 0 && !args[0].StartsWith("--", StringComparison.Ordinal)
                 ? args[0]
                 : Path.Combine("artifacts", "performance", "virtualization-probe.json"));
+        var simulateRegression = args.Contains("--simulate-regression", StringComparer.OrdinalIgnoreCase);
         var entries = CreateEntries(30_000);
         var layoutClock = Stopwatch.StartNew();
         var rows = GalleryLayoutEngine.CreateRows(entries, 2500);
         layoutClock.Stop();
 
         var samples = new List<double>();
+        var renderingClockSamples = new List<double>();
         var warmup = TimeSpan.FromMilliseconds(500);
         var measuredDuration = TimeSpan.FromSeconds(3);
         var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
@@ -39,7 +41,8 @@ internal static class Program
             WindowStyle = WindowStyle.None,
             Background = new SolidColorBrush(Color.FromRgb(10, 16, 25)),
             Content = list,
-            ShowInTaskbar = false
+            ShowInTaskbar = true,
+            Topmost = true
         };
 
         var realizedContainers = 0;
@@ -47,12 +50,14 @@ internal static class Program
         var runClock = new Stopwatch();
         window.Loaded += (_, _) =>
         {
+            window.Activate();
             _ = window.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
             {
                 list.UpdateLayout();
                 var viewer = FindDescendant<ScrollViewer>(list)
                     ?? throw new InvalidOperationException("The probe list did not create a ScrollViewer.");
                 var lastRenderingTime = TimeSpan.Zero;
+                var lastCallbackTimestamp = 0L;
                 var measuring = true;
                 EventHandler? rendering = null;
                 rendering = (_, args) =>
@@ -65,9 +70,18 @@ internal static class Program
                     }
                     if (lastRenderingTime != TimeSpan.Zero && runClock.Elapsed >= warmup)
                     {
-                        samples.Add((renderingArgs.RenderingTime - lastRenderingTime).TotalMilliseconds);
+                        renderingClockSamples.Add(
+                            (renderingArgs.RenderingTime - lastRenderingTime).TotalMilliseconds);
+                        if (lastCallbackTimestamp != 0)
+                        {
+                            samples.Add(
+                                (Stopwatch.GetTimestamp() - lastCallbackTimestamp)
+                                * 1000d
+                                / Stopwatch.Frequency);
+                        }
                     }
                     lastRenderingTime = renderingArgs.RenderingTime;
+                    lastCallbackTimestamp = Stopwatch.GetTimestamp();
                     viewer.ScrollToVerticalOffset(
                         Math.Min(viewer.ScrollableHeight, viewer.VerticalOffset + 72));
                     peakManagedBytes = Math.Max(peakManagedBytes, GC.GetTotalMemory(false));
@@ -92,6 +106,18 @@ internal static class Program
 
         application.Run(window);
         samples.Sort();
+        renderingClockSamples.Sort();
+        var p95 = simulateRegression ? 99d : Percentile(renderingClockSamples, 0.95);
+        var p99 = Percentile(renderingClockSamples, 0.99);
+        var maximum = renderingClockSamples.Count == 0
+            ? 0
+            : Math.Round(renderingClockSamples[^1], 3);
+        var frameCadencePassed = renderingClockSamples.Count > 0
+                                 && p95 <= 16.949
+                                 && p99 <= 33.898
+                                 && maximum <= 33.898;
+        var structuralPassed = realizedContainers < rows.Count / 10;
+        var passed = structuralPassed && frameCadencePassed && !simulateRegression;
         var report = new
         {
             StartedAtUtc = DateTimeOffset.UtcNow,
@@ -116,11 +142,32 @@ internal static class Program
             },
             Frames = new
             {
+                Count = renderingClockSamples.Count,
+                P95Ms = p95,
+                P99Ms = p99,
+                MaximumMs = maximum
+            },
+            CallbackArrivalDiagnostic = new
+            {
                 Count = samples.Count,
                 P95Ms = Percentile(samples, 0.95),
-                P99Ms = Percentile(samples, 0.99),
-                MaximumMs = samples.Count == 0 ? 0 : Math.Round(samples[^1], 3)
-            }
+                MaximumMs = samples.Count == 0
+                    ? 0
+                    : Math.Round(samples[^1], 3),
+                DiagnosticOnly = true
+            },
+            Checks = new
+            {
+                P95LimitMs = 16.949,
+                P99LimitMs = 33.898,
+                MaximumLimitMs = 33.898,
+                VirtualizationLimit = rows.Count / 10,
+                SimulatedRegression = simulateRegression
+            },
+            StructuralPassed = structuralPassed,
+            StandaloneFrameCadencePassed = frameCadencePassed,
+            FrameCadenceAuthority = "The product main-window trace is authoritative when supplied to PromptVault.M6Gate; this simplified window remains a diagnostic fallback.",
+            Passed = passed
         };
 
         Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
@@ -128,7 +175,7 @@ internal static class Program
             outputPath,
             JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
         Console.WriteLine(JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
-        return 0;
+        return passed ? 0 : 2;
     }
 
     private static ListBox CreateList(IReadOnlyList<GalleryRow> rows)

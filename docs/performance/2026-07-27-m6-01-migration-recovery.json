@@ -1,0 +1,35 @@
+{
+  "milestone": "M6-01",
+  "measuredAtUtc": "2026-07-27T03:41:21.4423633+00:00",
+  "source": {
+    "kind": "read-only database backup copied into an isolated workspace",
+    "fileName": "promptvault-v1-before-v4-20260724-134728388.db",
+    "sourceBytes": 2060288,
+    "sourceModifiedAtUtc": "2026-07-24T05:47:28.3962061Z"
+  },
+  "before": {
+    "version": 1,
+    "items": 550,
+    "activeItems": 548,
+    "integrity": "ok"
+  },
+  "upgrade": {
+    "toVersion": 12,
+    "elapsedMs": 273.72,
+    "backupCreated": true,
+    "settingsBackupCreated": true,
+    "searchFirstPageItems": 100,
+    "searchTotalItems": 548,
+    "searchMs": 57.305,
+    "integrity": "ok"
+  },
+  "rollback": {
+    "injectedAt": "ValidationCompleted",
+    "restoredVersion": 1,
+    "restoredItems": 550,
+    "integrity": "ok",
+    "recoveryPhase": "RolledBack",
+    "originalImagesTouched": false
+  },
+  "passed": true
+}

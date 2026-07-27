@@ -6,7 +6,13 @@ namespace PromptVault.Core;
 public sealed class ModelPackInstaller
 {
     private readonly HttpClient _httpClient;
-    public ModelPackInstaller(HttpClient? httpClient = null) => _httpClient = httpClient ?? new HttpClient();
+    private readonly int _retainedBackups;
+
+    public ModelPackInstaller(HttpClient? httpClient = null, int retainedBackups = 2)
+    {
+        _httpClient = httpClient ?? new HttpClient();
+        _retainedBackups = Math.Clamp(retainedBackups, 0, 10);
+    }
 
     public async Task InstallFromUrlAsync(Uri uri, string expectedSha256, string modelsDirectory, IProgress<double>? progress = null, CancellationToken cancellationToken = default)
     {
@@ -62,8 +68,25 @@ public sealed class ModelPackInstaller
             if (!File.Exists(Path.Combine(clip, "image_encoder.onnx")) || !File.Exists(Path.Combine(clip, "manifest.json")))
                 throw new InvalidDataException("模型包缺少 image_encoder.onnx 或 manifest.json。");
             var target = Path.Combine(modelsDirectory, "clip");
-            if (Directory.Exists(target)) Directory.Move(target, target + $".old-{DateTime.UtcNow:yyyyMMddHHmmss}");
-            Directory.Move(clip, target);
+            string? previous = null;
+            if (Directory.Exists(target))
+            {
+                previous = target + $".old-{DateTime.UtcNow:yyyyMMddHHmmssfff}";
+                Directory.Move(target, previous);
+            }
+            try
+            {
+                Directory.Move(clip, target);
+            }
+            catch
+            {
+                if (previous is not null && Directory.Exists(previous) && !Directory.Exists(target))
+                {
+                    Directory.Move(previous, target);
+                }
+                throw;
+            }
+            PruneOldBackups(modelsDirectory, _retainedBackups);
         }
         finally
         {
@@ -76,6 +99,30 @@ public sealed class ModelPackInstaller
                 Trace.TraceWarning($"PromptVault model staging cleanup failed for '{staging}': {ex}");
             }
         }
+    }
+
+    internal static int PruneOldBackups(string modelsDirectory, int retainedBackups)
+    {
+        retainedBackups = Math.Clamp(retainedBackups, 0, 10);
+        if (!Directory.Exists(modelsDirectory)) return 0;
+        var obsolete = Directory.EnumerateDirectories(modelsDirectory, "clip.old-*")
+            .OrderByDescending(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
+            .Skip(retainedBackups)
+            .ToArray();
+        var deleted = 0;
+        foreach (var path in obsolete)
+        {
+            try
+            {
+                Directory.Delete(path, recursive: true);
+                deleted++;
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceWarning($"PromptVault old model backup cleanup failed for '{path}': {ex}");
+            }
+        }
+        return deleted;
     }
 
     private static void TryDelete(string path)

@@ -259,6 +259,7 @@ internal static class DatabaseMigrations
         SqliteConnection connection,
         LibraryPaths paths,
         bool databaseExisted,
+        Func<LibraryUpgradePhase, int?, string?, CancellationToken, ValueTask>? checkpoint,
         CancellationToken cancellationToken)
     {
         var fromVersion = await ReadVersionAsync(connection, cancellationToken).ConfigureAwait(false);
@@ -279,13 +280,45 @@ internal static class DatabaseMigrations
             if (databaseExisted)
             {
                 backupPath = CreateBackup(connection, paths, fromVersion);
+                if (checkpoint is not null)
+                {
+                    await checkpoint(
+                        LibraryUpgradePhase.DatabaseBackupCreated,
+                        null,
+                        backupPath,
+                        cancellationToken).ConfigureAwait(false);
+                }
             }
 
             foreach (var migration in Steps.Where(step => step.Version > fromVersion))
             {
+                if (checkpoint is not null)
+                {
+                    await checkpoint(
+                        LibraryUpgradePhase.MigrationStepStarting,
+                        migration.Version,
+                        backupPath,
+                        cancellationToken).ConfigureAwait(false);
+                }
                 await ApplyStepAsync(connection, migration, cancellationToken).ConfigureAwait(false);
+                if (checkpoint is not null)
+                {
+                    await checkpoint(
+                        LibraryUpgradePhase.MigrationStepCompleted,
+                        migration.Version,
+                        backupPath,
+                        cancellationToken).ConfigureAwait(false);
+                }
             }
 
+            if (checkpoint is not null)
+            {
+                await checkpoint(
+                    LibraryUpgradePhase.MigrationCommitted,
+                    LatestVersion,
+                    backupPath,
+                    cancellationToken).ConfigureAwait(false);
+            }
             return new DatabaseMigrationResult(fromVersion, LatestVersion, backupPath);
         }
         catch (Exception ex) when (ex is not OperationCanceledException and not DatabaseMigrationException)
@@ -294,7 +327,7 @@ internal static class DatabaseMigrations
         }
     }
 
-    private static async Task<int> ReadVersionAsync(SqliteConnection connection, CancellationToken cancellationToken)
+    internal static async Task<int> ReadVersionAsync(SqliteConnection connection, CancellationToken cancellationToken)
     {
         var exists = connection.CreateCommand();
         exists.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name='schema_info' LIMIT 1;";

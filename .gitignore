@@ -21,6 +21,7 @@ PromptVaultLibrary/
 .smoke-library/
 .smoke-external/
 .m5-isolated/
+.m6-isolated/
 *.db
 *.db-shm
 *.db-wal

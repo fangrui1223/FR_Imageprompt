@@ -14,9 +14,22 @@
     <AssemblyName>PromptVault</AssemblyName>
     <Product>FR_Imageprompt AI 图片提示词收藏器</Product>
     <ApplicationIcon>..\..\PromptVault.ico</ApplicationIcon>
+    <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
+    <DebugSymbols Condition="'$(Configuration)' == 'Release'">false</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\PromptVault.Core\PromptVault.Core.csproj" />
     <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.22.0" />
   </ItemGroup>
+  <Target Name="CleanUserPublishArtifacts"
+          AfterTargets="Publish"
+          Condition="'$(PromptVaultUserPackage)' == 'true'">
+    <ItemGroup>
+      <PromptVaultForbiddenPublishFiles Include="$(PublishDir)**\*.pdb" />
+      <PromptVaultForbiddenPublishFiles Include="$(PublishDir)**\*.lib" />
+      <PromptVaultForbiddenPublishFiles Include="$(PublishDir)**\*.exp" />
+      <PromptVaultForbiddenPublishFiles Include="$(PublishDir)**\DirectML.Debug.*" />
+    </ItemGroup>
+    <Delete Files="@(PromptVaultForbiddenPublishFiles)" />
+  </Target>
 </Project>

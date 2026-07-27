@@ -61,7 +61,22 @@ public partial class App : System.Windows.Application
                 AppLog.Warning(diagnostic.Area, diagnostic.Message, diagnostic.Exception);
             using (DevelopmentPerformanceTrace.Measure("repository-initialize"))
             {
-                await _repository.InitializeAsync();
+                await _repository.InitializeAsync(new LibraryUpgradeOptions(_settings.StorageFilePath));
+            }
+            if (_repository.LastUpgradeRecovery is { Recovered: true } recovery)
+            {
+                AppLog.Warning("database-recovery", recovery.Message, data: new
+                {
+                    recovery.ResumedValidation,
+                    recovery.SessionDirectory,
+                    recovery.DatabaseBackupPath,
+                    recovery.PreservedOriginalFileCount
+                });
+                MessageBox.Show(
+                    $"{recovery.Message}\n\n恢复记录：{recovery.SessionDirectory}",
+                    "图库升级恢复",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
             }
             if (_repository.LastMigration is { WasUpgraded: true } migration)
             {
@@ -71,6 +86,22 @@ public partial class App : System.Windows.Application
                     migration.ToVersion,
                     migration.BackupPath
                 });
+                var report = _repository.LastUpgrade;
+                MessageBox.Show(
+                    $"图库已从版本 {migration.FromVersion} 升级到版本 {migration.ToVersion}。\n\n"
+                    + $"可恢复备份：{report?.SessionDirectory ?? migration.BackupPath}\n"
+                    + "升级备份只包含数据库与设置；原图和缩略图不会被回滚覆盖。",
+                    "图库升级完成",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            var recoveredAiJobs = await _repository.RecoverInterruptedAiJobsAsync();
+            if (recoveredAiJobs > 0)
+            {
+                AppLog.Warning(
+                    "ai-job-recovery",
+                    "Interrupted AI jobs were returned to the durable queue.",
+                    data: new { recoveredAiJobs });
             }
             _capture = new CaptureCoordinator(_repository);
             _boardWorkspace = new BoardWorkspaceService(_repository);

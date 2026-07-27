@@ -1,0 +1,61 @@
+{
+  "milestone": "M6-05",
+  "measuredAt": "2026-07-27",
+  "passed": true,
+  "environment": {
+    "dataKind": "synthetic",
+    "explicitSettings": true,
+    "captureListeningEnabled": false,
+    "launchesPerVariant": 4,
+    "releaseDiagnostics": "opt-in measurement symbol only"
+  },
+  "variants": [
+    {
+      "name": "multifile",
+      "files": 483,
+      "applicationBytes": 241884950,
+      "zipBytes": 96173665,
+      "coldFirstContentMs": 748.367,
+      "hotFirstContentP50Ms": 538.778,
+      "maximumExtractionFiles": 0
+    },
+    {
+      "name": "singlefile",
+      "files": 1,
+      "applicationBytes": 237849350,
+      "zipBytes": 92363251,
+      "coldFirstContentMs": 552.568,
+      "hotFirstContentP50Ms": 568.995,
+      "maximumExtractionFiles": 9
+    },
+    {
+      "name": "multifile-r2r",
+      "files": 483,
+      "applicationBytes": 276617022,
+      "zipBytes": 106381117,
+      "coldFirstContentMs": 712.078,
+      "hotFirstContentP50Ms": 477.927,
+      "maximumExtractionFiles": 0
+    },
+    {
+      "name": "singlefile-r2r",
+      "files": 1,
+      "applicationBytes": 303078707,
+      "zipBytes": 112306333,
+      "coldFirstContentMs": 461.894,
+      "hotFirstContentP50Ms": 508.938,
+      "maximumExtractionFiles": 9
+    }
+  ],
+  "decision": {
+    "layout": "self-contained single-file without ReadyToRun",
+    "singleFileHotStartupPenaltyPercent": 5.61,
+    "reason": "The hot-start penalty stayed below 20%, the ZIP was smaller than ordinary multi-file, distribution remains one executable, and ReadyToRun added disproportionate size."
+  },
+  "securityObservation": "All 16 local launches completed without a launch block or quarantine. This is a local observation, not a claim about third-party antivirus reputation.",
+  "dataSafety": {
+    "realLibraryOpenedOrModified": false,
+    "onlineAiRequests": 0,
+    "credentialsWritten": 0
+  }
+}

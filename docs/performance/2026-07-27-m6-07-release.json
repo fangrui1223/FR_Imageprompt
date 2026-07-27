@@ -1,0 +1,59 @@
+{
+  "milestone": "M6-07",
+  "releasedAt": "2026-07-27",
+  "passed": true,
+  "application": {
+    "version": "2.0.0",
+    "fileVersion": "2.0.0.0",
+    "runtime": "win-x64",
+    "selfContained": true,
+    "singleFile": true,
+    "readyToRun": false,
+    "packagePath": "publish/m6-final-release/FR_Imageprompt-2.0.0-win-x64",
+    "zipPath": "publish/m6-final-release/FR_Imageprompt-2.0.0-win-x64.zip",
+    "executableBytes": 237846278,
+    "executableSha256": "42ab681a39e359bac097551a095522918376130b4ff74b9b57b00cf874664c34",
+    "zipBytes": 92359288,
+    "zipSha256": "33889f544fb7f292e24982a2424a5f9a221693eca9d67eb19cabec996eef5dc0",
+    "forbiddenFiles": 0
+  },
+  "modelPackage": {
+    "separateOptionalArtifact": true,
+    "path": "artifacts/PromptVault-CLIP-ViT-B32-pants-reference.zip",
+    "source": "Xenova/clip-vit-base-patch32",
+    "sourceRevision": "d15189d7028b43f1d3e65039190477f6af591c2a",
+    "bytes": 69879134,
+    "sha256": "224213f01708b73f005cdaa363fa1939d520a7df4832c3d74c4601b01949c41a",
+    "entries": [
+      "clip/image_encoder.onnx",
+      "clip/manifest.json"
+    ],
+    "syntheticInferenceSmoke": true
+  },
+  "quality": {
+    "releaseBuildWarnings": 0,
+    "releaseBuildErrors": 0,
+    "testsPassed": 159,
+    "testsFailed": 0,
+    "m6RegressionGate": true,
+    "simulatedRegressionDetected": true,
+    "strictUtf8Documents": 6,
+    "missingDocumentLinks": 0
+  },
+  "realUi": {
+    "display": "3840x2560",
+    "scalePercent": 150,
+    "logicalViewport": "2560x1707",
+    "explicitSettings": true,
+    "syntheticImagesVisible": 3,
+    "captureListeningEnabled": false,
+    "startupErrorOrMigrationDialog": false,
+    "topAndLeftMenusVisible": true
+  },
+  "dataSafety": {
+    "syntheticLibrary": true,
+    "realLibraryOpenedOrModified": false,
+    "onlineAiRequests": 0,
+    "credentialsWritten": 0
+  }
+}

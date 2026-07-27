@@ -197,6 +197,8 @@
       <Button Content="＋ 添加文件夹" Click="AddExternalFolderClick" Margin="0,0,0,8"/>
       <Button Content="导入 AI 模型包" Click="ImportModelClick" Margin="0,0,0,8"/>
       <Button Content="AI 设置" Click="OpenAiSettingsClick" Margin="0,0,0,8"/>
+      <Button Content="导出诊断包" Click="ExportDiagnosticsClick" Margin="0,0,0,8"
+       ToolTip="仅导出脱敏日志、版本和白名单环境信息；不包含图片、提示词、密钥或设置"/>
       <Button Content="打开图库文件夹" Click="OpenLibraryClick"/>
      </StackPanel>
     </Grid>   </Border>

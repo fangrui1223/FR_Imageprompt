@@ -18,22 +18,39 @@ var run = new BenchmarkRun(
 
 foreach (var count in options.Counts)
 {
-    var root = options.RetainRoot is null
+    var root = options.FixedRoot is not null
+        ? Path.GetFullPath(options.FixedRoot)
+        : options.RetainRoot is null
         ? Path.Combine(Path.GetTempPath(), "PromptVaultBenchmark", $"{count}-{Guid.NewGuid():N}")
         : Path.Combine(Path.GetFullPath(options.RetainRoot), $"{count}-{Guid.NewGuid():N}");
     try
     {
         var paths = new LibraryPaths(root);
-        var bootstrap = new LibraryRepository(paths);
-        await bootstrap.InitializeAsync();
-        var retainedImages = options.RetainRoot is null
-            ? null
-            : CreateRetainedBenchmarkImages(
-                paths,
-                options.RetainedImageSource,
-                options.RetainedImageCount);
+        var reuseFixedDatabase = options.FixedRoot is not null && File.Exists(paths.Database);
+        _ = new LibraryRepository(paths);
+        RetainedImageSet? retainedImages = null;
         var seed = Stopwatch.StartNew();
-        await SeedAsync(paths.Database, count, retainedImages);
+        if (!reuseFixedDatabase)
+        {
+            var bootstrap = new LibraryRepository(paths);
+            await bootstrap.InitializeAsync();
+            retainedImages = options.RetainRoot is null && options.FixedRoot is null
+                ? null
+                : CreateRetainedBenchmarkImages(
+                    paths,
+                    options.RetainedImageSource,
+                    options.RetainedImageCount);
+            await SeedAsync(paths.Database, count, retainedImages);
+        }
+        else
+        {
+            var existingCount = await CountItemsAsync(paths.Database);
+            if (existingCount != count)
+            {
+                throw new InvalidDataException(
+                    $"Fixed benchmark database contains {existingCount} items; expected {count}.");
+            }
+        }
         seed.Stop();
         SqliteConnection.ClearAllPools();
 
@@ -85,8 +102,8 @@ foreach (var count in options.Counts)
             initialization,
             repository.FullTextSearchAvailable ? "fts5-trigram" : "like-fallback",
             new FileInfo(paths.Database).Length,
-            options.RetainRoot is null ? null : root,
-            retainedImages?.Count,
+            options.RetainRoot is null && options.FixedRoot is null ? null : root,
+            retainedImages?.Count ?? (options.FixedRoot is null ? null : options.RetainedImageCount),
             measurements));
         Console.WriteLine($"{count,6} items | init P95 {initialization.P95Ms,9:F2} ms | " +
                           string.Join(" | ", measurements.Select(x => $"{x.Name} P95 {x.P95Ms:F2} ms")));
@@ -96,7 +113,7 @@ foreach (var count in options.Counts)
         SqliteConnection.ClearAllPools();
         try
         {
-            if (options.RetainRoot is null && Directory.Exists(root)) Directory.Delete(root, true);
+            if (options.RetainRoot is null && options.FixedRoot is null && Directory.Exists(root)) Directory.Delete(root, true);
         }
         catch (IOException)
         {
@@ -109,6 +126,35 @@ var outputPath = Path.GetFullPath(options.OutputPath);
 Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
 await File.WriteAllTextAsync(outputPath, JsonSerializer.Serialize(run, new JsonSerializerOptions { WriteIndented = true }));
 Console.WriteLine($"Report: {outputPath}");
+if (options.Gate)
+{
+    var failures = run.Scales.SelectMany(scale =>
+        new[] { scale.RepositoryInitialize }
+            .Concat(scale.Scenarios)
+            .Where(result =>
+                result.P95Ms > (result.Name == "repository-initialize" ? 1500d : 80d))
+            .Select(result =>
+                $"{scale.ItemCount}:{result.Name} P95 {result.P95Ms:F3} ms exceeded "
+                + $"{(result.Name == "repository-initialize" ? 1500 : 80)} ms"))
+        .ToArray();
+    foreach (var failure in failures) Console.Error.WriteLine($"GATE FAILED: {failure}");
+    return failures.Length == 0 ? 0 : 2;
+}
+return 0;
+
+static async Task<long> CountItemsAsync(string databasePath)
+{
+    await using var connection = new SqliteConnection(new SqliteConnectionStringBuilder
+    {
+        DataSource = databasePath,
+        Mode = SqliteOpenMode.ReadOnly,
+        Pooling = false
+    }.ToString());
+    await connection.OpenAsync();
+    var command = connection.CreateCommand();
+    command.CommandText = "SELECT COUNT(*) FROM collection_items;";
+    return Convert.ToInt64(await command.ExecuteScalarAsync());
+}
 
 static RetainedImageSet CreateRetainedBenchmarkImages(
     LibraryPaths paths,
@@ -312,8 +358,10 @@ internal sealed record BenchmarkOptions(
     int Iterations,
     string OutputPath,
     string? RetainRoot,
+    string? FixedRoot,
     string? RetainedImageSource,
-    int RetainedImageCount)
+    int RetainedImageCount,
+    bool Gate)
 {
     public static BenchmarkOptions Parse(string[] args)
     {
@@ -321,8 +369,10 @@ internal sealed record BenchmarkOptions(
         var iterations = 12;
         var output = Path.Combine("artifacts", "performance", "m0-baseline.json");
         string? retainRoot = null;
+        string? fixedRoot = null;
         string? retainedImageSource = null;
         var retainedImageCount = 1;
+        var gate = false;
 
         for (var index = 0; index < args.Length; index++)
         {
@@ -345,6 +395,9 @@ internal sealed record BenchmarkOptions(
                 case "--retain-root" when index + 1 < args.Length:
                     retainRoot = args[++index];
                     break;
+                case "--fixed-root" when index + 1 < args.Length:
+                    fixedRoot = args[++index];
+                    break;
                 case "--retained-image-source" when index + 1 < args.Length:
                     retainedImageSource = Path.GetFullPath(args[++index]);
                     break;
@@ -353,6 +406,9 @@ internal sealed record BenchmarkOptions(
                         int.Parse(args[++index], System.Globalization.CultureInfo.InvariantCulture),
                         1,
                         5000);
+                    break;
+                case "--gate":
+                    gate = true;
                     break;
                 default:
                     throw new ArgumentException($"Unknown or incomplete argument: {args[index]}");
@@ -363,11 +419,19 @@ internal sealed record BenchmarkOptions(
         {
             throw new ArgumentException("At least one positive item count is required.");
         }
+        if (fixedRoot is not null && counts.Length != 1)
+        {
+            throw new ArgumentException("--fixed-root requires exactly one --counts value.");
+        }
+        if (fixedRoot is not null && retainRoot is not null)
+        {
+            throw new ArgumentException("--fixed-root and --retain-root cannot be combined.");
+        }
         if (retainedImageSource is not null && !File.Exists(retainedImageSource))
         {
             throw new FileNotFoundException("Retained benchmark image source was not found.", retainedImageSource);
         }
-        if (retainRoot is null && (retainedImageSource is not null || retainedImageCount != 1))
+        if (retainRoot is null && fixedRoot is null && (retainedImageSource is not null || retainedImageCount != 1))
         {
             throw new ArgumentException("Retained image options require --retain-root.");
         }
@@ -376,7 +440,9 @@ internal sealed record BenchmarkOptions(
             iterations,
             output,
             retainRoot,
+            fixedRoot,
             retainedImageSource,
-            retainedImageCount);
+            retainedImageCount,
+            gate);
     }
 }

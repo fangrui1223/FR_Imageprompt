@@ -10,7 +10,9 @@ public static class AiWorkerHost
         CancellationToken cancellationToken = default)
     {
         var repository = new LibraryRepository(new LibraryPaths(libraryRoot));
-        await repository.InitializeAsync(cancellationToken).ConfigureAwait(false);
+        await repository.InitializeAsync(
+            settings is null ? null : new LibraryUpgradeOptions(settings.StorageFilePath),
+            cancellationToken).ConfigureAwait(false);
         await repository.RecoverInterruptedAiJobsAsync(cancellationToken).ConfigureAwait(false);
         while (IsUiActive(repository.Paths.Root))
         {

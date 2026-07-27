@@ -14,6 +14,8 @@ public sealed class LibraryPaths
     public string Models => Path.Combine(Root, "models");
     public string Staging => Path.Combine(Root, ".staging");
     public string DatabaseBackups => Path.Combine(Root, "backups", "database");
+    public string UpgradeBackups => Path.Combine(Root, "backups", "upgrade");
+    public string UpgradeState => Path.Combine(UpgradeBackups, "current.json");
     public string Database => Path.Combine(Root, "promptvault.db");
 
     public void EnsureCreated()

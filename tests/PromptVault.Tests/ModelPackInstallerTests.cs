@@ -34,6 +34,34 @@ public sealed class ModelPackInstallerTests
         Directory.Delete(root, true);
     }
 
+    [Fact]
+    public void OldModelBackupRetentionIsBoundedAndConfigurable()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "PromptVaultModelRetentionTests", Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(root);
+            foreach (var suffix in new[] { "20260101000000000", "20260201000000000", "20260301000000000", "20260401000000000" })
+            {
+                Directory.CreateDirectory(Path.Combine(root, $"clip.old-{suffix}"));
+            }
+
+            Assert.Equal(2, ModelPackInstaller.PruneOldBackups(root, retainedBackups: 2));
+            Assert.Equal(
+                ["clip.old-20260401000000000", "clip.old-20260301000000000"],
+                Directory.EnumerateDirectories(root, "clip.old-*")
+                    .Select(path => Path.GetFileName(path)!)
+                    .OrderDescending(StringComparer.OrdinalIgnoreCase)
+                    .ToArray());
+            Assert.Equal(2, ModelPackInstaller.PruneOldBackups(root, retainedBackups: 0));
+            Assert.Empty(Directory.EnumerateDirectories(root, "clip.old-*"));
+        }
+        finally
+        {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static void Write(ZipArchive archive, string path, string value)
     {
         using var writer = new StreamWriter(archive.CreateEntry(path).Open());

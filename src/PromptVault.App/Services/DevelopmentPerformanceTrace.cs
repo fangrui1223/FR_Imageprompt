@@ -7,7 +7,7 @@ namespace PromptVault.App.Services;
 
 internal static class DevelopmentPerformanceTrace
 {
-#if DEBUG
+#if DEBUG || PROMPTVAULT_PERF_DIAGNOSTICS
     private static readonly Stopwatch ProcessClock = Stopwatch.StartNew();
     private static readonly bool EnabledValue =
         string.Equals(Environment.GetEnvironmentVariable("PROMPTVAULT_DIAGNOSTICS"), "1", StringComparison.Ordinal);
@@ -19,7 +19,7 @@ internal static class DevelopmentPerformanceTrace
     {
         get
         {
-#if DEBUG
+#if DEBUG || PROMPTVAULT_PERF_DIAGNOSTICS
             return EnabledValue;
 #else
             return false;
@@ -27,9 +27,26 @@ internal static class DevelopmentPerformanceTrace
         }
     }
 
+    public static int AutoRunScrollProbeCount
+    {
+        get
+        {
+#if DEBUG || PROMPTVAULT_PERF_DIAGNOSTICS
+            if (!EnabledValue) return 0;
+            return int.TryParse(
+                Environment.GetEnvironmentVariable("PROMPTVAULT_AUTO_SCROLL_PROBE"),
+                out var count)
+                ? Math.Clamp(count, 0, 5)
+                : 0;
+#else
+            return 0;
+#endif
+        }
+    }
+
     public static IDisposable Measure(string name, object? data = null)
     {
-#if DEBUG
+#if DEBUG || PROMPTVAULT_PERF_DIAGNOSTICS
         return EnabledValue ? new Measurement(name, data) : EmptyMeasurement.Instance;
 #else
         return EmptyMeasurement.Instance;
@@ -38,12 +55,12 @@ internal static class DevelopmentPerformanceTrace
 
     public static void Event(string name, object? data = null)
     {
-#if DEBUG
+#if DEBUG || PROMPTVAULT_PERF_DIAGNOSTICS
         if (EnabledValue) Write(name, null, data);
 #endif
     }
 
-#if DEBUG
+#if DEBUG || PROMPTVAULT_PERF_DIAGNOSTICS
     private static void Write(string name, double? elapsedMilliseconds, object? data)
     {
         try
@@ -145,9 +162,11 @@ internal static class DevelopmentPerformanceTrace
 internal sealed class DevelopmentFrameSampler : IDisposable
 {
     private readonly List<double> _frameTimes = [];
+    private readonly List<double> _callbackArrivalTimes = [];
     private string _interaction = "";
     private long _activeUntil;
     private TimeSpan _lastRenderingTime;
+    private long _lastCallbackTimestamp;
     private bool _attached;
 
     public DevelopmentFrameSampler()
@@ -173,7 +192,9 @@ internal sealed class DevelopmentFrameSampler : IDisposable
         _interaction = name;
         _activeUntil = requestedUntil;
         _lastRenderingTime = TimeSpan.Zero;
+        _lastCallbackTimestamp = 0;
         _frameTimes.Clear();
+        _callbackArrivalTimes.Clear();
     }
 
     private void OnRendering(object? sender, EventArgs e)
@@ -187,15 +208,21 @@ internal sealed class DevelopmentFrameSampler : IDisposable
             {
                 return;
             }
-            if (_lastRenderingTime != TimeSpan.Zero)
+            if (_lastRenderingTime != TimeSpan.Zero && _lastCallbackTimestamp != 0)
             {
                 _frameTimes.Add((rendering.RenderingTime - _lastRenderingTime).TotalMilliseconds);
+                _callbackArrivalTimes.Add(
+                    (now - _lastCallbackTimestamp)
+                    * 1000d
+                    / Stopwatch.Frequency);
             }
             _lastRenderingTime = rendering.RenderingTime;
+            _lastCallbackTimestamp = now;
             return;
         }
 
         var ordered = _frameTimes.Order().ToArray();
+        var callbackOrdered = _callbackArrivalTimes.Order().ToArray();
         var thumbnails = ThumbnailCache.GetSnapshot();
         DevelopmentPerformanceTrace.Event("ui-frame-sample", new
         {
@@ -205,6 +232,17 @@ internal sealed class DevelopmentFrameSampler : IDisposable
             p95Ms = Percentile(ordered, 0.95),
             p99Ms = Percentile(ordered, 0.99),
             maximumMs = ordered.Length == 0 ? 0 : Math.Round(ordered[^1], 3),
+            callbackArrival = new
+            {
+                frameCount = callbackOrdered.Length,
+                p50Ms = Percentile(callbackOrdered, 0.50),
+                p95Ms = Percentile(callbackOrdered, 0.95),
+                p99Ms = Percentile(callbackOrdered, 0.99),
+                maximumMs = callbackOrdered.Length == 0
+                    ? 0
+                    : Math.Round(callbackOrdered[^1], 3),
+                diagnosticOnly = true
+            },
             thumbnails = new
             {
                 requests = thumbnails.RequestCount,
@@ -223,7 +261,9 @@ internal sealed class DevelopmentFrameSampler : IDisposable
         });
         _activeUntil = 0;
         _lastRenderingTime = TimeSpan.Zero;
+        _lastCallbackTimestamp = 0;
         _frameTimes.Clear();
+        _callbackArrivalTimes.Clear();
     }
 
     private static double Percentile(double[] ordered, double percentile)

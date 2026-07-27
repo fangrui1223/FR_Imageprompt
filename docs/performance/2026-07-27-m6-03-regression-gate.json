@@ -1,0 +1,59 @@
+{
+  "milestone": "M6-03",
+  "measuredAt": "2026-07-27",
+  "passed": true,
+  "environment": {
+    "display": "3840x2560",
+    "scalePercent": 150,
+    "refreshRateHz": 59,
+    "libraryItems": 30000,
+    "dataKind": "synthetic",
+    "captureListeningEnabled": false
+  },
+  "automatedTests": {
+    "passed": 159,
+    "failed": 0
+  },
+  "databaseMilliseconds": {
+    "initializeP95": 67.293,
+    "firstPageP95": 14.825,
+    "chineseSearchP95": 8.478,
+    "englishSearchP95": 35.434,
+    "categoryP95": 6.176,
+    "tagP95": 15.188,
+    "keysetPageP95": 18.643
+  },
+  "media": {
+    "first4kDecodeMs": 77.243,
+    "cached4kDecodeMs": 0.288,
+    "thumbnailCacheBytes": 16588800,
+    "immersiveCacheBytes": 194040000
+  },
+  "similarity": {
+    "vectors": 30000,
+    "dimensions": 512,
+    "p95Ms": 5.4374
+  },
+  "realUi": {
+    "firstContentMs": 535.374,
+    "scrollFrameP95Ms": 16.949,
+    "scrollFrameP99Ms": 16.949,
+    "scrollFrameMaximumMs": 30.28,
+    "minimumRowsOpacity": 1.0,
+    "blackFrames": 0,
+    "authoritativeFrameClock": "WPF CompositionTarget.RenderingTime",
+    "callbackArrival": "diagnostic-only"
+  },
+  "regressionSentinel": {
+    "simulatedMetricMs": 81.0,
+    "thresholdMs": 80.0,
+    "exitCode": 2,
+    "detected": true
+  },
+  "dataSafety": {
+    "explicitSettings": true,
+    "syntheticLibrary": true,
+    "captureListeningEnabled": false,
+    "realLibraryOpenedOrModified": false
+  }
+}
