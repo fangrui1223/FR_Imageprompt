@@ -11,6 +11,7 @@ public partial class App : System.Windows.Application
     private LibraryRepository? _repository;
     private CaptureCoordinator? _capture;
     private ExternalFolderIndexService? _externalIndex;
+    private BoardWorkspaceService? _boardWorkspace;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -72,6 +73,7 @@ public partial class App : System.Windows.Application
                 });
             }
             _capture = new CaptureCoordinator(_repository);
+            _boardWorkspace = new BoardWorkspaceService(_repository);
             _externalIndex = new ExternalFolderIndexService(_repository);
             _externalIndex.Start(_settings.ExternalFolders);
             var window = CreateMainWindow(false, null);
@@ -147,8 +149,8 @@ public partial class App : System.Windows.Application
 
     private MainWindow CreateMainWindow(bool transparent, MainWindowSnapshot? snapshot)
     {
-        if (_repository is null || _capture is null || _settings is null || _externalIndex is null) throw new InvalidOperationException("FR_Imageprompt 尚未完成初始化。");
-        return new MainWindow(_repository, _capture, _settings, _externalIndex, transparent, snapshot);
+        if (_repository is null || _capture is null || _settings is null || _externalIndex is null || _boardWorkspace is null) throw new InvalidOperationException("FR_Imageprompt 尚未完成初始化。");
+        return new MainWindow(_repository, _capture, _settings, _externalIndex, _boardWorkspace, transparent, snapshot);
     }
 
     protected override void OnExit(ExitEventArgs e)

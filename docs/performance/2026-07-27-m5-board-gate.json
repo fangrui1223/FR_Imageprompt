@@ -1,0 +1,19 @@
+{
+  "generatedAt": "2026-07-27T10:41:25.5898505+08:00",
+  "dataKind": "synthetic",
+  "libraryItemCount": 12,
+  "boardItemCount": 5000,
+  "groupCount": 1,
+  "noteCount": 1,
+  "backgroundStyle": "blueprint",
+  "intentionallyMissingSource": true,
+  "insertMs": 337.323,
+  "restartDocumentLoadMs": 25.077,
+  "viewportQueries": 301,
+  "viewportQueryP50Ms": 0.0502,
+  "viewportQueryP95Ms": 0.0558,
+  "viewportQueryMaxMs": 1.1776,
+  "maximumRealizedCandidateCount": 108,
+  "captureListening": false,
+  "passed": true
+}

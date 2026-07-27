@@ -32,7 +32,7 @@ public sealed class DatabaseMigrationException : Exception
 
 internal static class DatabaseMigrations
 {
-    public const int LatestVersion = 10;
+    public const int LatestVersion = 12;
 
     private static readonly IReadOnlyList<Migration> Steps =
     [
@@ -193,6 +193,65 @@ internal static class DatabaseMigrations
                 PRIMARY KEY(item_id, provider_id, model_version));
             CREATE INDEX IF NOT EXISTS ix_image_embeddings_model
                 ON image_embeddings(provider_id, model_version, item_id);
+            """),
+        new(11, """
+            CREATE TABLE IF NOT EXISTS boards(
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                background_style TEXT NOT NULL DEFAULT 'neutral',
+                view_offset_x REAL NOT NULL DEFAULT 0,
+                view_offset_y REAL NOT NULL DEFAULT 0,
+                zoom REAL NOT NULL DEFAULT 1 CHECK(zoom BETWEEN 0.1 AND 8),
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS board_groups(
+                id INTEGER PRIMARY KEY,
+                board_id INTEGER NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL);
+            CREATE INDEX IF NOT EXISTS ix_board_groups_board
+                ON board_groups(board_id, sort_order, id);
+            CREATE TABLE IF NOT EXISTS board_items(
+                id INTEGER PRIMARY KEY,
+                board_id INTEGER NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
+                asset_id INTEGER NULL REFERENCES image_assets(id) ON DELETE SET NULL,
+                source_path_snapshot TEXT NOT NULL,
+                source_path_override TEXT NULL,
+                x REAL NOT NULL,
+                y REAL NOT NULL,
+                width REAL NOT NULL CHECK(width > 0),
+                height REAL NOT NULL CHECK(height > 0),
+                z_index INTEGER NOT NULL DEFAULT 0,
+                rotation REAL NOT NULL DEFAULT 0,
+                crop_left REAL NOT NULL DEFAULT 0 CHECK(crop_left BETWEEN 0 AND 0.95),
+                crop_top REAL NOT NULL DEFAULT 0 CHECK(crop_top BETWEEN 0 AND 0.95),
+                crop_right REAL NOT NULL DEFAULT 0 CHECK(crop_right BETWEEN 0 AND 0.95),
+                crop_bottom REAL NOT NULL DEFAULT 0 CHECK(crop_bottom BETWEEN 0 AND 0.95),
+                group_id INTEGER NULL REFERENCES board_groups(id) ON DELETE SET NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL);
+            CREATE INDEX IF NOT EXISTS ix_board_items_board_z
+                ON board_items(board_id, z_index, id);
+            CREATE INDEX IF NOT EXISTS ix_board_items_asset
+                ON board_items(asset_id, board_id);
+            """),
+        new(12, """
+            CREATE TABLE IF NOT EXISTS board_notes(
+                id INTEGER PRIMARY KEY,
+                board_id INTEGER NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
+                text TEXT NOT NULL DEFAULT '',
+                x REAL NOT NULL,
+                y REAL NOT NULL,
+                width REAL NOT NULL CHECK(width > 0),
+                height REAL NOT NULL CHECK(height > 0),
+                z_index INTEGER NOT NULL DEFAULT 0,
+                color_style TEXT NOT NULL DEFAULT 'yellow',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL);
+            CREATE INDEX IF NOT EXISTS ix_board_notes_board_z
+                ON board_notes(board_id, z_index, id);
             """)
     ];
 

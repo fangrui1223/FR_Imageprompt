@@ -265,7 +265,7 @@ public sealed class ExternalFolderIndexTests : IAsyncLifetime
 
         Assert.NotNull(upgraded.LastMigration);
         Assert.Equal(4, upgraded.LastMigration!.FromVersion);
-        Assert.Equal(10, upgraded.LastMigration.ToVersion);
+        Assert.Equal(12, upgraded.LastMigration.ToVersion);
         Assert.True(File.Exists(upgraded.LastMigration.BackupPath));
         Assert.Equal(4L, await ExecuteScalarAsync(
             upgraded.LastMigration.BackupPath!,

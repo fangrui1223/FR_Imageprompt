@@ -131,9 +131,35 @@ public partial class MainWindow
         }
     }
 
-    private void AddCardToBoardClick(object sender, RoutedEventArgs e)
+    private async void AddCardToBoardClick(object sender, RoutedEventArgs e)
     {
         e.Handled = true;
-        ToastService.Show(this, "画板入口已预留，M5 将启用持久画板");
+        if ((sender as FrameworkElement)?.DataContext is not GalleryCardViewModel card) return;
+        await AddEntriesToBoardAsync(GetOperationTargetEntries(card).ToArray());
+    }
+
+    private async Task AddEntriesToBoardAsync(IReadOnlyList<GalleryEntry> entries)
+    {
+        var selection = BoardTransferPolicy.Select(entries);
+        var externalCount = selection.ExternalItemCount;
+        var managed = selection.ManagedItems;
+        if (managed.Count == 0)
+        {
+            ToastService.Show(this, externalCount > 0
+                ? "外部文件夹图片需要先收录，再加入画板"
+                : "请先选择一张图库图片");
+            return;
+        }
+        try
+        {
+            await _boardWorkspace.AddAsync(managed, this);
+            ToastService.Show(this, $"已加入画板：{managed.Count} 张");
+            if (externalCount > 0) ToastService.Show(this, $"另有 {externalCount} 张外部图片需先收录");
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warning("board-add", "Gallery items could not be added to a board.", ex);
+            ToastService.Show(this, $"无法加入画板：{ex.Message}");
+        }
     }
 }

@@ -134,6 +134,121 @@ public sealed record ImageEmbeddingRecord(
 
 public sealed record SimilarityMatch(long ItemId, float Score);
 
+public sealed record BoardRecord(
+    long Id,
+    string Name,
+    string BackgroundStyle,
+    double ViewOffsetX,
+    double ViewOffsetY,
+    double Zoom,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
+
+public sealed record BoardGroupRecord(
+    long Id,
+    long BoardId,
+    string Name,
+    int SortOrder,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
+
+public sealed record BoardItemPlacementInput(
+    long CollectionItemId,
+    double X,
+    double Y,
+    double Width,
+    double Height,
+    int ZIndex = 0,
+    double Rotation = 0,
+    double CropLeft = 0,
+    double CropTop = 0,
+    double CropRight = 0,
+    double CropBottom = 0,
+    long? GroupId = null);
+
+public sealed record BoardItemRecord(
+    long Id,
+    long BoardId,
+    long? AssetId,
+    string SourcePathSnapshot,
+    string? SourcePathOverride,
+    string? OriginalPath,
+    string? ThumbnailPath,
+    string? MediumThumbnailPath,
+    int NaturalWidth,
+    int NaturalHeight,
+    string Format,
+    double X,
+    double Y,
+    double Width,
+    double Height,
+    int ZIndex,
+    double Rotation,
+    double CropLeft,
+    double CropTop,
+    double CropRight,
+    double CropBottom,
+    long? GroupId,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
+
+public sealed record BoardItemUpdate(
+    long Id,
+    double X,
+    double Y,
+    double Width,
+    double Height,
+    int ZIndex,
+    double Rotation,
+    double CropLeft,
+    double CropTop,
+    double CropRight,
+    double CropBottom,
+    long? GroupId,
+    string? SourcePathOverride);
+
+public sealed record BoardNoteRecord(
+    long Id,
+    long BoardId,
+    string Text,
+    double X,
+    double Y,
+    double Width,
+    double Height,
+    int ZIndex,
+    string ColorStyle,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
+
+public sealed record BoardNoteUpdate(
+    long Id,
+    string Text,
+    double X,
+    double Y,
+    double Width,
+    double Height,
+    int ZIndex,
+    string ColorStyle);
+
+public sealed record BoardDocument(
+    BoardRecord Board,
+    IReadOnlyList<BoardGroupRecord> Groups,
+    IReadOnlyList<BoardItemRecord> Items,
+    IReadOnlyList<BoardNoteRecord> Notes);
+
+public readonly record struct BoardViewport(
+    double OffsetX,
+    double OffsetY,
+    double Zoom,
+    double Width,
+    double Height);
+
+public readonly record struct BoardWorldRect(
+    double X,
+    double Y,
+    double Width,
+    double Height);
+
 public enum CaptureState
 {
     ImageDetected = 0,

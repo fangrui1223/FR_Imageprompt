@@ -1,0 +1,151 @@
+<Window x:Class="PromptVault.App.BoardWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="FR_Imageprompt · 自由画板" Width="1500" Height="940" MinWidth="900" MinHeight="620"
+ WindowStartupLocation="CenterOwner" Background="{DynamicResource WindowSurfaceBrush}"
+ FontFamily="{StaticResource UiFontFamily}"
+ Loaded="BoardWindowLoaded" PreviewKeyDown="BoardWindowPreviewKeyDown"
+ AllowDrop="True" DragOver="BoardWindowDragOver" Drop="BoardWindowDrop">
+ <Grid>
+  <Grid.RowDefinitions>
+   <RowDefinition Height="Auto"/>
+   <RowDefinition Height="*"/>
+   <RowDefinition Height="30"/>
+  </Grid.RowDefinitions>
+
+  <Border Padding="16,12" Background="{DynamicResource PanelBrush}"
+          BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,0,0,1">
+   <Grid>
+    <Grid.ColumnDefinitions>
+     <ColumnDefinition Width="Auto"/>
+     <ColumnDefinition Width="240"/>
+     <ColumnDefinition Width="Auto"/>
+     <ColumnDefinition Width="*"/>
+     <ColumnDefinition Width="Auto"/>
+    </Grid.ColumnDefinitions>
+    <TextBlock VerticalAlignment="Center" Margin="0,0,10,0" FontSize="18"
+               FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" Text="自由画板"/>
+    <ComboBox x:Name="BoardSelector" Grid.Column="1" Height="34"
+              SelectionChanged="BoardSelectorChanged">
+     <ComboBox.ItemTemplate>
+      <DataTemplate>
+       <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+      </DataTemplate>
+     </ComboBox.ItemTemplate>
+    </ComboBox>
+    <StackPanel Grid.Column="2" Margin="8,0,0,0" Orientation="Horizontal">
+     <Button MinWidth="54" Height="34" Margin="0,0,6,0" Content="新建" Click="NewBoardClick"/>
+     <Button MinWidth="54" Height="34" Margin="0,0,6,0" Content="重命名" Click="RenameBoardClick"/>
+     <Button MinWidth="54" Height="34" Content="删除" Click="DeleteBoardClick"/>
+    </StackPanel>
+    <TextBlock Grid.Column="3" x:Name="BoardHintText" Margin="16,0"
+               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+               Foreground="{DynamicResource MutedTextBrush}"
+               Text="滚轮缩放 · 中键或按住空格拖动画布 · Ctrl 多选"/>
+    <StackPanel Grid.Column="4" Orientation="Horizontal">
+     <Button x:Name="UndoButton" Width="60" Height="34" Margin="0,0,6,0" Content="撤销" Click="UndoClick"/>
+     <Button x:Name="RedoButton" Width="60" Height="34" Margin="0,0,10,0" Content="重做" Click="RedoClick"/>
+     <Button Width="62" Height="34" Margin="0,0,6,0" Content="适合" Click="FitBoardClick"/>
+     <Border MinWidth="72" Padding="10,7" CornerRadius="7"
+             Background="{DynamicResource TextFieldBrush}" BorderBrush="{DynamicResource TextFieldBorderBrush}" BorderThickness="1">
+      <TextBlock x:Name="ZoomText" HorizontalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" Text="100%"/>
+     </Border>
+    </StackPanel>
+   </Grid>
+  </Border>
+
+  <Grid Grid.Row="1">
+   <Grid.ColumnDefinitions>
+    <ColumnDefinition Width="*"/>
+    <ColumnDefinition Width="320"/>
+   </Grid.ColumnDefinitions>
+   <Border x:Name="BoardBackground" ClipToBounds="True" Background="#0A0E14"
+           BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,0,1,0">
+    <Grid x:Name="BoardViewport" Background="Transparent"
+          SizeChanged="BoardViewportSizeChanged"
+          PreviewMouseWheel="BoardViewportMouseWheel"
+          PreviewMouseLeftButtonDown="BoardViewportMouseLeftButtonDown"
+          PreviewMouseMove="BoardViewportMouseMove"
+          PreviewMouseLeftButtonUp="BoardViewportMouseLeftButtonUp"
+          PreviewMouseDown="BoardViewportMouseDown"
+          PreviewMouseUp="BoardViewportMouseUp">
+     <Canvas x:Name="BoardCanvas" HorizontalAlignment="Left" VerticalAlignment="Top">
+      <Canvas.RenderTransform>
+       <MatrixTransform x:Name="CanvasMatrix"/>
+      </Canvas.RenderTransform>
+     </Canvas>
+     <Border x:Name="EmptyBoardState" IsHitTestVisible="False"
+             HorizontalAlignment="Center" VerticalAlignment="Center"
+             Padding="28,20" CornerRadius="12" Background="#D9151B24"
+             BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="1">
+      <StackPanel>
+       <TextBlock HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold"
+                  Foreground="{DynamicResource PrimaryTextBrush}" Text="把图库图片加入这里"/>
+       <TextBlock Margin="0,7,0,0" HorizontalAlignment="Center"
+                  Foreground="{DynamicResource SecondaryTextBrush}"
+                  Text="在图库悬停菜单点“画板”，或直接拖入已收录图片"/>
+      </StackPanel>
+     </Border>
+    </Grid>
+   </Border>
+
+   <Border Grid.Column="1" Padding="16" Background="{DynamicResource PanelBrush}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+     <StackPanel>
+      <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" Text="检查器"/>
+      <TextBlock x:Name="SelectionSummaryText" Margin="0,5,0,14"
+                 Foreground="{DynamicResource SecondaryTextBrush}" Text="未选择图片"/>
+      <TextBlock Foreground="{DynamicResource MutedTextBrush}" Text="画板背景"/>
+      <ComboBox x:Name="BackgroundSelector" Height="34" Margin="0,6,0,7"
+                SelectedValuePath="Tag" SelectionChanged="BackgroundSelectorChanged">
+       <ComboBoxItem Tag="neutral" Content="中性深色"/>
+       <ComboBoxItem Tag="warm" Content="暖调暗色"/>
+       <ComboBoxItem Tag="paper" Content="灰白纸面"/>
+       <ComboBoxItem Tag="blueprint" Content="蓝图网格"/>
+      </ComboBox>
+      <UniformGrid Columns="2" Margin="0,0,0,12">
+       <Button Margin="0,0,4,0" Height="34" Content="＋ 新建便签" Click="AddNoteClick"/>
+       <Button Margin="4,0,0,0" Height="34" Content="切换便签颜色" Click="CycleNoteColorClick"/>
+      </UniformGrid>
+      <UniformGrid Columns="2" Margin="0,0,0,8">
+       <Button Margin="0,0,4,4" Height="34" Content="上移一层" Click="LayerForwardClick"/>
+       <Button Margin="4,0,0,4" Height="34" Content="下移一层" Click="LayerBackwardClick"/>
+       <Button Margin="0,4,4,4" Height="34" Content="左转 5°" Click="RotateLeftClick"/>
+       <Button Margin="4,4,0,4" Height="34" Content="右转 5°" Click="RotateRightClick"/>
+      </UniformGrid>
+      <TextBlock Margin="0,8,0,6" Foreground="{DynamicResource MutedTextBrush}" Text="裁剪显示"/>
+      <UniformGrid Columns="2">
+       <Button Margin="0,0,4,4" Height="34" Content="横向收紧" Click="CropHorizontalClick"/>
+       <Button Margin="4,0,0,4" Height="34" Content="纵向收紧" Click="CropVerticalClick"/>
+       <Button Margin="0,4,4,4" Height="34" Content="重置裁剪" Click="ResetCropClick"/>
+       <Button Margin="4,4,0,4" Height="34" Content="删除所选" Click="DeleteSelectionClick"/>
+      </UniformGrid>
+      <Button Height="34" Margin="0,8,0,0" Content="删除所选便签" Click="DeleteNoteClick"/>
+      <Separator Margin="0,15"/>
+      <TextBlock Foreground="{DynamicResource MutedTextBrush}" Text="分组"/>
+      <TextBox x:Name="GroupNameBox" Height="34" Margin="0,6,0,7" Padding="8,5" Text="新分组"/>
+      <UniformGrid Columns="2">
+       <Button Margin="0,0,4,4" Height="34" Content="组合所选" Click="GroupSelectionClick"/>
+       <Button Margin="4,0,0,4" Height="34" Content="取消分组" Click="UngroupSelectionClick"/>
+      </UniformGrid>
+      <Button Height="34" Margin="0,4,0,0" Content="重命名所在分组" Click="RenameSelectedGroupClick"/>
+      <Separator Margin="0,15"/>
+      <TextBlock Foreground="{DynamicResource MutedTextBrush}" Text="源文件"/>
+      <TextBlock x:Name="SourceStateText" Margin="0,7,0,8" TextWrapping="Wrap"
+                 Foreground="{DynamicResource SecondaryTextBrush}" Text="选择一张图片查看状态"/>
+      <Button Height="34" Content="重新定位缺失原图" Click="RelinkSourceClick"/>
+     </StackPanel>
+    </ScrollViewer>
+   </Border>
+  </Grid>
+
+  <Border Grid.Row="2" Padding="14,5" Background="{DynamicResource PanelBrush}"
+          BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0">
+   <Grid>
+    <TextBlock x:Name="BoardStatusText" Foreground="{DynamicResource StatusHintBrush}" Text="准备就绪"/>
+    <TextBlock x:Name="VisibleCountText" HorizontalAlignment="Right"
+               Foreground="{DynamicResource MutedTextBrush}" Text="0 项"/>
+   </Grid>
+  </Border>
+ </Grid>
+</Window>

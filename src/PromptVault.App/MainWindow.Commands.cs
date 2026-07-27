@@ -329,7 +329,10 @@ public partial class MainWindow
                     SetLayoutDensityFromCommand(GalleryLayoutPreference.SpaciousDensity);
                     break;
                 case "board.current":
-                    ToastService.Show(this, "画板入口已预留，M5 将启用持久画板");
+                    if (_inspectedItem is not null)
+                        await AddEntriesToBoardAsync([_inspectedItem]);
+                    else
+                        await AddEntriesToBoardAsync(GetOperationTargetEntries(null).ToArray());
                     break;
                 case "settings.edge.sensitivity":
                     EdgeSensitivityClick(this, new RoutedEventArgs());

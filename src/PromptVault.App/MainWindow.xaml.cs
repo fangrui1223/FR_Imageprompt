@@ -20,6 +20,7 @@ public partial class MainWindow : Window
     private readonly AppSettings _settings;
     private readonly AiWorkerLauncher _aiWorker;
     private readonly ExternalFolderIndexService _externalIndex;
+    private readonly BoardWorkspaceService _boardWorkspace;
     private readonly ClipboardMonitor _clipboard;
     private readonly DispatcherTimer _searchTimer;
     private readonly DispatcherTimer _resizeTimer;
@@ -64,6 +65,7 @@ public partial class MainWindow : Window
         CaptureCoordinator capture,
         AppSettings settings,
         ExternalFolderIndexService externalIndex,
+        BoardWorkspaceService boardWorkspace,
         bool transparentWindow = false,
         MainWindowSnapshot? initialSnapshot = null)
     {
@@ -81,6 +83,7 @@ public partial class MainWindow : Window
         _settings = settings;
         _aiWorker = new AiWorkerLauncher(repository, settings);
         _externalIndex = externalIndex;
+        _boardWorkspace = boardWorkspace;
         _externalIndex.IndexChanged += ExternalFolderIndexChanged;
         DataContext = this;
         VisualModeService.Apply(transparentWindow, settings.ReducedMotionEnabled);
@@ -1329,6 +1332,12 @@ public partial class MainWindow : Window
         var element = source as FrameworkElement;
         var data = new System.Windows.DataObject(System.Windows.DataFormats.FileDrop, paths);
         data.SetData(InternalCardDragFormat, true, false);
+        var boardIds = GetOperationTargetEntries(card)
+            .Where(entry => !entry.IsExternal && entry.DeletedAt is null)
+            .Select(entry => entry.Id)
+            .Distinct()
+            .ToArray();
+        if (boardIds.Length > 0) data.SetData(BoardWindow.BoardItemIdsDragFormat, boardIds, false);
         AnimateDragLift(element, true);
         try
         {

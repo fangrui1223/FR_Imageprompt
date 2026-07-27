@@ -329,10 +329,10 @@ public partial class MainWindow
         }
     }
 
-    private void AddInspectorToBoardClick(object sender, RoutedEventArgs e)
+    private async void AddInspectorToBoardClick(object sender, RoutedEventArgs e)
     {
         if (_inspectedItem is null) return;
-        ToastService.Show(this, "画板入口已预留，M5 将启用持久画板");
+        await AddEntriesToBoardAsync([_inspectedItem]);
     }
 
     private void OpenInspectorSourceClick(object sender, RoutedEventArgs e)
