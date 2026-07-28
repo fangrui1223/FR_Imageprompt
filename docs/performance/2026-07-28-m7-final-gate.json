@@ -1,0 +1,97 @@
+{
+  "milestone": "M7",
+  "evaluatedAt": "2026-07-28",
+  "productVersion": "2.0.0",
+  "environment": {
+    "displayPixels": "3840x2560",
+    "scalePercent": 150,
+    "refreshHz": 59,
+    "libraryItems": 30000,
+    "mixedAspectRatios": [
+      "1:4",
+      "9:16",
+      "2:3",
+      "3:4",
+      "1:1",
+      "4:3",
+      "16:9",
+      "4:1"
+    ]
+  },
+  "automation": {
+    "debugBuildWarnings": 0,
+    "debugBuildErrors": 0,
+    "debugTestsPassed": 196,
+    "debugTestsFailed": 0,
+    "releaseBuildWarnings": 0,
+    "releaseBuildErrors": 0,
+    "releaseTestsPassed": 196,
+    "releaseTestsFailed": 0
+  },
+  "databaseMsP95": {
+    "repositoryStartup": 74.926,
+    "galleryFirstPage1000": 16.105,
+    "chineseFragmentSearch": 8.888,
+    "englishFragmentSearch": 42.396,
+    "categoryFilter": 6.288,
+    "tagFilter": 21.519,
+    "keysetPage1000": 18.603
+  },
+  "imagePerformance": {
+    "first4kDecodeMs": 78.437,
+    "cachedImmersiveSwitchMs": 0.218,
+    "thumbnailCacheBytes": 16588800,
+    "immersiveCacheBytes": 194040000
+  },
+  "masonryVirtualization": {
+    "layout30000Ms": 7.035,
+    "layout30000AllocatedBytes": 7680448,
+    "incrementalDifferenceCount": 0,
+    "dataSourceResetCount": 2,
+    "realizedContainers": 22,
+    "peakManagedBytes": 67762896,
+    "frameCount": 181,
+    "frameP95Ms": 16.671,
+    "frameP99Ms": 16.671,
+    "frameMaximumMs": 16.671
+  },
+  "similarity": {
+    "dimension": 512,
+    "items": 30000,
+    "p95Ms": 5.3291
+  },
+  "behaviorChecks": {
+    "periodicMasonryVoids": 0,
+    "selectionAutoOpenedInspector": 0,
+    "transparentModeOrdinaryUiLeaks": 0,
+    "manualFieldsOverwrittenByAi": 0,
+    "cancelThenRecopyFailures": 0,
+    "criticalTextClippingFindings": 0,
+    "nearBlackFramesObserved": 0
+  },
+  "visualValidation": {
+    "explicitIsolatedSettings": true,
+    "clipboardDisabledExceptSyntheticCaptureMatrix": true,
+    "maximizedAndNarrowWindow": true,
+    "dockedResizableInspector": true,
+    "transparentPureImageLayer": true,
+    "quickAndQuietCaptureModes": true,
+    "publishedExecutableCleanLaunch": true
+  },
+  "releaseArtifact": {
+    "directoryFileCount": 1,
+    "executableBytes": 237912838,
+    "zipBytes": 92384688,
+    "zipSha256": "4ecb6e88684630dfe39f184b9caeca086640d0127837f12db847d231a8b1d29a",
+    "containsPdbOrSettingsOrDiagnostics": false
+  },
+  "dataSafety": {
+    "realLibraryOpened": false,
+    "realLibraryModified": false,
+    "onlineRequests": 0,
+    "apiKeysUsed": 0,
+    "clipboardClearedAfterSyntheticCaptureMatrix": true,
+    "isolatedProcessesStopped": true
+  },
+  "passed": true
+}

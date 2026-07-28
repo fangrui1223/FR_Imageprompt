@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Threading;
 using PromptVault.App.Services;
 
 namespace PromptVault.App;
@@ -10,38 +11,66 @@ public partial class MainWindow
 {
     private long? _selectionAnchorId;
     private long? _selectionFocusId;
-    private bool _galleryKeyboardMode;
+    private bool _galleryShortcutContext;
+    private DispatcherTimer? _transparentSelectionFadeTimer;
+    private DispatcherTimer? _transparentSelectionAnimationTimer;
+    private DateTimeOffset _transparentSelectionAnimationStartedAt;
 
     private bool HandleGallerySelectionKey(KeyEventArgs e)
     {
-        if (e.Key == Key.Escape && _inspectorVisible)
+        var shortcutKey = e.Key switch
+        {
+            Key.ImeProcessed => e.ImeProcessedKey,
+            Key.System => e.SystemKey,
+            _ => e.Key
+        };
+
+        if (shortcutKey == Key.Escape && _inspectorVisible)
         {
             CloseInspectorClick(this, new RoutedEventArgs());
             return true;
         }
 
         var focused = Keyboard.FocusedElement;
-        if (!_galleryKeyboardMode
-            && focused is System.Windows.Controls.Primitives.TextBoxBase or PasswordBox)
+        if (!_galleryShortcutContext
+            && focused is (System.Windows.Controls.Primitives.TextBoxBase
+                or PasswordBox
+                or System.Windows.Controls.ComboBox))
         {
             return false;
         }
-        if (focused is System.Windows.Controls.Primitives.ButtonBase) return false;
 
-        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && e.Key == Key.C)
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && shortcutKey == Key.C)
         {
             CopyCurrentSelectionPrompts();
             return true;
         }
 
-        if (e.Key == Key.Space)
+        if (shortcutKey == Key.Space)
         {
             var id = CurrentSelectionId();
             if (id is not null) ShowImmersiveViewer(id.Value);
             return id is not null;
         }
 
-        var direction = e.Key switch
+        if (shortcutKey == Key.Q && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            if (_transparentMode)
+            {
+                ShowTransparentInspectorNotice();
+                return true;
+            }
+            if (_inspectorVisible)
+            {
+                CloseInspectorClick(this, new RoutedEventArgs());
+                return true;
+            }
+            var id = CurrentSelectionId();
+            if (id is not null) InspectItem(id.Value);
+            return id is not null;
+        }
+
+        var direction = shortcutKey switch
         {
             Key.Left => GalleryNavigationDirection.Left,
             Key.Right => GalleryNavigationDirection.Right,
@@ -54,16 +83,14 @@ public partial class MainWindow
         if (direction is null) return false;
 
         var positions = new List<GalleryCardPosition>();
-        var rowTop = 0d;
         foreach (var row in Rows)
         {
             positions.AddRange(row.LayoutItems.Select(item => new GalleryCardPosition(
                 item.Item.Id,
-                item.LayoutX,
-                rowTop + item.LayoutY,
+                row.PanelX + item.LayoutX,
+                row.PanelY + item.LayoutY,
                 item.LayoutWidth,
                 item.ImageHeight)));
-            rowTop += row.RowHeight + row.RowMargin.Bottom;
         }
         var target = GallerySelectionNavigator.Move(
             positions,
@@ -85,7 +112,6 @@ public partial class MainWindow
 
     private void HandleCardSelection(GalleryCardViewModel card)
     {
-        _galleryKeyboardMode = true;
         var modifiers = Keyboard.Modifiers;
         if (modifiers.HasFlag(ModifierKeys.Shift))
         {
@@ -101,15 +127,32 @@ public partial class MainWindow
         }
     }
 
-    private void FocusGalleryInput() => _galleryKeyboardMode = true;
+    private void FocusGalleryInput()
+    {
+        _galleryShortcutContext = true;
+        Keyboard.ClearFocus();
+        GalleryKeyboardFocusTarget.Focus();
+        Keyboard.Focus(GalleryKeyboardFocusTarget);
+        Dispatcher.BeginInvoke(DispatcherPriority.Input, () =>
+        {
+            Keyboard.ClearFocus();
+            FocusManager.SetFocusedElement(
+                FocusManager.GetFocusScope(GalleryKeyboardFocusTarget),
+                GalleryKeyboardFocusTarget);
+            GalleryKeyboardFocusTarget.Focus();
+            Keyboard.Focus(GalleryKeyboardFocusTarget);
+        });
+    }
 
     private void NotePointerFocusTarget(DependencyObject? source)
     {
         if (FindAncestor<System.Windows.Controls.Primitives.TextBoxBase>(source) is not null
             || FindAncestor<System.Windows.Controls.Primitives.ButtonBase>(source) is not null
-            || FindAncestor<PasswordBox>(source) is not null)
+            || FindAncestor<PasswordBox>(source) is not null
+            || FindAncestor<System.Windows.Controls.ComboBox>(source) is not null)
         {
-            _galleryKeyboardMode = false;
+            _galleryShortcutContext = false;
+            return;
         }
     }
 
@@ -120,7 +163,7 @@ public partial class MainWindow
         _selectionAnchorId = itemId;
         _selectionFocusId = itemId;
         ApplySelectionState();
-        InspectItem(itemId);
+        if (_inspectorVisible) InspectItem(itemId);
     }
 
     private void ToggleCardSelection(long itemId)
@@ -129,7 +172,7 @@ public partial class MainWindow
         _selectionFocusId = itemId;
         if (_selectionAnchorId is null || _selectedItemIds.Count <= 1) _selectionAnchorId = itemId;
         ApplySelectionState();
-        InspectItem(itemId);
+        if (_inspectorVisible) InspectItem(itemId);
     }
 
     private void SelectRangeTo(long targetId, bool additive)
@@ -143,7 +186,7 @@ public partial class MainWindow
         _selectionFocusId = targetId;
         _multiSelectMode = _selectedItemIds.Count > 1 || _multiSelectMode;
         ApplySelectionState();
-        InspectItem(targetId);
+        if (_inspectorVisible) InspectItem(targetId);
     }
 
     private void ApplySelectionState()
@@ -153,9 +196,68 @@ public partial class MainWindow
             foreach (var card in row.Items)
             {
                 card.IsSelected = _selectedItemIds.Contains(card.Id);
+                if (card.IsSelected) card.SelectionVisualStrength = _transparentMode ? 0.72 : 1;
             }
         }
+        if (_transparentMode && _selectedItemIds.Count > 0) QueueTransparentSelectionFade();
         UpdateSelectionVisual();
+    }
+
+    private void QueueTransparentSelectionFade()
+    {
+        _transparentSelectionFadeTimer ??= CreateTransparentSelectionFadeTimer();
+        _transparentSelectionAnimationTimer?.Stop();
+        _transparentSelectionFadeTimer.Stop();
+        _transparentSelectionFadeTimer.Start();
+    }
+
+    private DispatcherTimer CreateTransparentSelectionFadeTimer()
+    {
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            if (_settings.ReducedMotionEnabled)
+            {
+                SetTransparentSelectionStrength(0);
+                return;
+            }
+            StartTransparentSelectionFadeAnimation();
+        };
+        return timer;
+    }
+
+    private void StartTransparentSelectionFadeAnimation()
+    {
+        _transparentSelectionAnimationStartedAt = DateTimeOffset.UtcNow;
+        _transparentSelectionAnimationTimer ??= new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(30)
+        };
+        _transparentSelectionAnimationTimer.Stop();
+        _transparentSelectionAnimationTimer.Tick -= TransparentSelectionAnimationTick;
+        _transparentSelectionAnimationTimer.Tick += TransparentSelectionAnimationTick;
+        _transparentSelectionAnimationTimer.Start();
+    }
+
+    private void TransparentSelectionAnimationTick(object? sender, EventArgs e)
+    {
+        if (sender is not DispatcherTimer timer) return;
+        var progress = Math.Clamp(
+            (DateTimeOffset.UtcNow - _transparentSelectionAnimationStartedAt).TotalMilliseconds / 180d,
+            0,
+            1);
+        SetTransparentSelectionStrength(0.72 * (1 - progress));
+        if (progress < 1) return;
+        timer.Stop();
+    }
+
+    private void SetTransparentSelectionStrength(double strength)
+    {
+            foreach (var card in Rows.SelectMany(row => row.Items).Where(card => card.IsSelected))
+            {
+                card.SelectionVisualStrength = strength;
+            }
     }
 
     private long? CurrentSelectionId()
@@ -187,6 +289,7 @@ public partial class MainWindow
         RowsList.ScrollIntoView(row);
         _ = Dispatcher.BeginInvoke(new Action(() =>
         {
+            if (!_inspectorVisible) return;
             var card = row.Items.FirstOrDefault(candidate => candidate.Id == itemId);
             if (card is not null) OpenInspector(card);
         }));

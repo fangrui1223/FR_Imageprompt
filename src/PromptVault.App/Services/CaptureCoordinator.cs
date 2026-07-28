@@ -119,7 +119,10 @@ public sealed class CaptureCoordinator
         IEnumerable<string> tags,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(prompt)) throw new ArgumentException("提示词不能为空。", nameof(prompt));
+        if (string.IsNullOrWhiteSpace(prompt) && categoryId is null)
+        {
+            throw new ArgumentException("没有提示词时必须先选择人工主分类。", nameof(prompt));
+        }
         AssetInput asset;
         var createdFiles = new List<string>();
 

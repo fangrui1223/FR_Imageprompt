@@ -21,9 +21,28 @@ internal static class Program
                 : Path.Combine("artifacts", "performance", "virtualization-probe.json"));
         var simulateRegression = args.Contains("--simulate-regression", StringComparer.OrdinalIgnoreCase);
         var entries = CreateEntries(30_000);
-        var layoutClock = Stopwatch.StartNew();
-        var rows = GalleryLayoutEngine.CreateRows(entries, 2500);
-        layoutClock.Stop();
+        _ = GalleryLayoutEngine.CreateRows(entries.Take(8).ToArray(), 2500);
+        var layoutBenchmarks = new List<object>();
+        IReadOnlyList<GalleryRow> rows = [];
+        foreach (var itemCount in new[] { 240, 1_200, 30_000 })
+        {
+            var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+            var layoutClock = Stopwatch.StartNew();
+            var measuredRows = GalleryLayoutEngine.CreateRows(entries.Take(itemCount).ToArray(), 2500);
+            layoutClock.Stop();
+            var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+            layoutBenchmarks.Add(new
+            {
+                ItemCount = itemCount,
+                LayoutMs = Math.Round(layoutClock.Elapsed.TotalMilliseconds, 3),
+                AllocatedBytes = allocatedBytes,
+                RowCount = measuredRows.Count
+            });
+            if (itemCount == 30_000) rows = measuredRows;
+        }
+        var incrementalDifferenceCount = CountIncrementalDifferences(
+            entries.Take(1_200).ToArray(),
+            2500);
 
         var samples = new List<double>();
         var renderingClockSamples = new List<double>();
@@ -31,6 +50,7 @@ internal static class Program
         var measuredDuration = TimeSpan.FromSeconds(3);
         var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         var list = CreateList(rows);
+        var resetProbeRows = GalleryLayoutEngine.CreateRows(entries.Take(9).ToArray(), 2500);
         var window = new Window
         {
             Title = "FR_Imageprompt Virtualization Probe",
@@ -53,6 +73,10 @@ internal static class Program
             window.Activate();
             _ = window.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
             {
+                list.UpdateLayout();
+                list.ItemsSource = resetProbeRows;
+                list.UpdateLayout();
+                list.ItemsSource = rows;
                 list.UpdateLayout();
                 var viewer = FindDescendant<ScrollViewer>(list)
                     ?? throw new InvalidOperationException("The probe list did not create a ScrollViewer.");
@@ -136,7 +160,9 @@ internal static class Program
             },
             Layout = new
             {
-                FullLayoutMs = Math.Round(layoutClock.Elapsed.TotalMilliseconds, 3),
+                Benchmarks = layoutBenchmarks,
+                IncrementalDifferenceCount = incrementalDifferenceCount,
+                DataSourceResetCount = 2,
                 RealizedContainers = realizedContainers,
                 PeakManagedBytes = peakManagedBytes
             },
@@ -195,12 +221,12 @@ internal static class Program
         VirtualizingPanel.SetCacheLength(list, new VirtualizationCacheLength(2, 2));
         VirtualizingPanel.SetCacheLengthUnit(list, VirtualizationCacheLengthUnit.Page);
 
-        var panel = new FrameworkElementFactory(typeof(VirtualizingStackPanel));
+        var panel = new FrameworkElementFactory(typeof(VirtualizingMasonryPanel));
         list.ItemsPanel = new ItemsPanelTemplate(panel);
 
         var containerStyle = new Style(typeof(ListBoxItem));
         containerStyle.Setters.Add(new Setter(Control.HorizontalContentAlignmentProperty, HorizontalAlignment.Stretch));
-        containerStyle.Setters.Add(new Setter(FrameworkElement.MarginProperty, new Thickness(0, 0, 0, 14)));
+        containerStyle.Setters.Add(new Setter(FrameworkElement.MarginProperty, new Thickness(0)));
         list.ItemContainerStyle = containerStyle;
 
         var rowItems = new FrameworkElementFactory(typeof(ItemsControl));
@@ -225,25 +251,77 @@ internal static class Program
     {
         var start = DateTimeOffset.UtcNow.AddDays(-count);
         return Enumerable.Range(1, count)
-            .Select(index => new GalleryEntry(
-                index,
-                $"probe-{index}",
-                "",
-                "",
-                "",
-                640 + index % 1800,
-                640 + index % 1200,
-                "jpg",
-                "",
-                "",
-                null,
-                "",
-                "",
-                start.AddMinutes(index),
-                null,
-                false,
-                null))
+            .Select(index =>
+            {
+                var (width, height) = (index % 8) switch
+                {
+                    0 => (400, 1600),
+                    1 => (900, 1600),
+                    2 => (1000, 1500),
+                    3 => (1200, 1600),
+                    4 => (1200, 1200),
+                    5 => (1600, 1200),
+                    6 => (1600, 900),
+                    _ => (1600, 400)
+                };
+                return new GalleryEntry(
+                    index,
+                    $"probe-{index}",
+                    "",
+                    "",
+                    "",
+                    width,
+                    height,
+                    "jpg",
+                    "",
+                    "",
+                    null,
+                    "",
+                    "",
+                    start.AddMinutes(index),
+                    null,
+                    false,
+                    null);
+            })
             .ToList();
+    }
+
+    private static int CountIncrementalDifferences(
+        IReadOnlyList<GalleryEntry> entries,
+        double width)
+    {
+        var incremental = new List<GalleryRow>();
+        for (var offset = 0; offset < entries.Count; offset += GalleryVirtualizationPolicy.PageSize)
+        {
+            var page = entries
+                .Skip(offset)
+                .Take(GalleryVirtualizationPolicy.PageSize)
+                .ToArray();
+            var append = GalleryLayoutEngine.CreateAppend(incremental, page, width);
+            if (append.ReplaceIncompleteTail && incremental.Count > 0)
+            {
+                incremental.RemoveAt(incremental.Count - 1);
+            }
+            incremental.AddRange(append.Rows);
+        }
+
+        var expected = GalleryLayoutEngine.CreateRows(entries, width);
+        var differences = Math.Abs(expected.Count - incremental.Count);
+        for (var index = 0; index < Math.Min(expected.Count, incremental.Count); index++)
+        {
+            var left = expected[index];
+            var right = incremental[index];
+            if (left.SourceIndex != right.SourceIndex
+                || left.ColumnIndex != right.ColumnIndex
+                || Math.Abs(left.PanelX - right.PanelX) > 0.0001
+                || Math.Abs(left.PanelY - right.PanelY) > 0.0001
+                || Math.Abs(left.PanelWidth - right.PanelWidth) > 0.0001
+                || Math.Abs(left.RowHeight - right.RowHeight) > 0.0001)
+            {
+                differences++;
+            }
+        }
+        return differences;
     }
 
     private static T? FindDescendant<T>(DependencyObject source) where T : DependencyObject

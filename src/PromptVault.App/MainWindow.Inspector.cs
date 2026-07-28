@@ -1,7 +1,8 @@
 using System.Diagnostics;
 using System.Windows;
-using System.Windows.Media.Animation;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using PromptVault.App.Services;
 using PromptVault.Core;
 
@@ -14,22 +15,84 @@ public partial class MainWindow
     private string? _inspectorAiDraft = null;
     private MetadataCandidateRecord? _inspectorAiCandidate;
     private bool _inspectorVisible;
+    private GalleryLayoutVisualAnchor? _inspectorResizeAnchor;
+    private InspectorEditSnapshot? _inspectorSnapshot;
+    private InspectorEditSnapshot? _inspectorUndoSnapshot;
+    private bool _populatingInspector;
+    private bool _inspectorPromptDirty;
+    private readonly SemaphoreSlim _inspectorSwitchGate = new(1, 1);
+    private int _inspectorSwitchGeneration;
+    private DispatcherTimer? _inspectorResizeTimer;
+    private DateTimeOffset _lastTransparentInspectorNoticeAt;
+    private readonly DispatcherTimer _inspectorSavedTimer = new()
+    {
+        Interval = TimeSpan.FromSeconds(10)
+    };
 
     private void OpenInspector(GalleryCardViewModel card)
     {
-        OpenInspector(card.Item, card.Thumbnail);
+        QueueOpenInspector(card.Item, card.Thumbnail);
     }
 
     private void OpenInspector(GalleryEntry item, BitmapSource? thumbnail)
     {
-        _inspectedItem = item;
-        _inspectedThumbnail = thumbnail;
-        PopulateInspector(item, thumbnail);
-        SetInspectorVisibility(true);
+        QueueOpenInspector(item, thumbnail);
+    }
+
+    private void QueueOpenInspector(GalleryEntry item, BitmapSource? thumbnail)
+    {
+        var generation = Interlocked.Increment(ref _inspectorSwitchGeneration);
+        _ = OpenInspectorAsync(item, thumbnail, generation);
+    }
+
+    private async Task OpenInspectorAsync(
+        GalleryEntry item,
+        BitmapSource? thumbnail,
+        int generation)
+    {
+        await _inspectorSwitchGate.WaitAsync();
+        try
+        {
+            if (generation != Volatile.Read(ref _inspectorSwitchGeneration)) return;
+            if (_inspectedItem is { } same && same.Id == item.Id && _inspectorVisible)
+            {
+                if (thumbnail is not null)
+                {
+                    _inspectedThumbnail = thumbnail;
+                    InspectorPreview.Source = thumbnail;
+                }
+                return;
+            }
+
+            if (_inspectedItem is { } current && current.Id != item.Id)
+            {
+                if (!await SaveInspectorOrdinaryFieldsAsync())
+                {
+                    RestoreInspectorSelection(current.Id);
+                    return;
+                }
+                if (!await ResolveDirtyPromptBeforeSwitchAsync())
+                {
+                    RestoreInspectorSelection(current.Id);
+                    return;
+                }
+            }
+
+            if (generation != Volatile.Read(ref _inspectorSwitchGeneration)) return;
+            _inspectedItem = item;
+            _inspectedThumbnail = thumbnail;
+            PopulateInspector(item, thumbnail);
+            SetInspectorVisibility(true);
+        }
+        finally
+        {
+            _inspectorSwitchGate.Release();
+        }
     }
 
     private void PopulateInspector(GalleryEntry item, BitmapSource? thumbnail)
     {
+        _populatingInspector = true;
         InspectorPreview.Source = thumbnail;
         InspectorTitle.Text = Path.GetFileName(item.OriginalPath);
         InspectorMetaText.Text = string.Join(
@@ -41,6 +104,12 @@ public partial class MainWindow
             }.Where(value => value is not null));
         InspectorOriginalInfoText.Text =
             $"{Math.Max(0, item.Width):N0} × {Math.Max(0, item.Height):N0} px  ·  {item.Format.ToUpperInvariant()}  ·  {item.CreatedAt.LocalDateTime:yyyy-MM-dd HH:mm}";
+        InspectorAspectRatioText.Text = ImageAspectRatioFormatter.Format(item.Width, item.Height);
+        var categoryChoices = new List<CategoryChoice> { new(0, "未分类") };
+        categoryChoices.AddRange(_categories.Select(category => new CategoryChoice(category.Id, category.Name)));
+        InspectorCategoryEditor.ItemsSource = categoryChoices;
+        InspectorCategoryEditor.SelectedItem = categoryChoices.FirstOrDefault(choice =>
+            choice.Id == (item.CategoryId ?? 0));
         InspectorPromptEditor.Text = item.Prompt;
         InspectorTagsEditor.Text = item.Tags;
         InspectorNotesEditor.Text = item.Notes;
@@ -58,11 +127,22 @@ public partial class MainWindow
         InspectorPromptEditor.IsReadOnly = !editable;
         InspectorTagsEditor.IsReadOnly = !editable;
         InspectorNotesEditor.IsReadOnly = !editable;
+        InspectorCategoryEditor.IsEnabled = editable;
         InspectorSaveButton.IsEnabled = editable;
         InspectorOnlineAiButton.IsEnabled = editable;
         InspectorConfirmAiButton.IsEnabled = editable && !string.IsNullOrWhiteSpace(_inspectorAiDraft);
         InspectorRejectAiButton.IsEnabled = false;
+        _inspectorSnapshot = new InspectorEditSnapshot(
+            item.Id,
+            item.CategoryId,
+            item.Tags,
+            item.Notes,
+            item.Prompt);
+        _inspectorUndoSnapshot = null;
+        _inspectorPromptDirty = false;
+        HideInspectorSaveStatus();
         UpdateInspectorPinVisual();
+        _populatingInspector = false;
         _ = LoadInspectorAiAsync(item.Id, editable);
     }
 
@@ -117,112 +197,391 @@ public partial class MainWindow
             return;
         }
 
-        if (!_settings.InspectorPinned)
-        {
-            SetInspectorVisibility(false);
-        }
+        if (_inspectorVisible) SetInspectorVisibility(false);
     }
 
     private void SetInspectorVisibility(bool visible)
     {
+        if (visible && _transparentMode)
+        {
+            ShowTransparentInspectorNotice();
+            return;
+        }
+        if (_inspectorVisible == visible) return;
+
+        var anchor = CaptureLayoutVisualAnchor();
+        _inspectorVisible = visible;
         if (visible)
         {
-            _inspectorVisible = true;
+            var width = ResponsiveInspectorWidth(_settings.InspectorWidth);
+            InspectorColumn.Width = new GridLength(width, GridUnitType.Pixel);
+            InspectorSplitterColumn.Width = new GridLength(6, GridUnitType.Pixel);
+            InspectorSplitter.Visibility = Visibility.Visible;
             InspectorPanel.Visibility = Visibility.Visible;
+            InspectorPanel.Opacity = 1;
             InspectorPanel.IsHitTestVisible = true;
-            AnimateInspector(0, 1, collapseWhenComplete: false);
-            return;
+        }
+        else
+        {
+            InspectorPanel.IsHitTestVisible = false;
+            InspectorPanel.Visibility = Visibility.Collapsed;
+            InspectorPanel.Opacity = 0;
+            InspectorSplitter.Visibility = Visibility.Collapsed;
+            InspectorSplitterColumn.Width = new GridLength(0);
+            InspectorColumn.Width = new GridLength(0);
         }
 
-        if (!_inspectorVisible) return;
-        _inspectorVisible = false;
-        InspectorPanel.IsHitTestVisible = false;
-        AnimateInspector(408, 0, collapseWhenComplete: true);
+        MainContentGrid.UpdateLayout();
+        ReflowGalleryForLayoutPreference(anchor);
     }
 
-    private void AnimateInspector(double translateTo, double opacityTo, bool collapseWhenComplete)
+    private void ShowTransparentInspectorNotice()
     {
-        var duration = VisualModeService.Motion(MotionToken.Panel);
-        if (duration == TimeSpan.Zero)
-        {
-            InspectorTransform.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty, null);
-            InspectorPanel.BeginAnimation(OpacityProperty, null);
-            InspectorTransform.X = translateTo;
-            InspectorPanel.Opacity = opacityTo;
-            if (collapseWhenComplete) InspectorPanel.Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
-        InspectorTransform.BeginAnimation(
-            System.Windows.Media.TranslateTransform.XProperty,
-            new DoubleAnimation(translateTo, duration) { EasingFunction = ease });
-        var opacity = new DoubleAnimation(opacityTo, duration) { EasingFunction = ease };
-        if (collapseWhenComplete)
-        {
-            opacity.Completed += (_, _) =>
-            {
-                if (!_inspectorVisible) InspectorPanel.Visibility = Visibility.Collapsed;
-            };
-        }
-        InspectorPanel.BeginAnimation(OpacityProperty, opacity);
+        var now = DateTimeOffset.UtcNow;
+        if (now - _lastTransparentInspectorNoticeAt < TimeSpan.FromSeconds(1)) return;
+        _lastTransparentInspectorNoticeAt = now;
+        ToastService.Show(this, "请先退出透明模式查看详情");
     }
 
     private void InspectorPinClick(object sender, RoutedEventArgs e)
     {
-        _settings.InspectorPinned = !_settings.InspectorPinned;
-        _settings.Save();
-        UpdateInspectorPinVisual();
-        ToastService.Show(this, _settings.InspectorPinned ? "检查器已固定" : "检查器已取消固定");
+        ToastService.Show(this, "详情已默认跟随当前选择");
     }
 
     private void UpdateInspectorPinVisual()
     {
         if (InspectorPinButton is null) return;
-        InspectorPinButton.Content = _settings.InspectorPinned ? "已固定" : "固定";
-        InspectorPinButton.BorderBrush = _settings.InspectorPinned
-            ? VisualModeService.ResourceBrush("AccentBrush")
-            : VisualModeService.ResourceBrush("ButtonBorderBrush");
+        _settings.InspectorPinned = false;
+        InspectorPinButton.Content = "跟随选择";
     }
 
-    private void CloseInspectorClick(object sender, RoutedEventArgs e)
+    private async void CloseInspectorClick(object sender, RoutedEventArgs e)
     {
-        if (_settings.InspectorPinned)
+        if (!await SaveInspectorOrdinaryFieldsAsync())
         {
-            _settings.InspectorPinned = false;
-            _settings.Save();
+            InspectorTagsEditor.Focus();
+            return;
+        }
+        if (!await ResolveDirtyPromptBeforeSwitchAsync())
+        {
+            InspectorPromptEditor.Focus();
+            return;
         }
         SetInspectorVisibility(false);
     }
 
+    private void OpenCardDetailsClick(object sender, RoutedEventArgs e)
+    {
+        var itemId = (sender as FrameworkElement)?.Tag as long?;
+        if (itemId is null && (sender as FrameworkElement)?.DataContext is GalleryCardViewModel card)
+        {
+            itemId = card.Id;
+        }
+        if (itemId is null)
+        {
+            itemId = GetCardFromMenuSender(sender)?.Id ?? _selectionFocusId;
+        }
+        if (itemId is null) return;
+        if (!_selectedItemIds.Contains(itemId.Value)) SelectSingle(itemId.Value);
+        InspectItem(itemId.Value);
+        e.Handled = true;
+    }
+
+    private void InspectorSplitterDragStarted(object sender, DragStartedEventArgs e)
+    {
+        _inspectorResizeAnchor = CaptureLayoutVisualAnchor();
+    }
+
+    private void InspectorSplitterDragDelta(object sender, DragDeltaEventArgs e)
+    {
+        _inspectorResizeTimer ??= CreateInspectorResizeTimer();
+        _inspectorResizeTimer.Stop();
+        _inspectorResizeTimer.Start();
+    }
+
+    private DispatcherTimer CreateInspectorResizeTimer()
+    {
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(60) };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            MainContentGrid.UpdateLayout();
+            ReflowGalleryForLayoutPreference(_inspectorResizeAnchor);
+        };
+        return timer;
+    }
+
+    private void InspectorSplitterDragCompleted(object sender, DragCompletedEventArgs e)
+    {
+        _inspectorResizeTimer?.Stop();
+        var width = AppSettings.NormalizeInspectorWidth(InspectorColumn.ActualWidth);
+        _settings.InspectorWidth = width;
+        _settings.Save();
+        InspectorColumn.Width = new GridLength(ResponsiveInspectorWidth(width), GridUnitType.Pixel);
+        MainContentGrid.UpdateLayout();
+        ReflowGalleryForLayoutPreference(_inspectorResizeAnchor);
+        _inspectorResizeAnchor = null;
+    }
+
+    private double ResponsiveInspectorWidth(double requested)
+    {
+        var normalized = AppSettings.NormalizeInspectorWidth(requested);
+        if (ActualWidth >= 820) return Math.Min(normalized, ActualWidth - 380);
+        return Math.Max(240, ActualWidth * 0.44);
+    }
+
     private async void SaveInspectorClick(object sender, RoutedEventArgs e)
     {
-        if (_inspectedItem is not { IsExternal: false, DeletedAt: null } item) return;
-        InspectorSaveButton.IsEnabled = false;
+        await SaveInspectorPromptAsync();
+    }
+
+    private async void InspectorCategorySelectionChanged(
+        object sender,
+        System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (_populatingInspector) return;
+        await SaveInspectorOrdinaryFieldsAsync();
+    }
+
+    private async void InspectorOrdinaryFieldLostFocus(
+        object sender,
+        System.Windows.Input.KeyboardFocusChangedEventArgs e)
+    {
+        if (_populatingInspector) return;
+        await SaveInspectorOrdinaryFieldsAsync();
+    }
+
+    private void InspectorPromptTextChanged(
+        object sender,
+        System.Windows.Controls.TextChangedEventArgs e)
+    {
+        if (_populatingInspector || _inspectorSnapshot is null) return;
+        _inspectorPromptDirty = !string.Equals(
+            InspectorPromptEditor.Text.Trim(),
+            _inspectorSnapshot.Prompt,
+            StringComparison.Ordinal);
+        InspectorSaveButton.Content = _inspectorPromptDirty ? "保存提示词 ●" : "保存提示词";
+    }
+
+    private async Task<bool> SaveInspectorOrdinaryFieldsAsync(bool showUndo = true)
+    {
+        if (_populatingInspector
+            || _inspectedItem is not { IsExternal: false, DeletedAt: null } item
+            || _inspectorSnapshot is not { } before
+            || before.ItemId != item.Id)
+        {
+            return true;
+        }
+
+        var categoryId = (InspectorCategoryEditor.SelectedItem as CategoryChoice)?.Id;
+        if (categoryId == 0) categoryId = null;
+        var after = before with
+        {
+            CategoryId = categoryId,
+            Tags = InspectorTagsEditor.Text.Trim(),
+            Notes = InspectorNotesEditor.Text.Trim()
+        };
+        if (before.CategoryId == after.CategoryId
+            && string.Equals(before.Tags, after.Tags, StringComparison.Ordinal)
+            && string.Equals(before.Notes, after.Notes, StringComparison.Ordinal))
+        {
+            return true;
+        }
+
         try
         {
-            var prompt = InspectorPromptEditor.Text.Trim();
-            var tags = InspectorTagsEditor.Text.Trim();
-            var notes = InspectorNotesEditor.Text.Trim();
-            await _repository.UpdateItemDetailsAsync(item.Id, prompt, tags, notes);
-            _inspectedItem = item with { Prompt = prompt, Tags = tags, Notes = notes };
-            ToastService.Show(this, "检查器修改已保存");
-            await RefreshAsync(RefreshAnimationKind.ContentChange);
-            RestoreInspectorAfterRefresh();
+            await PersistInspectorSnapshotAsync(after);
+            _inspectorSnapshot = after;
+            if (showUndo)
+            {
+                _inspectorUndoSnapshot = before;
+                ShowInspectorSavedStatus();
+            }
+            ApplyInspectorSnapshotToCurrentEntry(after);
+            return true;
         }
         catch (Exception ex)
         {
-            AppLog.Warning("inspector-save", "Inspector quick edit could not be saved.", ex);
-            ToastService.Show(this, $"保存失败：{ex.Message}");
+            AppLog.Warning("inspector-autosave", "Inspector ordinary fields could not be saved.", ex);
+            ToastService.Show(this, $"自动保存失败：{ex.Message}");
+            return false;
+        }
+    }
+
+    private async Task<bool> SaveInspectorPromptAsync()
+    {
+        if (_inspectedItem is not { IsExternal: false, DeletedAt: null } item
+            || _inspectorSnapshot is not { } before
+            || before.ItemId != item.Id)
+        {
+            return false;
+        }
+
+        if (!await SaveInspectorOrdinaryFieldsAsync()) return false;
+        before = _inspectorSnapshot ?? before;
+        var after = before with { Prompt = InspectorPromptEditor.Text.Trim() };
+        InspectorSaveButton.IsEnabled = false;
+        try
+        {
+            await PersistInspectorSnapshotAsync(after);
+            _inspectorSnapshot = after;
+            _inspectorPromptDirty = false;
+            InspectorSaveButton.Content = "保存提示词";
+            ApplyInspectorSnapshotToCurrentEntry(after);
+            ToastService.Show(this, "提示词已保存");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warning("inspector-prompt-save", "Inspector prompt could not be saved.", ex);
+            ToastService.Show(this, $"保存提示词失败：{ex.Message}");
+            return false;
         }
         finally
         {
-            if (_inspectedItem is { IsExternal: false, DeletedAt: null })
-            {
-                InspectorSaveButton.IsEnabled = true;
-            }
+            InspectorSaveButton.IsEnabled = _inspectedItem is { IsExternal: false, DeletedAt: null };
         }
     }
+
+    private async Task<bool> ResolveDirtyPromptBeforeSwitchAsync()
+    {
+        if (!_inspectorPromptDirty) return true;
+        var choice = MessageBox.Show(
+            this,
+            "当前提示词尚未保存。\n\n是：保存并切换\n否：放弃修改并切换\n取消：留在当前图片",
+            "提示词尚未保存",
+            MessageBoxButton.YesNoCancel,
+            MessageBoxImage.Question);
+        if (choice == MessageBoxResult.Cancel) return false;
+        if (choice == MessageBoxResult.Yes) return await SaveInspectorPromptAsync();
+        if (_inspectorSnapshot is { } snapshot)
+        {
+            _populatingInspector = true;
+            InspectorPromptEditor.Text = snapshot.Prompt;
+            _populatingInspector = false;
+            _inspectorPromptDirty = false;
+            InspectorSaveButton.Content = "保存提示词";
+        }
+        return true;
+    }
+
+    private async void UndoInspectorSaveClick(object sender, RoutedEventArgs e)
+    {
+        if (_inspectorUndoSnapshot is not { } undo
+            || _inspectedItem?.Id != undo.ItemId)
+        {
+            HideInspectorSaveStatus();
+            return;
+        }
+
+        try
+        {
+            await PersistInspectorSnapshotAsync(undo);
+            _inspectorSnapshot = undo;
+            _inspectorUndoSnapshot = null;
+            ApplyInspectorSnapshotToCurrentEntry(undo);
+            _populatingInspector = true;
+            InspectorTagsEditor.Text = undo.Tags;
+            InspectorNotesEditor.Text = undo.Notes;
+            InspectorCategoryEditor.SelectedItem =
+                (InspectorCategoryEditor.ItemsSource as IEnumerable<CategoryChoice>)
+                ?.FirstOrDefault(choice => choice.Id == (undo.CategoryId ?? 0));
+            _populatingInspector = false;
+            HideInspectorSaveStatus();
+            ToastService.Show(this, "已撤销自动保存");
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warning("inspector-undo", "Inspector autosave could not be undone.", ex);
+            ToastService.Show(this, $"撤销失败：{ex.Message}");
+        }
+    }
+
+    private async Task PersistInspectorSnapshotAsync(InspectorEditSnapshot snapshot)
+    {
+        await _repository.UpdateItemOrganizationAsync(
+            snapshot.ItemId,
+            snapshot.Prompt,
+            snapshot.Tags,
+            snapshot.Notes,
+            snapshot.CategoryId);
+    }
+
+    private void ApplyInspectorSnapshotToCurrentEntry(InspectorEditSnapshot snapshot)
+    {
+        if (_inspectedItem is not { } current || current.Id != snapshot.ItemId) return;
+        var categoryName = snapshot.CategoryId is { } categoryId
+            ? _categories.FirstOrDefault(category => category.Id == categoryId)?.Name ?? current.CategoryName
+            : "";
+        var updated = current with
+        {
+            CategoryId = snapshot.CategoryId,
+            CategoryName = categoryName,
+            Tags = snapshot.Tags,
+            Notes = snapshot.Notes,
+            Prompt = snapshot.Prompt
+        };
+        _inspectedItem = updated;
+        var index = _items.FindIndex(entry => entry.Id == updated.Id);
+        if (index >= 0) _items[index] = updated;
+        foreach (var card in Rows.SelectMany(row => row.Items).Where(card => card.Id == updated.Id))
+        {
+            card.UpdateFrom(
+                updated,
+                card.LayoutX,
+                card.LayoutY,
+                card.LayoutWidth,
+                card.ImageHeight,
+                card.IsSelected);
+        }
+        InspectorMetaText.Text = string.Join(
+            "  ·  ",
+            new[]
+            {
+                string.IsNullOrWhiteSpace(updated.CategoryName) ? "未分类" : updated.CategoryName,
+                updated.IsFavorite ? "已收藏" : null
+            }.Where(value => value is not null));
+    }
+
+    private void RestoreInspectorSelection(long itemId)
+    {
+        _selectedItemIds.Clear();
+        _selectedItemIds.Add(itemId);
+        _selectionAnchorId = itemId;
+        _selectionFocusId = itemId;
+        ApplySelectionState();
+        ScrollSelectionIntoView(itemId);
+    }
+
+    private void ShowInspectorSavedStatus()
+    {
+        InspectorSaveStatusText.Text = "已保存";
+        InspectorUndoButton.Visibility = Visibility.Visible;
+        _inspectorSavedTimer.Stop();
+        _inspectorSavedTimer.Tick -= InspectorSavedTimerTick;
+        _inspectorSavedTimer.Tick += InspectorSavedTimerTick;
+        _inspectorSavedTimer.Start();
+    }
+
+    private void InspectorSavedTimerTick(object? sender, EventArgs e)
+    {
+        _inspectorSavedTimer.Stop();
+        HideInspectorSaveStatus();
+    }
+
+    private void HideInspectorSaveStatus()
+    {
+        _inspectorSavedTimer.Stop();
+        InspectorSaveStatusText.Text = "";
+        InspectorUndoButton.Visibility = Visibility.Collapsed;
+    }
+
+    private sealed record InspectorEditSnapshot(
+        long ItemId,
+        long? CategoryId,
+        string Tags,
+        string Notes,
+        string Prompt);
 
     private async void ConfirmInspectorAiClick(object sender, RoutedEventArgs e)
     {

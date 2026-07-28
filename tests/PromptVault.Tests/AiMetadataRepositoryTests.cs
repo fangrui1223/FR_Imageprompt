@@ -81,6 +81,89 @@ public sealed class AiMetadataRepositoryTests : IAsyncLifetime
         Assert.Null(await _repository.GetUserMetadataAsync(_itemId, "atmosphere"));
     }
 
+    [Fact]
+    public async Task ManualOrganizationRejectsOnlyConflictingPendingCandidates()
+    {
+        var inputs = new[]
+        {
+            ("category", "裤子参考"),
+            ("tags", "阔腿裤"),
+            ("description", "AI 描述"),
+            ("style", "极简")
+        };
+        foreach (var (field, value) in inputs)
+        {
+            await _repository.UpsertMetadataCandidateAsync(new MetadataCandidateInput(
+                _itemId,
+                field,
+                value,
+                AiMetadataSource.LocalModel,
+                "local-clip",
+                "CLIP ViT-B/32",
+                "v1",
+                0.8));
+        }
+
+        var categoryId = await _repository.GetOrCreateCategoryAsync("上衣参考", "人工分类");
+        await _repository.UpdateItemOrganizationAsync(
+            _itemId,
+            "user prompt",
+            "针织, 短款",
+            "人工备注",
+            categoryId);
+
+        var item = await _repository.GetGalleryItemAsync(_itemId);
+        var candidates = await _repository.GetMetadataCandidatesAsync(_itemId);
+
+        Assert.Equal(categoryId, item!.CategoryId);
+        Assert.Contains("针织", item.Tags);
+        Assert.Equal("人工备注", item.Notes);
+        Assert.All(
+            candidates.Where(candidate => candidate.FieldType is "category" or "tags" or "description"),
+            candidate => Assert.Equal(MetadataCandidateStatus.Rejected, candidate.Status));
+        Assert.Equal(
+            MetadataCandidateStatus.Pending,
+            Assert.Single(candidates, candidate => candidate.FieldType == "style").Status);
+    }
+
+    [Fact]
+    public async Task ConfirmedCategoryCandidateMapsOnlyToAnExistingCategory()
+    {
+        var categoryId = await _repository.GetOrCreateCategoryAsync("裤子参考", "人工精确分类");
+        var mapped = await _repository.UpsertMetadataCandidateAsync(new MetadataCandidateInput(
+            _itemId,
+            "category",
+            "裤子参考",
+            AiMetadataSource.LocalModel,
+            "local-clip",
+            "CLIP ViT-B/32",
+            "v1",
+            0.8));
+
+        await _repository.ConfirmMetadataCandidateAsync(mapped.Id);
+
+        Assert.Equal(categoryId, (await _repository.GetGalleryItemAsync(_itemId))!.CategoryId);
+
+        var unknown = await _repository.UpsertMetadataCandidateAsync(new MetadataCandidateInput(
+            _itemId,
+            "category",
+            "含糊的新分类",
+            AiMetadataSource.OnlineApi,
+            "fake-online",
+            "Fake",
+            "v2",
+            0.6));
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _repository.ConfirmMetadataCandidateAsync(unknown.Id));
+
+        Assert.Equal(
+            MetadataCandidateStatus.Pending,
+            Assert.Single(
+                await _repository.GetMetadataCandidatesAsync(_itemId),
+                candidate => candidate.Id == unknown.Id).Status);
+        Assert.Equal(categoryId, (await _repository.GetGalleryItemAsync(_itemId))!.CategoryId);
+    }
+
     public Task DisposeAsync()
     {
         try { if (Directory.Exists(_root)) Directory.Delete(_root, true); } catch { }

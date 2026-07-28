@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "milestone": "M7-00",
+  "capturedAt": "2026-07-28",
+  "branch": "codex/m1-foundation",
+  "head": "16d97de",
+  "dataSafety": {
+    "settingsArgumentRequired": true,
+    "settingsPath": "<repo>/.m7-isolated/ui-settings.json",
+    "libraryRoot": "<repo>/.m7-isolated/benchmark-30000",
+    "captureListeningEnabled": false,
+    "realLibraryOpened": false,
+    "realLibraryModified": false
+  },
+  "environment": {
+    "os": "Windows",
+    "displayPhysicalPixels": {
+      "width": 3840,
+      "height": 2560
+    },
+    "displayScalePercent": 150,
+    "refreshRateHz": 59,
+    "isolatedMainWindowScreenshotPixels": {
+      "width": 1380,
+      "height": 870
+    }
+  },
+  "syntheticFeedbackSamples": {
+    "physicalFileCount": 9,
+    "independentFileCount": 9,
+    "ratios": [
+      "1:4",
+      "9:16",
+      "2:3",
+      "3:4",
+      "1:1",
+      "4:3",
+      "16:9",
+      "4:1"
+    ],
+    "invalidMetadataSourceCount": 1,
+    "path": "<repo>/.m7-isolated/feedback-materials"
+  },
+  "performanceLibrary": {
+    "recordCount": 30000,
+    "uniqueDatabaseOriginalPathCount": 30000,
+    "initialPageLoaded": 240,
+    "physicalSeedImageCount": 3,
+    "note": "Database rows and OriginalPath values are independent layout objects. The probe intentionally reuses three physical decoder fixtures; layout geometry is sourced from 30,000 distinct records."
+  },
+  "baselineBuild": {
+    "configuration": "Debug",
+    "warnings": 0,
+    "errors": 0,
+    "elapsedSeconds": 25.51,
+    "passed": true
+  },
+  "baselineTests": {
+    "total": 159,
+    "passed": 159,
+    "failed": 0,
+    "note": "The first run exposed one timing-sensitive CapturePromptDebouncer test (158 passed, 1 failed). The targeted test then passed 5/5 and the full gate passed 159/159 without code changes."
+  },
+  "m6RegressionGate": {
+    "passed": true,
+    "database30000": {
+      "initializeP95Ms": 64.563,
+      "firstPageMs": 16.039,
+      "chineseSearchMs": 8.875,
+      "englishSearchMs": 36.602,
+      "categoryFilterMs": 6.068,
+      "tagFilterMs": 15.042,
+      "deepKeysetPageMs": 19.039
+    },
+    "media": {
+      "firstDecodeMs": 81.891,
+      "cachedDecodeMs": 0.378,
+      "thumbnailCacheBytes": 16588800,
+      "immersiveCacheBytes": 194040000,
+      "firstAttemptOutlierMs": 321.048,
+      "mediaOnlyRerunMs": 89.28,
+      "note": "The cold first attempt exceeded the unchanged 300 ms gate. A media-only rerun and a complete rerun both passed; the outlier is retained for comparison."
+    },
+    "virtualization": {
+      "fullLayoutMs": 4.758,
+      "realizedContainers": 6,
+      "peakManagedBytes": 19970488
+    },
+    "scrollFrames": {
+      "sampleCount": 181,
+      "p95Ms": 16.671,
+      "p99Ms": 16.672,
+      "maxMs": 16.672
+    },
+    "similarity30000x512": {
+      "p95Ms": 4.1396
+    }
+  },
+  "reproducedPreM7Behaviors": {
+    "periodicMasonryHole": {
+      "causeConfirmed": "WaterfallSectionDepth=4 resets column heights every columnCount*4 items",
+      "interval": "columnCount*4 items"
+    },
+    "singleClickInspectorOverlay": true,
+    "transparentModeInspectorLeak": true,
+    "textVerticalClipping": true,
+    "evidence": "User feedback screenshots FB-M7-001 through FB-M7-006 plus isolated 30,000-row Computer Use baseline."
+  }
+}

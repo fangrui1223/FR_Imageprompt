@@ -10,6 +10,7 @@ public partial class MainWindow
 {
     private int _viewerIndex = -1;
     private bool _viewerDragging;
+    private bool _inspectorHiddenForViewer;
     private Point _viewerLastPoint;
     private CancellationTokenSource? _viewerLoadCancellation;
     private readonly ImmersiveImageCache _immersiveImageCache = ImmersiveImageCache.Shared;
@@ -19,6 +20,12 @@ public partial class MainWindow
         var index = _items.ToList().FindIndex(x => x.Id == itemId);
         if (index < 0) return;
         _viewerIndex = index;
+        if (_inspectorVisible)
+        {
+            InspectorPanel.Visibility = Visibility.Collapsed;
+            InspectorSplitter.Visibility = Visibility.Collapsed;
+            _inspectorHiddenForViewer = true;
+        }
         if (_transparentMode) EnterTransparentViewerBackdrop();
         ImmersiveViewer.Visibility = Visibility.Visible;
         ResetImmersiveTransform();
@@ -78,6 +85,15 @@ public partial class MainWindow
 
     private void MainWindowPreviewKeyDown(object sender, KeyEventArgs e)
     {
+        DevelopmentPerformanceTrace.Event("preview-key", new
+        {
+            key = e.Key.ToString(),
+            imeProcessedKey = e.ImeProcessedKey.ToString(),
+            systemKey = e.SystemKey.ToString(),
+            modifiers = Keyboard.Modifiers.ToString(),
+            galleryShortcutContext = _galleryShortcutContext,
+            focusedType = Keyboard.FocusedElement?.GetType().Name
+        });
         if (DevelopmentPerformanceTrace.IsEnabled
             && Keyboard.Modifiers.HasFlag(ModifierKeys.Control)
             && Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)
@@ -185,6 +201,12 @@ public partial class MainWindow
         ImmersiveImage.Source = null;
         ImmersiveViewer.Visibility = Visibility.Collapsed;
         ResetImmersiveTransform();
+        if (_inspectorHiddenForViewer)
+        {
+            InspectorPanel.Visibility = Visibility.Visible;
+            InspectorSplitter.Visibility = Visibility.Visible;
+            _inspectorHiddenForViewer = false;
+        }
         if (wasTransparentViewer) LeaveTransparentViewerBackdrop();
     }
 

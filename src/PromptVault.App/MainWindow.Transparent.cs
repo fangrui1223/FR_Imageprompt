@@ -15,14 +15,28 @@ public partial class MainWindow
 
     private void TransparentToggleClick(object sender, RoutedEventArgs e) => ToggleTransparentMode();
 
-    private void ToggleTransparentMode()
+    private async void ToggleTransparentMode()
     {
+        if (!_transparentMode && _inspectorVisible)
+        {
+            if (!await SaveInspectorOrdinaryFieldsAsync())
+            {
+                InspectorTagsEditor.Focus();
+                return;
+            }
+            if (!await ResolveDirtyPromptBeforeSwitchAsync())
+            {
+                InspectorPromptEditor.Focus();
+                return;
+            }
+        }
         if (System.Windows.Application.Current is App app) app.SwitchMainWindow(!_transparentMode, CreateSnapshot());
     }
 
     private void ApplyTransparentMode()
     {
         var transparent = _transparentMode;
+        if (transparent && _inspectorVisible) SetInspectorVisibility(false);
         VisualModeService.Apply(transparent, _settings.ReducedMotionEnabled);
         WindowSurface.Background = VisualModeService.ResourceBrush("WindowSurfaceBrush");
         WindowSurface.BorderBrush = VisualModeService.ResourceBrush("WindowBorderBrush");
@@ -33,7 +47,11 @@ public partial class MainWindow
         LeftPanel.BorderBrush = transparent ? Brushes.Transparent : VisualModeService.ResourceBrush("HairlineBrush");
         LeftPanel.Effect = VisualModeService.ResourceEffect("SidePanelShadow");
         ImmersiveViewer.Background = VisualModeService.ResourceBrush("ImmersiveBackdropBrush");
-        StatusText.Opacity = transparent ? 0 : 1;
+        GalleryHeader.Visibility = transparent ? Visibility.Collapsed : Visibility.Visible;
+        StatusText.Visibility = transparent ? Visibility.Collapsed : Visibility.Visible;
+        GalleryLayer.Margin = transparent
+            ? new Thickness(0)
+            : (Thickness)FindResource("SpacingWindow");
 
         ApplyTextBoxChrome(SearchBox, transparent);
         ApplyTextBoxChrome(TagBox, transparent);
@@ -52,10 +70,16 @@ public partial class MainWindow
 
         if (transparent)
         {
+            HideTopPanel();
+            HideLeftPanel();
             ApplyTransparentButtonChrome(TopPanel, true);
             ApplyTransparentButtonChrome(LeftPanel, true);
             TransparentToggleButton.Background = VisualModeService.ResourceBrush("AccentSoftBrush");
             TransparentToggleButton.BorderBrush = VisualModeService.ResourceBrush("AccentBrush");
+        }
+        else
+        {
+            ApplyEdgeMenuPreference();
         }
     }
 

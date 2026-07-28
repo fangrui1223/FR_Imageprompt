@@ -25,6 +25,8 @@ public partial class MainWindow
     private bool _topPanelRevealed;
     private bool _leftPanelRevealed;
     private bool _leftPanelMenuOpen;
+    private bool EdgeMenusEffectivelyAlwaysVisible =>
+        _settings.EdgeMenusAlwaysVisible && !_transparentMode;
 
     private void OnSourceInitialized(object? sender, EventArgs e)
     {
@@ -33,7 +35,7 @@ public partial class MainWindow
         _topHideTimer.Tick += (_, _) =>
         {
             _topHideTimer.Stop();
-            if (_settings.EdgeMenusAlwaysVisible) return;
+            if (EdgeMenusEffectivelyAlwaysVisible) return;
             if (IsMouseInsideTopPanel() || IsInsideTopSafeCorridor())
             {
                 _topHideTimer.Interval = TimeSpan.FromMilliseconds(120);
@@ -45,7 +47,7 @@ public partial class MainWindow
         _leftHideTimer.Tick += (_, _) =>
         {
             _leftHideTimer.Stop();
-            if (_settings.EdgeMenusAlwaysVisible) return;
+            if (EdgeMenusEffectivelyAlwaysVisible) return;
             if (_leftPanelMenuOpen || IsMouseInsideLeftPanel() || IsInsideLeftSafeCorridor())
             {
                 _leftHideTimer.Interval = TimeSpan.FromMilliseconds(120);
@@ -65,7 +67,7 @@ public partial class MainWindow
     private void TopPanelMouseEnter(object sender, MouseEventArgs e)
     {
         _topHideTimer.Stop();
-        if (!_topPanelRevealed && !_settings.EdgeMenusAlwaysVisible)
+        if (!_topPanelRevealed && !EdgeMenusEffectivelyAlwaysVisible)
         {
             ObserveEdgeIntent(e.GetPosition(this));
             return;
@@ -77,7 +79,7 @@ public partial class MainWindow
 
     private void TopPanelMouseLeave(object sender, MouseEventArgs e)
     {
-        if (_settings.EdgeMenusAlwaysVisible) return;
+        if (EdgeMenusEffectivelyAlwaysVisible) return;
         _topHideTimer.Stop();
         _topHideTimer.Interval = TimeSpan.FromMilliseconds(280);
         _topHideTimer.Start();
@@ -105,7 +107,7 @@ public partial class MainWindow
     private void LeftPanelMouseEnter(object sender, MouseEventArgs e)
     {
         _leftHideTimer.Stop();
-        if (!_leftPanelRevealed && !_settings.EdgeMenusAlwaysVisible)
+        if (!_leftPanelRevealed && !EdgeMenusEffectivelyAlwaysVisible)
         {
             ObserveEdgeIntent(e.GetPosition(this));
             return;
@@ -116,7 +118,7 @@ public partial class MainWindow
 
     private void LeftPanelMouseLeave(object sender, MouseEventArgs e)
     {
-        if (_settings.EdgeMenusAlwaysVisible) return;
+        if (EdgeMenusEffectivelyAlwaysVisible) return;
         _leftHideTimer.Stop();
         _leftHideTimer.Interval = TimeSpan.FromMilliseconds(280);
         if (!_leftPanelMenuOpen) _leftHideTimer.Start();
@@ -129,7 +131,7 @@ public partial class MainWindow
 
     private void ObserveEdgeIntent(Point position)
     {
-        if (_settings.EdgeMenusAlwaysVisible || ImmersiveViewer.Visibility == Visibility.Visible)
+        if (EdgeMenusEffectivelyAlwaysVisible || ImmersiveViewer.Visibility == Visibility.Visible)
         {
             _edgeIntentDetector.Reset();
             _edgeIntentTimer.Stop();
@@ -160,7 +162,7 @@ public partial class MainWindow
 
     private void PollEdgeIntent()
     {
-        if (_settings.EdgeMenusAlwaysVisible || ImmersiveViewer.Visibility == Visibility.Visible)
+        if (EdgeMenusEffectivelyAlwaysVisible || ImmersiveViewer.Visibility == Visibility.Visible)
         {
             _edgeIntentDetector.Reset();
             _edgeIntentTimer.Stop();
@@ -264,7 +266,7 @@ public partial class MainWindow
         _edgeIntentTimer.Stop();
         _topHideTimer.Stop();
         _leftHideTimer.Stop();
-        if (_settings.EdgeMenusAlwaysVisible)
+        if (EdgeMenusEffectivelyAlwaysVisible)
         {
             UpdateTopPanelHeight();
             ShowTopPanel();
@@ -320,7 +322,7 @@ public partial class MainWindow
 
     private void StabilizeHiddenPanelsForResize()
     {
-        if (_settings.EdgeMenusAlwaysVisible)
+        if (EdgeMenusEffectivelyAlwaysVisible)
         {
             UpdateTopPanelHeight();
             ShowTopPanel();

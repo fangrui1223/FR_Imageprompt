@@ -1,5 +1,32 @@
 namespace PromptVault.Core;
 
+public static class AiMetadataAuthority
+{
+    public static bool IsCandidateBlocked(GalleryItem? item, string fieldType)
+    {
+        if (item is null) return false;
+        return fieldType.Trim().ToLowerInvariant() switch
+        {
+            "category" => item.CategoryId is not null,
+            "tags" => !string.IsNullOrWhiteSpace(item.Tags),
+            "description" => !string.IsNullOrWhiteSpace(item.Notes),
+            _ => false
+        };
+    }
+
+    public static IReadOnlyList<string> SupersededCandidateFields(
+        long? categoryId,
+        bool hasTags,
+        string notes)
+    {
+        var fields = new List<string>(3);
+        if (categoryId is not null) fields.Add("category");
+        if (hasTags) fields.Add("tags");
+        if (!string.IsNullOrWhiteSpace(notes)) fields.Add("description");
+        return fields;
+    }
+}
+
 public sealed class AiJobProcessor
 {
     private readonly LibraryRepository _repository;
@@ -33,8 +60,15 @@ public sealed class AiJobProcessor
                 ?? throw new InvalidDataException("AI 任务对应的图片不存在。");
             var provider = _providers.GetRequired(job.ProviderId);
             var result = await provider.AnalyzeAsync(request, cancellationToken).ConfigureAwait(false);
+            var authoritative = await _repository.GetGalleryItemAsync(
+                job.ItemId,
+                cancellationToken).ConfigureAwait(false);
             foreach (var metadata in result.Metadata)
             {
+                if (AiMetadataAuthority.IsCandidateBlocked(authoritative, metadata.FieldType))
+                {
+                    continue;
+                }
                 await _repository.UpsertMetadataCandidateAsync(
                     new MetadataCandidateInput(
                         job.ItemId,
@@ -82,4 +116,5 @@ public sealed class AiJobProcessor
             return true;
         }
     }
+
 }

@@ -100,6 +100,41 @@ public sealed partial class LibraryRepository
             : MetadataCandidateStatus.Modified;
         var now = DateTimeOffset.UtcNow;
 
+        if (string.Equals(candidate.FieldType, "category", StringComparison.OrdinalIgnoreCase))
+        {
+            var findCategory = connection.CreateCommand();
+            findCategory.Transaction = transaction;
+            findCategory.CommandText = """
+                SELECT id
+                FROM categories
+                WHERE name = $name COLLATE NOCASE AND is_enabled = 1
+                LIMIT 1;
+                """;
+            findCategory.Parameters.AddWithValue("$name", value);
+            var categoryId = await findCategory.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+            if (categoryId is null)
+            {
+                throw new InvalidOperationException(
+                    $"AI 分类“{value}”无法映射到现有分类，请先人工选择主分类。");
+            }
+
+            var applyCategory = connection.CreateCommand();
+            applyCategory.Transaction = transaction;
+            applyCategory.CommandText = """
+                UPDATE collection_items
+                SET category_id = $category, updated_at = $now
+                WHERE id = $item AND deleted_at IS NULL;
+                """;
+            applyCategory.Parameters.AddWithValue("$category", (long)categoryId);
+            applyCategory.Parameters.AddWithValue("$now", now.ToString("O"));
+            applyCategory.Parameters.AddWithValue("$item", candidate.ItemId);
+            var changed = await applyCategory.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            if (changed == 0)
+            {
+                throw new InvalidOperationException("AI 分类对应的图片已不可编辑。");
+            }
+        }
+
         var upsert = connection.CreateCommand();
         upsert.Transaction = transaction;
         upsert.CommandText = """

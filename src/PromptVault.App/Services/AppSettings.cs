@@ -9,8 +9,10 @@ public sealed class AppSettings
     public string LibraryRoot { get; set; } = "";
     public bool OldestFirst { get; set; }
     public bool CaptureListeningEnabled { get; set; } = true;
+    public bool CaptureQuickEditEnabled { get; set; }
     public bool ReducedMotionEnabled { get; set; }
     public bool InspectorPinned { get; set; }
+    public double InspectorWidth { get; set; } = 440;
     public string EdgeMenuSensitivity { get; set; } = EdgeIntentProfile.NormalSensitivity;
     public bool EdgeMenusAlwaysVisible { get; set; }
     public bool OnlineAiEnabled { get; set; }
@@ -20,6 +22,7 @@ public sealed class AppSettings
     public int ModelBackupRetentionCount { get; set; } = 2;
     public List<ExternalFolderSetting> ExternalFolders { get; set; } = [];
     public Dictionary<string, GalleryLayoutPreference> GalleryLayouts { get; set; } = [];
+    public GalleryAppearancePreference GalleryAppearance { get; set; } = new();
     [JsonIgnore] public string? RecoveryNotice { get; private set; }
     [JsonIgnore] public string? RecoveryBackupPath { get; private set; }
     [JsonIgnore] public string StorageFilePath => StoragePath ?? SettingsPath;
@@ -34,16 +37,39 @@ public sealed class AppSettings
         if (!File.Exists(path)) return new AppSettings { StoragePath = path };
         try
         {
-            var settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path), JsonOptions)
+            var json = File.ReadAllText(path);
+            using var document = JsonDocument.Parse(json);
+            var hasAppearance = document.RootElement.ValueKind == JsonValueKind.Object
+                && document.RootElement.EnumerateObject().Any(property =>
+                    string.Equals(
+                        property.Name,
+                        nameof(GalleryAppearance),
+                        StringComparison.OrdinalIgnoreCase));
+            var settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions)
                 ?? throw new JsonException("设置文件内容为空。");
             settings.ExternalFolders ??= [];
             settings.GalleryLayouts ??= [];
-            settings.EdgeMenuSensitivity = EdgeIntentProfile.NormalizeSensitivity(settings.EdgeMenuSensitivity);
-            settings.ModelBackupRetentionCount = Math.Clamp(settings.ModelBackupRetentionCount, 0, 10);
             foreach (var preference in settings.GalleryLayouts.Values)
             {
                 preference.Normalize();
             }
+            if (!hasAppearance)
+            {
+                var legacySpacing = settings.GalleryLayouts.TryGetValue("library", out var library)
+                    ? library.Spacing
+                    : settings.GalleryLayouts.Values.FirstOrDefault()?.Spacing
+                      ?? new GalleryAppearancePreference().HorizontalSpacing;
+                settings.GalleryAppearance = new GalleryAppearancePreference
+                {
+                    HorizontalSpacing = legacySpacing,
+                    VerticalSpacing = legacySpacing
+                };
+            }
+            settings.GalleryAppearance ??= new GalleryAppearancePreference();
+            settings.GalleryAppearance.Normalize();
+            settings.EdgeMenuSensitivity = EdgeIntentProfile.NormalizeSensitivity(settings.EdgeMenuSensitivity);
+            settings.ModelBackupRetentionCount = Math.Clamp(settings.ModelBackupRetentionCount, 0, 10);
+            settings.InspectorWidth = NormalizeInspectorWidth(settings.InspectorWidth);
             settings.StoragePath = path;
             return settings;
         }
@@ -78,6 +104,9 @@ public sealed class AppSettings
         File.WriteAllText(temp, JsonSerializer.Serialize(this, JsonOptions));
         File.Move(temp, path, true);
     }
+
+    public static double NormalizeInspectorWidth(double width) =>
+        Math.Clamp(double.IsFinite(width) && width > 0 ? width : 440, 360, 720);
 
     private static string PreserveCorruptFile(string path)
     {
@@ -116,14 +145,22 @@ public sealed class GalleryLayoutPreference
     public double Spacing { get; set; } = GalleryLayoutEngine.DefaultSpacing;
     public double TargetSize { get; set; } = GalleryLayoutEngine.DefaultTargetSize;
 
-    public GalleryLayoutOptions ToOptions()
+    public GalleryLayoutOptions ToOptions() => ToOptions(new GalleryAppearancePreference
+    {
+        HorizontalSpacing = Spacing,
+        VerticalSpacing = Spacing
+    });
+
+    public GalleryLayoutOptions ToOptions(GalleryAppearancePreference appearance)
     {
         Normalize();
+        appearance.Normalize();
         return new GalleryLayoutOptions(
             string.Equals(Mode, JustifiedMode, StringComparison.Ordinal)
                 ? GalleryLayoutMode.Justified
                 : GalleryLayoutMode.Waterfall,
-            Spacing,
+            appearance.HorizontalSpacing,
+            appearance.VerticalSpacing,
             TargetSize);
     }
 
@@ -155,6 +192,43 @@ public sealed class GalleryLayoutPreference
             double.IsFinite(TargetSize) ? TargetSize : GalleryLayoutEngine.DefaultTargetSize,
             GalleryLayoutEngine.MinimumTargetSize,
             GalleryLayoutEngine.MaximumTargetSize);
+    }
+}
+
+public sealed class GalleryAppearancePreference
+{
+    public double HorizontalSpacing { get; set; } = 8;
+    public double VerticalSpacing { get; set; } = 8;
+    public double CornerRadius { get; set; } = 12;
+    public double BorderThickness { get; set; }
+    public string BorderColor { get; set; } = "#52677F";
+
+    public void Normalize()
+    {
+        HorizontalSpacing = Math.Clamp(
+            double.IsFinite(HorizontalSpacing) ? HorizontalSpacing : 8,
+            0,
+            32);
+        VerticalSpacing = Math.Clamp(
+            double.IsFinite(VerticalSpacing) ? VerticalSpacing : 8,
+            0,
+            32);
+        CornerRadius = Math.Clamp(
+            double.IsFinite(CornerRadius) ? CornerRadius : 12,
+            0,
+            32);
+        BorderThickness = Math.Clamp(
+            double.IsFinite(BorderThickness) ? BorderThickness : 0,
+            0,
+            4);
+        if (string.IsNullOrWhiteSpace(BorderColor)
+            || !System.Text.RegularExpressions.Regex.IsMatch(
+                BorderColor,
+                "^#[0-9A-Fa-f]{6}$",
+                System.Text.RegularExpressions.RegexOptions.CultureInvariant))
+        {
+            BorderColor = "#52677F";
+        }
     }
 }
 

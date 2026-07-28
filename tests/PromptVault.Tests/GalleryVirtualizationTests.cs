@@ -5,6 +5,16 @@ namespace PromptVault.Tests;
 
 public sealed class GalleryVirtualizationTests
 {
+    [Theory]
+    [InlineData(1000, 1500, "2:3  ·  0.667  ·  竖图")]
+    [InlineData(1920, 1080, "16:9  ·  1.778  ·  横图")]
+    [InlineData(1024, 1024, "1:1  ·  1  ·  方图")]
+    [InlineData(0, 100, "宽高比未知")]
+    public void AspectRatioSummaryIsReadableAndDeterministic(int width, int height, string expected)
+    {
+        Assert.Equal(expected, ImageAspectRatioFormatter.Format(width, height));
+    }
+
     [Fact]
     public void PureImageCardsDoNotReserveAFormerLabelFooter()
     {
@@ -31,12 +41,10 @@ public sealed class GalleryVirtualizationTests
 
         var selectedId = entries[11].Id;
         var paths = new LibraryPaths(Path.Combine(Path.GetTempPath(), "PromptVaultVirtualizationTests"));
-        var coveredHeight = 0d;
         foreach (var row in rows)
         {
+            if (row.PanelY >= 1440 * 3) break;
             row.Realize(paths, id => id == selectedId);
-            coveredHeight += row.RowHeight + row.RowMargin.Bottom;
-            if (coveredHeight >= 1440 * 3) break;
         }
 
         var realizedCards = rows.Sum(row => row.Items.Count);
@@ -83,24 +91,96 @@ public sealed class GalleryVirtualizationTests
             Assert.Equal(
                 expectedRow.LayoutItems.Select(item => Math.Round(item.LayoutY, 6)),
                 actualRow.LayoutItems.Select(item => Math.Round(item.LayoutY, 6)));
+            Assert.Equal(expectedRow.ColumnIndex, actualRow.ColumnIndex);
+            Assert.Equal(expectedRow.PanelX, actualRow.PanelX, 6);
+            Assert.Equal(expectedRow.PanelY, actualRow.PanelY, 6);
+            Assert.Equal(expectedRow.PanelWidth, actualRow.PanelWidth, 6);
         }
     }
 
     [Fact]
-    public void WaterfallUsesShortestColumnsInsideVirtualizedSections()
+    public void WaterfallUsesOneContinuousShortestColumnState()
     {
         var entries = CreateEntries(40);
         var options = new GalleryLayoutOptions(GalleryLayoutMode.Waterfall, 14, 320);
 
         var rows = GalleryLayoutEngine.CreateRows(entries, 2500, options);
 
-        Assert.True(rows.Count >= 2);
-        Assert.Contains(rows[0].LayoutItems, item => item.LayoutY > 0);
-        Assert.True(rows[0].LayoutItems.Select(item => item.LayoutX).Distinct().Count() >= 6);
-        Assert.Equal(
-            rows[0].LayoutItems.Max(item => item.LayoutY + item.ImageHeight),
-            rows[0].RowHeight,
-            6);
+        Assert.Equal(entries.Count, rows.Count);
+        Assert.All(rows, row => Assert.Single(row.LayoutItems));
+        var columnCount = rows.Select(row => row.ColumnIndex).Distinct().Count();
+        Assert.InRange(columnCount, 1, 12);
+        var runningHeights = new double[columnCount];
+        foreach (var row in rows)
+        {
+            var expectedColumn = Array.IndexOf(runningHeights, runningHeights.Min());
+            Assert.Equal(expectedColumn, row.ColumnIndex);
+            Assert.Equal(runningHeights[expectedColumn], row.PanelY, 6);
+            runningHeights[expectedColumn] = row.PanelBottom + options.Spacing;
+        }
+    }
+
+    [Fact]
+    public void WaterfallNeverResetsAtFormerSectionBoundaries()
+    {
+        var entries = CreateEntries(120);
+        var rows = GalleryLayoutEngine.CreateRows(
+            entries,
+            2500,
+            new GalleryLayoutOptions(GalleryLayoutMode.Waterfall, 14, 320));
+
+        var columnCount = rows.Select(row => row.ColumnIndex).Distinct().Count();
+        var formerSectionSize = columnCount * 4;
+        Assert.True(rows.Count > formerSectionSize * 2);
+        Assert.True(rows[formerSectionSize].PanelY > 0);
+        Assert.True(rows[formerSectionSize * 2].PanelY > rows[formerSectionSize].PanelY);
+    }
+
+    [Theory]
+    [InlineData(100, 400)]
+    [InlineData(900, 1600)]
+    [InlineData(200, 300)]
+    [InlineData(300, 400)]
+    [InlineData(500, 500)]
+    [InlineData(400, 300)]
+    [InlineData(1600, 900)]
+    [InlineData(400, 100)]
+    public void WaterfallPreservesTheFullOriginalAspectRatio(int width, int height)
+    {
+        var item = CreateEntries(1)[0] with { Width = width, Height = height };
+        var row = Assert.Single(GalleryLayoutEngine.CreateRows([item], 400));
+
+        Assert.Equal(row.PanelWidth * height / width, row.RowHeight, 6);
+    }
+
+    [Theory]
+    [InlineData(0, 100)]
+    [InlineData(100, 0)]
+    [InlineData(-1, 100)]
+    [InlineData(100, -1)]
+    public void InvalidMetadataUsesStableSquareGeometry(int width, int height)
+    {
+        var item = CreateEntries(1)[0] with { Width = width, Height = height };
+        var row = Assert.Single(GalleryLayoutEngine.CreateRows([item], 400));
+
+        Assert.True(double.IsFinite(row.RowHeight));
+        Assert.Equal(row.PanelWidth, row.RowHeight, 6);
+    }
+
+    [Theory]
+    [InlineData(120, 1)]
+    [InlineData(600, 1)]
+    [InlineData(2500, 7)]
+    [InlineData(10000, 12)]
+    public void WaterfallColumnCountStaysWithinOneToTwelve(
+        double availableWidth,
+        int expectedColumnCount)
+    {
+        var rows = GalleryLayoutEngine.CreateRows(CreateEntries(100), availableWidth);
+        var columnCount = rows.Select(row => row.ColumnIndex).Distinct().Count();
+
+        Assert.Equal(expectedColumnCount, columnCount);
+        Assert.All(rows, row => Assert.True(row.PanelX + row.PanelWidth <= Math.Max(availableWidth, 320) + 0.001));
     }
 
     [Fact]

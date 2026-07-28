@@ -21,6 +21,7 @@ public static class CaptureStateMachine
             [CaptureState.WaitingForPrompt] =
             [
                 CaptureState.PromptDebouncing,
+                CaptureState.Saved,
                 CaptureState.NeedsPrompt,
                 CaptureState.Failed,
                 CaptureState.Undone

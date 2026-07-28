@@ -28,4 +28,10 @@ internal sealed class ClipboardFileEventCoalescer
         _lastTimestamp = observedTimestamp;
         return true;
     }
+
+    public void Reset()
+    {
+        _lastPath = null;
+        _lastTimestamp = 0;
+    }
 }

@@ -16,6 +16,11 @@ public partial class MainWindow
     private async void CardMouseEnter(object sender, MouseEventArgs e)
     {
         if (sender is not Border card) return;
+        if (_transparentMode)
+        {
+            SetCardOverlay(card, visible: false, animate: false);
+            return;
+        }
         AnimateScale(card, 1.012);
         CancelCardHoverDelay(card);
         var cancellation = new CancellationTokenSource();

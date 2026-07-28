@@ -556,6 +556,30 @@ public sealed class LibraryRepositoryTests : IAsyncLifetime
         var afterMoveDown = await _repository.GetCategoriesAsync();
         Assert.True(IndexOf(afterMoveDown, first) > IndexOf(afterMoveDown, third));
     }
+
+    [Fact]
+    public async Task GetOrCreateCategoryIsIdempotentAndReusesTheExactName()
+    {
+        var first = await _repository.GetOrCreateCategoryAsync("上衣参考", "manual");
+        var second = await _repository.GetOrCreateCategoryAsync("上衣参考", "ignored");
+        var categories = await _repository.GetCategoriesAsync();
+
+        Assert.Equal(first, second);
+        Assert.Single(categories, category => category.Name == "上衣参考");
+    }
+
+    [Fact]
+    public async Task ConcurrentGetOrCreateCategoryAddsOneRow()
+    {
+        var ids = await Task.WhenAll(Enumerable.Range(0, 12).Select(_ =>
+            _repository.GetOrCreateCategoryAsync("裤子参考", "manual")));
+        var categories = await _repository.GetCategoriesAsync();
+
+        Assert.Single(ids.Distinct());
+        Assert.Single(categories, category =>
+            string.Equals(category.Name, "裤子参考", StringComparison.OrdinalIgnoreCase));
+    }
+
     [Fact]
     public async Task TagSearchSupportsPartialAndDelimitedTerms()
     {

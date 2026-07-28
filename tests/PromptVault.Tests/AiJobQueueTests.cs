@@ -114,6 +114,42 @@ public sealed class AiJobQueueTests : IAsyncLifetime
         Assert.Contains("synthetic online failure", failed.LastError, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task ProcessorPreservesManualFieldsButKeepsAestheticCandidates()
+    {
+        var categoryId = await _repository.GetOrCreateCategoryAsync("上衣参考", "manual");
+        await _repository.UpdateItemOrganizationAsync(
+            _itemId,
+            "prompt",
+            "人工标签",
+            "人工备注",
+            categoryId);
+        await _repository.EnqueueAiJobAsync(new AiJobInput(
+            _itemId,
+            "analyze",
+            "authority-provider",
+            "v1",
+            "authority-cache"));
+        var processor = new AiJobProcessor(
+            _repository,
+            new AiProviderRegistry([new AuthorityProvider()]),
+            (itemId, _) => Task.FromResult<AiProviderRequest?>(new AiProviderRequest(
+                itemId,
+                "synthetic.png",
+                "prompt",
+                [],
+                ["category", "tags", "description", "style"])));
+
+        Assert.True(await processor.ProcessNextAsync());
+
+        var item = await _repository.GetGalleryItemAsync(_itemId);
+        var candidates = await _repository.GetMetadataCandidatesAsync(_itemId);
+        Assert.Equal(categoryId, item!.CategoryId);
+        Assert.Equal("人工标签", item.Tags);
+        Assert.Equal("人工备注", item.Notes);
+        Assert.Equal("style", Assert.Single(candidates).FieldType);
+    }
+
     private sealed class FakeProvider : IAiProvider
     {
         public AiProviderDescriptor Descriptor { get; } = new(
@@ -157,6 +193,40 @@ public sealed class AiJobQueueTests : IAsyncLifetime
             AiProviderRequest request,
             CancellationToken cancellationToken = default) =>
             throw new HttpRequestException("synthetic online failure");
+
+        public Task<float[]?> EmbedTextAsync(
+            AiTextEmbeddingRequest request,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<float[]?>(null);
+
+        public Task ReleaseResourcesAsync(CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    private sealed class AuthorityProvider : IAiProvider
+    {
+        public AiProviderDescriptor Descriptor { get; } = new(
+            "authority-provider",
+            "Authority Provider",
+            AiProviderKind.OnlineVision,
+            "Fake",
+            "v1",
+            AiProviderCapabilities.Metadata,
+            true);
+
+        public Task<AiProviderResult> AnalyzeAsync(
+            AiProviderRequest request,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new AiProviderResult(
+                [
+                    new AiMetadataValue("category", "裤子参考", 0.8),
+                    new AiMetadataValue("tags", "AI 标签", 0.8),
+                    new AiMetadataValue("description", "AI 描述", 0.8),
+                    new AiMetadataValue("style", "极简", 0.8)
+                ],
+                null));
 
         public Task<float[]?> EmbedTextAsync(
             AiTextEmbeddingRequest request,

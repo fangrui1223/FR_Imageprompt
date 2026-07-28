@@ -124,6 +124,35 @@ public sealed partial class LibraryRepository
         return (long)(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) ?? 0L);
     }
 
+    public async Task<long> GetOrCreateCategoryAsync(
+        string name,
+        string description,
+        CancellationToken cancellationToken = default)
+    {
+        name = name.Trim();
+        if (name.Length == 0)
+        {
+            throw new ArgumentException("分类名称不能为空。", nameof(name));
+        }
+
+        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO categories(name, ai_description, sort_order, is_enabled)
+            VALUES(
+                $name,
+                $description,
+                COALESCE((SELECT MAX(sort_order) + 1 FROM categories), 0),
+                1)
+            ON CONFLICT(name) DO UPDATE SET is_enabled = 1
+            RETURNING id;
+            """;
+        command.Parameters.AddWithValue("$name", name);
+        command.Parameters.AddWithValue("$description", description.Trim());
+        return (long)(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidDataException($"无法创建分类“{name}”。"));
+    }
+
     public async Task DeleteCategoryAsync(long id, CancellationToken cancellationToken = default)
     {
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
@@ -466,16 +495,17 @@ public sealed partial class LibraryRepository
 
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-        var parsedTags = tags is null ? null : ParseTagText(tags);
+        var parsedTags = tags is null ? null : ParseTagText(tags).ToArray();
         foreach (var id in ids)
         {
+            var now = DateTimeOffset.UtcNow.ToString("O");
             if (notes is not null)
             {
                 var update = connection.CreateCommand();
                 update.Transaction = transaction;
                 update.CommandText = "UPDATE collection_items SET notes = $notes, updated_at = $now WHERE id = $id;";
                 update.Parameters.AddWithValue("$notes", notes.Trim());
-                update.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToString("O"));
+                update.Parameters.AddWithValue("$now", now);
                 update.Parameters.AddWithValue("$id", id);
                 await update.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
@@ -484,6 +514,16 @@ public sealed partial class LibraryRepository
             {
                 await ReplaceTagsAsync(connection, transaction, id, parsedTags, cancellationToken).ConfigureAwait(false);
             }
+            await RejectPendingMetadataCandidatesAsync(
+                connection,
+                transaction,
+                id,
+                AiMetadataAuthority.SupersededCandidateFields(
+                    null,
+                    parsedTags is { Length: > 0 },
+                    notes ?? ""),
+                now,
+                cancellationToken).ConfigureAwait(false);
         }
 
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
@@ -524,6 +564,62 @@ public sealed partial class LibraryRepository
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task UpdateItemOrganizationAsync(
+        long itemId,
+        string prompt,
+        string tags,
+        string notes,
+        long? categoryId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction =
+            (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        var now = DateTimeOffset.UtcNow.ToString("O");
+        var update = connection.CreateCommand();
+        update.Transaction = transaction;
+        update.CommandText = """
+            UPDATE collection_items
+            SET prompt = $prompt,
+                notes = $notes,
+                category_id = $category,
+                updated_at = $now
+            WHERE id = $id AND deleted_at IS NULL;
+            """;
+        update.Parameters.AddWithValue("$prompt", prompt.Trim());
+        update.Parameters.AddWithValue("$notes", notes.Trim());
+        update.Parameters.AddWithValue("$category", (object?)categoryId ?? DBNull.Value);
+        update.Parameters.AddWithValue("$now", now);
+        update.Parameters.AddWithValue("$id", itemId);
+        var changed = await update.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        if (changed == 0)
+        {
+            throw new InvalidOperationException($"Gallery item {itemId} is unavailable for editing.");
+        }
+
+        var parsedTags = ParseTagText(tags).ToArray();
+        await ReplaceTagsAsync(
+            connection,
+            transaction,
+            itemId,
+            parsedTags,
+            cancellationToken).ConfigureAwait(false);
+
+        var supersededFields = AiMetadataAuthority.SupersededCandidateFields(
+            categoryId,
+            parsedTags.Length > 0,
+            notes);
+        await RejectPendingMetadataCandidatesAsync(
+            connection,
+            transaction,
+            itemId,
+            supersededFields,
+            now,
+            cancellationToken).ConfigureAwait(false);
+
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task UpdateItemsCategoryAsync(IEnumerable<long> itemIds, long? categoryId, CancellationToken cancellationToken = default)
     {
         var ids = itemIds.Distinct().ToArray();
@@ -532,15 +628,53 @@ public sealed partial class LibraryRepository
         await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
         foreach (var id in ids)
         {
+            var now = DateTimeOffset.UtcNow.ToString("O");
             var command = connection.CreateCommand();
             command.Transaction = transaction;
             command.CommandText = "UPDATE collection_items SET category_id = $category, updated_at = $now WHERE id = $id;";
             command.Parameters.AddWithValue("$category", (object?)categoryId ?? DBNull.Value);
-            command.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToString("O"));
+            command.Parameters.AddWithValue("$now", now);
             command.Parameters.AddWithValue("$id", id);
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            await RejectPendingMetadataCandidatesAsync(
+                connection,
+                transaction,
+                id,
+                AiMetadataAuthority.SupersededCandidateFields(categoryId, false, ""),
+                now,
+                cancellationToken).ConfigureAwait(false);
         }
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task RejectPendingMetadataCandidatesAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        long itemId,
+        IReadOnlyList<string> fields,
+        string now,
+        CancellationToken cancellationToken)
+    {
+        if (fields.Count == 0) return;
+        var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        var parameters = fields
+            .Select((_, index) => $"$field{index}")
+            .ToArray();
+        command.CommandText = $"""
+            UPDATE metadata_candidates
+            SET status = 'rejected', updated_at = $now
+            WHERE item_id = $id
+              AND status = 'pending'
+              AND field_type IN ({string.Join(", ", parameters)});
+            """;
+        command.Parameters.AddWithValue("$now", now);
+        command.Parameters.AddWithValue("$id", itemId);
+        for (var index = 0; index < fields.Count; index++)
+        {
+            command.Parameters.AddWithValue(parameters[index], fields[index]);
+        }
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task SetFavoriteAsync(

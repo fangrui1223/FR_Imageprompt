@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Threading;
 using PromptVault.App.Services;
 
@@ -8,8 +9,10 @@ namespace PromptVault.App;
 public partial class MainWindow
 {
     private const string LibraryLayoutPreferenceKey = "library";
-    private static readonly double[] LayoutSpacingSteps = [8, 14, 22];
     private static readonly double[] LayoutTargetSizeSteps = [240, 320, 400, 480];
+    private DispatcherTimer? _appearanceReflowTimer;
+    private GalleryLayoutVisualAnchor? _appearanceReflowAnchor;
+    private bool _updatingAppearanceControls;
 
     private string CurrentGalleryLayoutPreferenceKey => IsExternalMode
         ? $"external:{_externalFolderId}"
@@ -19,7 +22,7 @@ public partial class MainWindow
         _settings.GetGalleryLayout(CurrentGalleryLayoutPreferenceKey);
 
     private GalleryLayoutOptions CurrentGalleryLayoutOptions() =>
-        CurrentGalleryLayoutPreference().ToOptions();
+        CurrentGalleryLayoutPreference().ToOptions(_settings.GalleryAppearance);
 
     private void LayoutModeClick(object sender, RoutedEventArgs e)
     {
@@ -50,11 +53,7 @@ public partial class MainWindow
 
     private void LayoutSpacingClick(object sender, RoutedEventArgs e)
     {
-        ChangeGalleryLayout(preference =>
-        {
-            preference.Spacing = NextStep(LayoutSpacingSteps, preference.Spacing);
-            preference.Density = GalleryLayoutPreference.CustomDensity;
-        });
+        AppearanceClick(sender, e);
     }
 
     private void LayoutTargetSizeClick(object sender, RoutedEventArgs e)
@@ -77,7 +76,7 @@ public partial class MainWindow
         ReflowGalleryForLayoutPreference(anchor);
         ShowSubtleStatus(
             $"{LayoutModeLabel(preference)} · {LayoutDensityLabel(preference)} · "
-            + $"间距 {preference.Spacing:0} · 尺寸 {preference.TargetSize:0}");
+            + $"横 {_settings.GalleryAppearance.HorizontalSpacing:0} / 纵 {_settings.GalleryAppearance.VerticalSpacing:0} · 尺寸 {preference.TargetSize:0}");
     }
 
     private void ReflowGalleryForLayoutPreference(GalleryLayoutVisualAnchor? anchor)
@@ -113,7 +112,8 @@ public partial class MainWindow
         {
             source = CurrentGalleryLayoutPreferenceKey,
             mode = CurrentGalleryLayoutPreference().Mode,
-            spacing = CurrentGalleryLayoutPreference().Spacing,
+            horizontalSpacing = _settings.GalleryAppearance.HorizontalSpacing,
+            verticalSpacing = _settings.GalleryAppearance.VerticalSpacing,
             targetSize = CurrentGalleryLayoutPreference().TargetSize,
             rows = Rows.Count,
             reusableCards = reusableCards.Count,
@@ -127,14 +127,13 @@ public partial class MainWindow
         _rowsScrollViewer ??= FindDescendant<System.Windows.Controls.ScrollViewer>(RowsList);
         var offset = _rowsScrollViewer?.VerticalOffset ?? 0;
         var viewportBottom = offset + (_rowsScrollViewer?.ViewportHeight ?? RowsList.ActualHeight);
-        var rowTop = 0d;
         GalleryLayoutVisualAnchor? nearest = null;
         var nearestDistance = double.MaxValue;
         foreach (var row in Rows)
         {
             foreach (var layout in row.LayoutItems)
             {
-                var top = rowTop + layout.LayoutY;
+                var top = row.PanelY + layout.LayoutY;
                 var bottom = top + layout.ImageHeight;
                 if (_selectionFocusId == layout.Item.Id
                     && bottom >= offset
@@ -150,7 +149,6 @@ public partial class MainWindow
                     nearest = new GalleryLayoutVisualAnchor(layout.Item.Id, offset - top);
                 }
             }
-            rowTop += row.RowHeight + row.RowMargin.Bottom;
         }
         return nearest;
     }
@@ -175,12 +173,10 @@ public partial class MainWindow
 
     private double? FindGalleryItemTop(long itemId)
     {
-        var rowTop = 0d;
         foreach (var row in Rows)
         {
             var layout = row.LayoutItems.FirstOrDefault(item => item.Item.Id == itemId);
-            if (layout is not null) return rowTop + layout.LayoutY;
-            rowTop += row.RowHeight + row.RowMargin.Bottom;
+            if (layout is not null) return row.PanelY + layout.LayoutY;
         }
         return null;
     }
@@ -191,12 +187,120 @@ public partial class MainWindow
         var preference = CurrentGalleryLayoutPreference();
         LayoutModeButton.Content = $"布局：{LayoutModeLabel(preference)}";
         LayoutDensityButton.Content = $"密度：{LayoutDensityLabel(preference)}";
-        LayoutSpacingButton.Content = $"间距 {preference.Spacing:0}";
+        AppearanceButton.Content = "外观";
         LayoutTargetSizeButton.Content = $"尺寸 {preference.TargetSize:0}";
         LayoutModeButton.ToolTip = "切换瀑布流与等高拼接";
         LayoutDensityButton.ToolTip = "切换紧凑、舒适和宽松预设";
-        LayoutSpacingButton.ToolTip = "单独调整图片间距";
+        AppearanceButton.ToolTip = "调整横纵间距、圆角和边框";
         LayoutTargetSizeButton.ToolTip = "单独调整卡片目标尺寸";
+    }
+
+    private void AppearanceClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button)
+        {
+            AppearancePopup.PlacementTarget = button;
+        }
+
+        var appearance = _settings.GalleryAppearance;
+        appearance.Normalize();
+        _updatingAppearanceControls = true;
+        AppearanceHorizontalSlider.Value = appearance.HorizontalSpacing;
+        AppearanceVerticalSlider.Value = appearance.VerticalSpacing;
+        AppearanceCornerSlider.Value = appearance.CornerRadius;
+        AppearanceBorderSlider.Value = appearance.BorderThickness;
+        AppearanceBorderColorBox.Text = appearance.BorderColor;
+        UpdateAppearanceLabels(appearance);
+        _updatingAppearanceControls = false;
+        AppearancePopup.IsOpen = !AppearancePopup.IsOpen;
+    }
+
+    private void AppearanceSliderChanged(
+        object sender,
+        RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_updatingAppearanceControls || !IsInitialized) return;
+        var appearance = _settings.GalleryAppearance;
+        appearance.HorizontalSpacing = AppearanceHorizontalSlider.Value;
+        appearance.VerticalSpacing = AppearanceVerticalSlider.Value;
+        appearance.CornerRadius = AppearanceCornerSlider.Value;
+        appearance.BorderThickness = AppearanceBorderSlider.Value;
+        appearance.Normalize();
+        UpdateAppearanceLabels(appearance);
+        UpdateAppearanceResources();
+        QueueAppearanceReflow();
+    }
+
+    private void AppearanceBorderColorLostFocus(
+        object sender,
+        System.Windows.Input.KeyboardFocusChangedEventArgs e)
+    {
+        if (_updatingAppearanceControls) return;
+        _settings.GalleryAppearance.BorderColor = AppearanceBorderColorBox.Text.Trim();
+        _settings.GalleryAppearance.Normalize();
+        AppearanceBorderColorBox.Text = _settings.GalleryAppearance.BorderColor;
+        UpdateAppearanceResources();
+        _settings.Save();
+    }
+
+    private void ResetAppearanceClick(object sender, RoutedEventArgs e)
+    {
+        var appearance = _settings.GalleryAppearance;
+        appearance.HorizontalSpacing = 8;
+        appearance.VerticalSpacing = 8;
+        appearance.CornerRadius = 12;
+        appearance.BorderThickness = 0;
+        appearance.BorderColor = "#52677F";
+        _updatingAppearanceControls = true;
+        AppearanceHorizontalSlider.Value = appearance.HorizontalSpacing;
+        AppearanceVerticalSlider.Value = appearance.VerticalSpacing;
+        AppearanceCornerSlider.Value = appearance.CornerRadius;
+        AppearanceBorderSlider.Value = appearance.BorderThickness;
+        AppearanceBorderColorBox.Text = appearance.BorderColor;
+        UpdateAppearanceLabels(appearance);
+        _updatingAppearanceControls = false;
+        UpdateAppearanceResources();
+        QueueAppearanceReflow();
+    }
+
+    private void QueueAppearanceReflow()
+    {
+        _appearanceReflowAnchor ??= CaptureLayoutVisualAnchor();
+        _appearanceReflowTimer ??= CreateAppearanceReflowTimer();
+        _appearanceReflowTimer.Stop();
+        _appearanceReflowTimer.Start();
+    }
+
+    private DispatcherTimer CreateAppearanceReflowTimer()
+    {
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(60) };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            _settings.GalleryAppearance.Normalize();
+            _settings.Save();
+            ReflowGalleryForLayoutPreference(_appearanceReflowAnchor);
+            _appearanceReflowAnchor = null;
+        };
+        return timer;
+    }
+
+    private void UpdateAppearanceResources()
+    {
+        var appearance = _settings.GalleryAppearance;
+        appearance.Normalize();
+        Resources["GalleryCardCornerRadius"] = new CornerRadius(appearance.CornerRadius);
+        Resources["GalleryCardBorderThickness"] = new Thickness(appearance.BorderThickness);
+        Resources["GalleryCardBorderBrush"] =
+            new SolidColorBrush((Color)System.Windows.Media.ColorConverter.ConvertFromString(appearance.BorderColor));
+    }
+
+    private void UpdateAppearanceLabels(GalleryAppearancePreference appearance)
+    {
+        AppearanceHorizontalLabel.Text = $"横向间距 {appearance.HorizontalSpacing:0}";
+        AppearanceVerticalLabel.Text = $"纵向间距 {appearance.VerticalSpacing:0}";
+        AppearanceCornerLabel.Text = $"圆角 {appearance.CornerRadius:0}";
+        AppearanceBorderLabel.Text = $"边框 {appearance.BorderThickness:0.#}";
     }
 
     private static string LayoutModeLabel(GalleryLayoutPreference preference) =>

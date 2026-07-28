@@ -143,4 +143,97 @@ public sealed class AppSettingsTests
             try { if (Directory.Exists(root)) Directory.Delete(root, true); } catch { }
         }
     }
+
+    [Fact]
+    public void M7InteractionPreferencesRoundTripAndClampSafely()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "PromptVaultSettingsTests", Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(root, "settings.json");
+        try
+        {
+            var settings = AppSettings.Load(path);
+            settings.CaptureQuickEditEnabled = true;
+            settings.InspectorWidth = 9999;
+            settings.GalleryAppearance.HorizontalSpacing = 7;
+            settings.GalleryAppearance.VerticalSpacing = 11;
+            settings.GalleryAppearance.CornerRadius = 12;
+            settings.GalleryAppearance.BorderThickness = 1.5;
+            settings.GalleryAppearance.BorderColor = "#AABBCC";
+            settings.Save();
+
+            var reloaded = AppSettings.Load(path);
+
+            Assert.True(reloaded.CaptureQuickEditEnabled);
+            Assert.Equal(720, reloaded.InspectorWidth);
+            Assert.Equal(7, reloaded.GalleryAppearance.HorizontalSpacing);
+            Assert.Equal(11, reloaded.GalleryAppearance.VerticalSpacing);
+            Assert.Equal(12, reloaded.GalleryAppearance.CornerRadius);
+            Assert.Equal(1.5, reloaded.GalleryAppearance.BorderThickness);
+            Assert.Equal("#AABBCC", reloaded.GalleryAppearance.BorderColor);
+        }
+        finally
+        {
+            try { if (Directory.Exists(root)) Directory.Delete(root, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void LegacySingleSpacingMigratesToBothAppearanceAxes()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "PromptVaultSettingsTests", Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(root, "settings.json");
+        try
+        {
+            Directory.CreateDirectory(root);
+            File.WriteAllText(
+                path,
+                """
+                {
+                  "LibraryRoot": "",
+                  "GalleryLayouts": {
+                    "library": {
+                      "Mode": "Waterfall",
+                      "Density": "Custom",
+                      "Spacing": 22,
+                      "TargetSize": 320
+                    }
+                  }
+                }
+                """);
+
+            var settings = AppSettings.Load(path);
+
+            Assert.Equal(22, settings.GalleryAppearance.HorizontalSpacing);
+            Assert.Equal(22, settings.GalleryAppearance.VerticalSpacing);
+            Assert.Equal(12, settings.GalleryAppearance.CornerRadius);
+            Assert.Equal(0, settings.GalleryAppearance.BorderThickness);
+        }
+        finally
+        {
+            try { if (Directory.Exists(root)) Directory.Delete(root, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void SettingsWithoutLegacyLayoutUseRecommendedAppearanceDefaults()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "PromptVaultSettingsTests", Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(root, "settings.json");
+        try
+        {
+            Directory.CreateDirectory(root);
+            File.WriteAllText(path, """{ "LibraryRoot": "", "GalleryLayouts": {} }""");
+
+            var settings = AppSettings.Load(path);
+
+            Assert.Equal(8, settings.GalleryAppearance.HorizontalSpacing);
+            Assert.Equal(8, settings.GalleryAppearance.VerticalSpacing);
+            Assert.Equal(12, settings.GalleryAppearance.CornerRadius);
+            Assert.Equal(0, settings.GalleryAppearance.BorderThickness);
+        }
+        finally
+        {
+            try { if (Directory.Exists(root)) Directory.Delete(root, true); } catch { }
+        }
+    }
 }

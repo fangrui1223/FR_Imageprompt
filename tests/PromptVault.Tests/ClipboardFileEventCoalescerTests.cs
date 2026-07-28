@@ -27,4 +27,19 @@ public sealed class ClipboardFileEventCoalescerTests
         Assert.True(filter.ShouldAccept("synthetic/one.png", 10_000));
         Assert.True(filter.ShouldAccept("synthetic/two.png", 10_001));
     }
+
+    [Fact]
+    public void CancellationResetAllowsTheSameFileImmediately()
+    {
+        var filter = new ClipboardFileEventCoalescer(
+            TimeSpan.FromSeconds(2),
+            timestampFrequency: 1000);
+
+        Assert.True(filter.ShouldAccept("synthetic/image.png", 10_000));
+        Assert.False(filter.ShouldAccept("synthetic/image.png", 10_001));
+
+        filter.Reset();
+
+        Assert.True(filter.ShouldAccept("synthetic/image.png", 10_002));
+    }
 }

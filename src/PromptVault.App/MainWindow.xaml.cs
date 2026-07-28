@@ -88,6 +88,7 @@ public partial class MainWindow : Window
         DataContext = this;
         VisualModeService.Apply(transparentWindow, settings.ReducedMotionEnabled);
         InitializeComponent();
+        UpdateAppearanceResources();
         UpdateInspectorPinVisual();
         UpdateLayoutControlVisuals();
         CategoryList.ContextMenu = new System.Windows.Controls.ContextMenu();
@@ -103,10 +104,12 @@ public partial class MainWindow : Window
             repository,
             capture,
             () => _categories,
+            () => _settings.CaptureQuickEditEnabled,
             SaveCaptureAsync,
             RefreshAfterCaptureChangeAsync);
         _clipboard.SetEnabled(_settings.CaptureListeningEnabled);
         UpdateCaptureToggleVisual();
+        UpdateQuickCaptureModeVisual();
         UpdateSelectionVisual();
         Loaded += async (_, _) =>
         {
@@ -262,6 +265,10 @@ public partial class MainWindow : Window
 
     private async Task LoadCategoriesAsync()
     {
+        if (_settings.CaptureQuickEditEnabled)
+        {
+            await EnsureQuickCaptureCategoriesAsync();
+        }
         _categories = await _repository.GetCategoriesAsync();
         var choices = new List<CategoryChoice> { new(null, "\u5168\u90E8\u56FE\u7247") };
         choices.Add(new CategoryChoice(0, "\u672A\u5206\u7C7B"));
@@ -344,6 +351,19 @@ public partial class MainWindow : Window
 
     private async Task RefreshAsync(RefreshAnimationKind animationKind = RefreshAnimationKind.ContentChange)
     {
+        if (_inspectorVisible && _inspectorPromptDirty)
+        {
+            if (!await SaveInspectorOrdinaryFieldsAsync())
+            {
+                InspectorTagsEditor.Focus();
+                return;
+            }
+            if (!await ResolveDirtyPromptBeforeSwitchAsync())
+            {
+                InspectorPromptEditor.Focus();
+                return;
+            }
+        }
         _aiWorker.MarkUiActive();
         var refreshStopwatch = Stopwatch.StartNew();
         using var measurement = DevelopmentPerformanceTrace.Measure("gallery-refresh", new
@@ -865,17 +885,20 @@ public partial class MainWindow : Window
         var targetHeight = RowsList.ActualHeight > 0
             ? RowsList.ActualHeight
             : Math.Max(720, ActualHeight - 140);
-        var height = 0d;
         var count = 0;
-        while (count < rows.Count && height < targetHeight)
+        while (count < rows.Count && rows[count].PanelY < targetHeight)
         {
-            height += rows[count].RowHeight + rows[count].RowMargin.Bottom;
             count++;
         }
-        return count;
+        return Math.Min(rows.Count, Math.Max(1, count));
     }
 
-    private double GetGalleryAvailableWidth() => Math.Max(300, ActualWidth - 56);
+    private double GetGalleryAvailableWidth()
+    {
+        if (RowsList.ActualWidth >= 300) return RowsList.ActualWidth;
+        if (GalleryColumn.ActualWidth >= 300) return Math.Max(300, GalleryColumn.ActualWidth - 56);
+        return Math.Max(300, ActualWidth - 56);
+    }
 
     private void ReleaseRow(
         GalleryRow row,
@@ -1124,6 +1147,33 @@ public partial class MainWindow : Window
         ToastService.Show(this, _clipboard.IsEnabled ? "\u6536\u5F55\u76D1\u542C\u5DF2\u5F00\u542F" : "\u6536\u5F55\u76D1\u542C\u5DF2\u5173\u95ED");
     }
 
+    private async void QuickCaptureModeClick(object sender, RoutedEventArgs e)
+    {
+        _settings.CaptureQuickEditEnabled = !_settings.CaptureQuickEditEnabled;
+        if (_settings.CaptureQuickEditEnabled)
+        {
+            await EnsureQuickCaptureCategoriesAsync();
+            await LoadCategoriesAsync();
+        }
+        _settings.Save();
+        UpdateQuickCaptureModeVisual();
+        ToastService.Show(
+            this,
+            _settings.CaptureQuickEditEnabled
+                ? "快速标注已开启：复制图片后直接编辑"
+                : "已切回安静收录：先显示状态胶囊");
+    }
+
+    private async Task EnsureQuickCaptureCategoriesAsync()
+    {
+        await _repository.GetOrCreateCategoryAsync(
+            "上衣参考",
+            "用户人工确认的上衣参考主分类；AI 不得覆盖。");
+        await _repository.GetOrCreateCategoryAsync(
+            "裤子参考",
+            "用户人工确认的裤子参考主分类；AI 不得覆盖。");
+    }
+
     private void MultiSelectClick(object sender, RoutedEventArgs e)
     {
         _multiSelectMode = !_multiSelectMode;
@@ -1317,8 +1367,13 @@ public partial class MainWindow : Window
 
     private void CardMouseDown(object sender, MouseButtonEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is not GalleryCardViewModel card) return;
+        if (sender is not FrameworkElement cardElement
+            || cardElement.DataContext is not GalleryCardViewModel card)
+        {
+            return;
+        }
         if (e.ChangedButton != MouseButton.Left) return;
+        FocusGalleryInput();
         if (e.ClickCount == 2)
         {
             ShowImmersiveViewer(card.Id);
@@ -1423,6 +1478,17 @@ public partial class MainWindow : Window
         CaptureToggleButton.BorderBrush = _clipboard.IsEnabled ? new SolidColorBrush(Color.FromRgb(86, 214, 255)) : new SolidColorBrush(Color.FromRgb(73, 88, 106));
     }
 
+    private void UpdateQuickCaptureModeVisual()
+    {
+        if (QuickCaptureModeButton is null) return;
+        QuickCaptureModeButton.Content = _settings.CaptureQuickEditEnabled
+            ? "收录：快速"
+            : "收录：安静";
+        QuickCaptureModeButton.Background = _settings.CaptureQuickEditEnabled
+            ? new SolidColorBrush(Color.FromRgb(62, 118, 153))
+            : new SolidColorBrush(Color.FromRgb(29, 42, 59));
+    }
+
     private void UpdateBaseStatus()
     {
         if (StatusText is null) return;
@@ -1487,6 +1553,14 @@ public partial class MainWindow : Window
         menu.Items.Clear();
         menu.Background = new SolidColorBrush(Color.FromArgb(245, 17, 28, 42));
         menu.Foreground = new SolidColorBrush(Color.FromRgb(238, 246, 255));
+        var details = new System.Windows.Controls.MenuItem
+        {
+            Header = "查看详情",
+            Tag = card.Id
+        };
+        details.Click += OpenCardDetailsClick;
+        menu.Items.Add(details);
+        menu.Items.Add(new Separator());
         if (targets.Length > 1)
         {
             menu.Items.Add(new System.Windows.Controls.MenuItem { Header = $"\u5DF2\u9009 {targets.Length} \u5F20", IsEnabled = false });
@@ -1857,6 +1931,9 @@ public partial class MainWindow : Window
 
     private sealed record CategoryMove(long[] ItemIds, long? CategoryId, string Name);
     private sealed record ExternalCollect(GalleryEntry[] Entries, long? CategoryId);
-    private sealed record CategoryChoice(long? Id, string Name);
+    private sealed record CategoryChoice(long? Id, string Name)
+    {
+        public override string ToString() => Name;
+    }
     private sealed record ExternalFolderChoice(string Id, string Name, string Path, string StatusText);
 }

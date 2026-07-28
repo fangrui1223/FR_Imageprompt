@@ -20,6 +20,7 @@ public sealed class ClipboardMonitor : IDisposable
     private readonly LibraryRepository _repository;
     private readonly CaptureCoordinator _coordinator;
     private readonly Func<IReadOnlyList<CategoryRecord>> _categories;
+    private readonly Func<bool> _quickEditEnabled;
     private readonly Func<PendingCapture, string, string, long?, string, Task<CaptureSaveResult>> _save;
     private readonly Func<Task> _libraryChanged;
     private readonly SequentialEventPump<ClipboardSnapshot> _eventPump;
@@ -50,6 +51,7 @@ public sealed class ClipboardMonitor : IDisposable
         LibraryRepository repository,
         CaptureCoordinator coordinator,
         Func<IReadOnlyList<CategoryRecord>> categories,
+        Func<bool> quickEditEnabled,
         Func<PendingCapture, string, string, long?, string, Task<CaptureSaveResult>> save,
         Func<Task> libraryChanged)
     {
@@ -57,6 +59,7 @@ public sealed class ClipboardMonitor : IDisposable
         _repository = repository;
         _coordinator = coordinator;
         _categories = categories;
+        _quickEditEnabled = quickEditEnabled;
         _save = save;
         _libraryChanged = libraryChanged;
         _eventPump = new SequentialEventPump<ClipboardSnapshot>(
@@ -388,6 +391,11 @@ public sealed class ClipboardMonitor : IDisposable
             CancelTimer(_promptDeadlines, session.Id);
         }
         await RefreshCapsuleAsync(session.Id).ConfigureAwait(false);
+        if (_quickEditEnabled())
+        {
+            await _owner.Dispatcher.InvokeAsync(() =>
+                OpenCaptureWindowCore(session.Id, session, pending, activate: true));
+        }
     }
 
     private async Task ApplyPromptToLatestAsync(
@@ -626,7 +634,8 @@ public sealed class ClipboardMonitor : IDisposable
             category,
             tags,
             _lifetime.Token).ConfigureAwait(false);
-        if (session.State != CaptureState.PromptDebouncing)
+        if (!string.IsNullOrWhiteSpace(prompt)
+            && session.State != CaptureState.PromptDebouncing)
         {
             session = await _repository.SetCapturePromptAsync(
                 captureId,
@@ -808,34 +817,63 @@ public sealed class ClipboardMonitor : IDisposable
             }
 
             await _owner.Dispatcher.InvokeAsync(() =>
-            {
-                if (_captureWindow is { IsVisible: true }
-                    && _expandedCaptureId == captureId)
-                {
-                    _captureWindow.Activate();
-                    return;
-                }
-                CloseExpandedWindowCore();
-                var window = new CaptureWindow(pending, _categories());
-                _captureWindow = window;
-                _expandedCaptureId = captureId;
-                window.SetDraft(session);
-                window.SaveRequested += (prompt, notes, category, tags) =>
-                    SaveManualAsync(captureId, prompt, notes, category, tags);
-                window.CloseRequested += () =>
-                {
-                    if (ReferenceEquals(_captureWindow, window))
-                    {
-                        _captureWindow = null;
-                        _expandedCaptureId = null;
-                    }
-                };
-                window.DeleteRequested += () => _ = DeleteCaptureAsync(captureId);
-                window.ImageDropped += CaptureDroppedImageAsync;
-                window.Show();
-            });
+                OpenCaptureWindowCore(captureId, session, pending, activate: true));
         }).ConfigureAwait(false);
     }
+
+    private void OpenCaptureWindowCore(
+        Guid captureId,
+        CaptureSessionRecord session,
+        PendingCapture pending,
+        bool activate)
+    {
+        if (_captureWindow is { IsVisible: true }
+            && _expandedCaptureId == captureId)
+        {
+            if (activate) _captureWindow.ActivateForEditing();
+            return;
+        }
+        CloseExpandedWindowCore();
+        var window = new CaptureWindow(pending, _categories(), activate);
+        _captureWindow = window;
+        _expandedCaptureId = captureId;
+        window.SetDraft(session);
+        window.SaveRequested += (prompt, notes, category, tags) =>
+            SaveManualAsync(captureId, prompt, notes, category, tags);
+        window.DraftChanged += (prompt, notes, category, tags) =>
+            PersistCaptureDraftAsync(captureId, prompt, notes, category, tags);
+        window.CloseRequested += () =>
+        {
+            if (ReferenceEquals(_captureWindow, window))
+            {
+                _captureWindow = null;
+                _expandedCaptureId = null;
+            }
+        };
+        window.DeleteRequested += () => _ = DeleteCaptureAsync(captureId);
+        window.ImageDropped += CaptureDroppedImageAsync;
+        window.Show();
+        if (activate) window.ActivateForEditing();
+    }
+
+    private Task PersistCaptureDraftAsync(
+        Guid captureId,
+        string prompt,
+        string notes,
+        long? category,
+        string tags) =>
+        RunSerializedAsync(async () =>
+        {
+            if (!_sessions.ContainsKey(captureId)) return;
+            var session = await _repository.UpdateCaptureDraftAsync(
+                captureId,
+                prompt,
+                notes,
+                category,
+                tags,
+                _lifetime.Token).ConfigureAwait(false);
+            _sessions[captureId] = session;
+        }, "保存快速标注草稿失败", showToast: false);
 
     private async Task UndoCaptureAsync(Guid captureId)
     {
@@ -874,6 +912,8 @@ public sealed class ClipboardMonitor : IDisposable
                 pending,
                 _lifetime.Token).ConfigureAwait(false);
             _sessions.Remove(captureId);
+            _fileEventCoalescer.Reset();
+            _lastSequence = 0;
             _promptDebouncer.Cancel(captureId);
             CancelTimer(_promptDeadlines, captureId);
             CancelTimer(_capsuleExpirations, captureId);

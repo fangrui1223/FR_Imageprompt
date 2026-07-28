@@ -8,6 +8,7 @@ public sealed class CaptureStateMachineTests
     [InlineData(CaptureState.ImageDetected, CaptureState.PreparingImage)]
     [InlineData(CaptureState.PreparingImage, CaptureState.WaitingForPrompt)]
     [InlineData(CaptureState.WaitingForPrompt, CaptureState.PromptDebouncing)]
+    [InlineData(CaptureState.WaitingForPrompt, CaptureState.Saved)]
     [InlineData(CaptureState.PromptDebouncing, CaptureState.Saved)]
     [InlineData(CaptureState.Saved, CaptureState.WaitingForAi)]
     [InlineData(CaptureState.Saved, CaptureState.Undone)]
@@ -21,7 +22,6 @@ public sealed class CaptureStateMachineTests
 
     [Theory]
     [InlineData(CaptureState.ImageDetected, CaptureState.Saved)]
-    [InlineData(CaptureState.WaitingForPrompt, CaptureState.Saved)]
     [InlineData(CaptureState.Saved, CaptureState.PromptDebouncing)]
     [InlineData(CaptureState.Undone, CaptureState.PreparingImage)]
     public void RejectsInvalidTransitions(CaptureState from, CaptureState to)

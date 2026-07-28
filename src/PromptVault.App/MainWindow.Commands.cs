@@ -17,6 +17,7 @@ public partial class MainWindow
 
     private void FocusInstantSearch()
     {
+        _galleryShortcutContext = false;
         if (ImmersiveViewer.Visibility == Visibility.Visible) CloseImmersiveViewer();
         CloseCommandPalette();
         UpdateTopPanelHeight();
@@ -62,13 +63,12 @@ public partial class MainWindow
     private void FocusGalleryFromSearch()
     {
         FocusGalleryInput();
-        RowsList.Focus();
-        Keyboard.Focus(RowsList);
         if (!_settings.EdgeMenusAlwaysVisible) HideTopPanel();
     }
 
     private void FocusTagFilter()
     {
+        _galleryShortcutContext = false;
         CloseCommandPalette();
         UpdateTopPanelHeight();
         ShowTopPanel();
@@ -83,6 +83,7 @@ public partial class MainWindow
 
     private void ToggleCommandPalette()
     {
+        _galleryShortcutContext = false;
         if (CommandPaletteOverlay.Visibility == Visibility.Visible)
         {
             CloseCommandPalette();
@@ -140,7 +141,16 @@ public partial class MainWindow
             new("density.compact", "密度：紧凑", "间距 8，目标尺寸 240", "compact small", "布局"),
             new("density.comfortable", "密度：舒适", "间距 14，目标尺寸 320", "comfortable medium", "布局"),
             new("density.spacious", "密度：宽松", "间距 22，目标尺寸 400", "spacious large", "布局"),
+            new("view.details", "查看：当前图片详情", "Q 打开或关闭右侧占位详情；详情打开后跟随选择", "details inspector q", "查看"),
+            new("view.immersive", "查看：沉浸大图", "双击图片或按空格进入纯图片大图", "immersive viewer space double click", "查看"),
             new("board.current", "画板：加入当前图片", "M5 持久画板入口", "board canvas current", "画板"),
+            new("settings.appearance", "设置：图库外观", "分别调整横纵间距、圆角、边框粗细和颜色", "appearance spacing corner border", "设置"),
+            new(
+                "settings.capture.quick",
+                _settings.CaptureQuickEditEnabled ? "设置：切换到安静收录" : "设置：开启快速标注收录",
+                "在不抢焦点的安静模式和复制后立即编辑之间切换",
+                "capture quick edit quiet",
+                "设置"),
             new("settings.edge.sensitivity", "设置：切换边缘灵敏度", $"当前为 {EdgeSensitivityLabel()}", "edge sensitivity", "设置"),
             new("settings.edge.always", _settings.EdgeMenusAlwaysVisible ? "设置：关闭边栏常显" : "设置：边栏始终显示", "顶部和左侧菜单显示偏好", "edge menu always visible", "设置"),
             new("settings.motion", _settings.ReducedMotionEnabled ? "设置：恢复界面动效" : "设置：减少界面动效", "切换所有装饰性动效", "motion animation accessibility", "设置"),
@@ -329,6 +339,23 @@ public partial class MainWindow
                 case "density.spacious":
                     SetLayoutDensityFromCommand(GalleryLayoutPreference.SpaciousDensity);
                     break;
+                case "view.details":
+                    if (_transparentMode)
+                    {
+                        ShowTransparentInspectorNotice();
+                    }
+                    else if (_inspectorVisible)
+                    {
+                        CloseInspectorClick(this, new RoutedEventArgs());
+                    }
+                    else if (CurrentSelectionId() is { } detailsId)
+                    {
+                        InspectItem(detailsId);
+                    }
+                    break;
+                case "view.immersive":
+                    if (CurrentSelectionId() is { } immersiveId) ShowImmersiveViewer(immersiveId);
+                    break;
                 case "board.current":
                     if (_inspectedItem is not null)
                         await AddEntriesToBoardAsync([_inspectedItem]);
@@ -338,6 +365,12 @@ public partial class MainWindow
                 case "settings.edge.sensitivity":
                     EdgeSensitivityClick(this, new RoutedEventArgs());
                     ToastService.Show(this, $"边缘灵敏度：{EdgeSensitivityLabel()}");
+                    break;
+                case "settings.appearance":
+                    AppearanceClick(AppearanceButton, new RoutedEventArgs());
+                    break;
+                case "settings.capture.quick":
+                    QuickCaptureModeClick(QuickCaptureModeButton, new RoutedEventArgs());
                     break;
                 case "settings.edge.always":
                     EdgeAlwaysVisibleClick(this, new RoutedEventArgs());
