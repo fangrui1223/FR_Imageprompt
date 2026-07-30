@@ -290,6 +290,9 @@ public partial class MainWindow
         var appearance = _settings.GalleryAppearance;
         appearance.Normalize();
         Resources["GalleryCardCornerRadius"] = new CornerRadius(appearance.CornerRadius);
+        Resources["GalleryImageCornerRadius"] = GalleryAppearanceGeometry.CalculateImageCornerRadius(
+            appearance.CornerRadius,
+            appearance.BorderThickness);
         Resources["GalleryCardBorderThickness"] = new Thickness(appearance.BorderThickness);
         Resources["GalleryCardBorderBrush"] =
             new SolidColorBrush((Color)System.Windows.Media.ColorConverter.ConvertFromString(appearance.BorderColor));
@@ -332,4 +335,15 @@ public partial class MainWindow
     private sealed record GalleryLayoutVisualAnchor(
         long ItemId,
         double OffsetFromItemTop);
+}
+
+internal static class GalleryAppearanceGeometry
+{
+    internal static CornerRadius CalculateImageCornerRadius(
+        double cornerRadius,
+        double borderThickness)
+    {
+        var radius = Math.Max(0, cornerRadius - borderThickness);
+        return new CornerRadius(radius);
+    }
 }

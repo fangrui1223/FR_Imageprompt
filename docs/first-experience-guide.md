@@ -1,6 +1,6 @@
 # FR_Imageprompt 2.0 首次体验与问题反馈指南
 
-这份说明用于第一次体验完成 M7.2“自适应极速浏览层”的 2.0.0 体验包。建议预留 30–45 分钟，先使用一个全新的测试图库完成一轮，再决定是否打开真实图库。
+这份说明用于第一次体验完成 M7.2.1 外观修复的 2.0.0 体验包。建议预留 30–45 分钟，先使用一个全新的测试图库完成一轮，再决定是否打开真实图库。
 
 ## 1. 体验前准备
 
@@ -15,11 +15,11 @@
 
 正式候选包位于：
 
-`publish/FR_Imageprompt-M7.2-adaptive-fast-browsing-win-x64.zip`
+`publish/FR_Imageprompt-M7.2.1-appearance-fix-win-x64.zip`
 
 它是免安装、自带运行时的 Windows x64 单文件版本。程序尚未代码签名；如果 Windows 显示来源或信誉提醒，请先确认压缩包来自本仓库，并核对 SHA-256：
 
-`13a9af467b57e24782c68d7f53be6ff3f7f8009a484c7499eabce53e6eece4b4`
+`5f7a862175c0d1f0080e095bb12044b7ab92d4fd00dc53e7ac7b8dbc4144e142`
 
 ## 2. 第一次启动
 

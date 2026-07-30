@@ -236,4 +236,25 @@ public sealed class AppSettingsTests
             try { if (Directory.Exists(root)) Directory.Delete(root, true); } catch { }
         }
     }
+
+    [Theory]
+    [InlineData(0, 0, 0)]
+    [InlineData(12, 0, 12)]
+    [InlineData(32, 0, 32)]
+    [InlineData(32, 4, 28)]
+    [InlineData(2, 4, 0)]
+    public void GalleryImageCornerRadiusFollowsCardRadiusInsideBorder(
+        double cornerRadius,
+        double borderThickness,
+        double expected)
+    {
+        var actual = GalleryAppearanceGeometry.CalculateImageCornerRadius(
+            cornerRadius,
+            borderThickness);
+
+        Assert.Equal(expected, actual.TopLeft);
+        Assert.Equal(expected, actual.TopRight);
+        Assert.Equal(expected, actual.BottomRight);
+        Assert.Equal(expected, actual.BottomLeft);
+    }
 }

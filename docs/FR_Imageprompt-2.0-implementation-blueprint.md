@@ -1342,6 +1342,14 @@ M7.2 自适应极速浏览层（2026-07-30）：
 - 唯一体验包为 `publish/FR_Imageprompt-M7.2-adaptive-fast-browsing-win-x64.zip`，92,408,132 bytes，SHA-256 `13a9af467b57e24782c68d7f53be6ff3f7f8009a484c7499eabce53e6eece4b4`。包内仅含 238,022,406-byte `PromptVault.exe`，EXE SHA-256 `069ce4bddef475964f4ae6d897fa3bfd1d3ba59772766fdf8710065261f4997b`。
 - 最终 EXE 使用显式隔离设置完成暖图、Home/End 大跳转和 Q 详情懒加载；PID 精确停止且无 PromptVault 进程残留。完整记录见 M7.2 独立蓝图。
 
+M7.2.1 外观回归修复（2026-07-30）：
+
+- 修复外观弹层文字在 `Popup` 中回落为黑色的问题；所有标题和字段标签现在使用主文字白色。
+- 图片改由圆角表面直接绘制；边框为 0 时圆角仍裁切图片，边框大于 0 时使用 `max(0, 圆角 - 边框厚度)` 计算图片内侧圆角，悬停遮罩复用同一轮廓。
+- Debug/Release 均 0 警告/0 错误、227/227 测试；M7.2 三规模性能门禁 11/11。4K、150% 隔离真界面完成 12/0、32/0、32/4、0/4 四组组合和最终 EXE 烟测。
+- 当前体验包为 `publish/FR_Imageprompt-M7.2.1-appearance-fix-win-x64.zip`，92,407,454 bytes，SHA-256 `5f7a862175c0d1f0080e095bb12044b7ab92d4fd00dc53e7ac7b8dbc4144e142`。包内仅含 238,022,406-byte `PromptVault.exe`。
+- 全部验证使用显式隔离设置、550 条合成图库并关闭剪贴板与在线 AI；真实图库未打开或修改。完整记录见 M7.2 独立蓝图 `M7.2.1`。
+
 ---
 
 ## 8. 数据模型规划

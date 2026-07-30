@@ -70,10 +70,15 @@
              <Border CornerRadius="{DynamicResource GalleryCardCornerRadius}" BorderBrush="{DynamicResource SelectionStrokeBrush}"
               BorderThickness="1" Background="Transparent" IsHitTestVisible="False" Panel.ZIndex="4"
               Opacity="{Binding SelectionVisualOpacity}"/>
-             <Border Background="{DynamicResource ImageWellBrush}" ClipToBounds="True">
+             <Border Background="{DynamicResource ImageWellBrush}"
+              CornerRadius="{DynamicResource GalleryImageCornerRadius}">
               <Grid>
-               <Image Source="{Binding Thumbnail}" Stretch="Uniform" RenderOptions.BitmapScalingMode="LowQuality"
-                SnapsToDevicePixels="True" CacheMode="BitmapCache"/>
+               <Border CornerRadius="{DynamicResource GalleryImageCornerRadius}"
+                RenderOptions.BitmapScalingMode="LowQuality" SnapsToDevicePixels="True" CacheMode="BitmapCache">
+                <Border.Background>
+                 <ImageBrush ImageSource="{Binding Thumbnail}" Stretch="Uniform"/>
+                </Border.Background>
+               </Border>
                <TextBlock Text="缩略图不可用" HorizontalAlignment="Center" VerticalAlignment="Center"
                 Foreground="{DynamicResource CardMetaTextBrush}" FontSize="{StaticResource FontSizeBody}">
                 <TextBlock.Style>
@@ -90,7 +95,8 @@
               </Grid>
              </Border>
              <Border x:Name="HoverOverlay" Panel.ZIndex="3" Opacity="0" IsHitTestVisible="False"
-              Background="{DynamicResource HoverOverlayBrush}">
+              Background="{DynamicResource HoverOverlayBrush}"
+              CornerRadius="{DynamicResource GalleryImageCornerRadius}">
               <Grid Margin="12">
                <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                <StackPanel Grid.Row="1">
@@ -162,7 +168,7 @@
       <Border Width="330" Margin="0,8,0,0" Padding="16,14"
        Background="{DynamicResource FloatingSurfaceBrush}" BorderBrush="{DynamicResource FloatingBorderBrush}"
        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusOverlay}" Effect="{DynamicResource FloatingPanelShadow}">
-       <StackPanel>
+       <StackPanel TextElement.Foreground="{DynamicResource PrimaryTextBrush}">
         <TextBlock Text="图库外观" FontWeight="SemiBold" FontSize="{StaticResource FontSizeSubheading}" Margin="0,0,0,12"/>
         <TextBlock x:Name="AppearanceHorizontalLabel" Text="横向间距 8"/>
         <Slider x:Name="AppearanceHorizontalSlider" Minimum="0" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True"
