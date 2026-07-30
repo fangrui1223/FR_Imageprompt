@@ -224,6 +224,7 @@ internal sealed class DevelopmentFrameSampler : IDisposable
         var ordered = _frameTimes.Order().ToArray();
         var callbackOrdered = _callbackArrivalTimes.Order().ToArray();
         var thumbnails = ThumbnailCache.GetSnapshot();
+        var motionThumbnails = MotionThumbnailCache.GetSnapshot();
         DevelopmentPerformanceTrace.Event("ui-frame-sample", new
         {
             interaction = _interaction,
@@ -257,6 +258,21 @@ internal sealed class DevelopmentFrameSampler : IDisposable
                 cacheEntries = thumbnails.CacheEntryCount,
                 cachedMiB = Math.Round(thumbnails.CachedBytes / 1024d / 1024d, 3),
                 budgetMiB = Math.Round(thumbnails.MemoryBudgetBytes / 1024d / 1024d, 3)
+            },
+            motionThumbnails = new
+            {
+                requests = motionThumbnails.RequestCount,
+                cacheHits = motionThumbnails.CacheHitCount,
+                decodes = motionThumbnails.DecodeCount,
+                coalesced = motionThumbnails.CoalescedRequestCount,
+                canceledBeforeStart = motionThumbnails.CanceledBeforeStartCount,
+                pending = motionThumbnails.PendingCount,
+                running = motionThumbnails.RunningCount,
+                runningPrefetch = motionThumbnails.RunningPrefetchCount,
+                maximumConcurrency = motionThumbnails.MaximumObservedConcurrency,
+                cacheEntries = motionThumbnails.CacheEntryCount,
+                cachedMiB = Math.Round(motionThumbnails.CachedBytes / 1024d / 1024d, 3),
+                budgetMiB = Math.Round(motionThumbnails.MemoryBudgetBytes / 1024d / 1024d, 3)
             }
         });
         _activeUntil = 0;

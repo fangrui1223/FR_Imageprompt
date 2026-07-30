@@ -21,6 +21,7 @@ internal static class Program
                 ? args[0]
                 : Path.Combine("artifacts", "performance", "virtualization-probe.json"));
         var simulateRegression = args.Contains("--simulate-regression", StringComparer.OrdinalIgnoreCase);
+        var activationDelayMs = ReadIntOption(args, "--activation-delay-ms", 0);
         var entries = CreateEntries(30_000);
         _ = GalleryLayoutEngine.CreateRows(entries.Take(8).ToArray(), 2500);
         var layoutBenchmarks = new List<object>();
@@ -193,9 +194,32 @@ internal static class Program
                         }));
                     }
                 };
-                runClock.Start();
-                CompositionTarget.Rendering += rendering;
-                viewer.ScrollToVerticalOffset(viewer.VerticalOffset + 1);
+                void StartMeasurement()
+                {
+                    runClock.Start();
+                    CompositionTarget.Rendering += rendering;
+                    viewer.ScrollToVerticalOffset(viewer.VerticalOffset + 1);
+                }
+
+                if (activationDelayMs <= 0)
+                {
+                    StartMeasurement();
+                }
+                else
+                {
+                    var activationTimer = new DispatcherTimer(
+                        DispatcherPriority.ApplicationIdle,
+                        window.Dispatcher)
+                    {
+                        Interval = TimeSpan.FromMilliseconds(activationDelayMs)
+                    };
+                    activationTimer.Tick += (_, _) =>
+                    {
+                        activationTimer.Stop();
+                        StartMeasurement();
+                    };
+                    activationTimer.Start();
+                }
             }));
         };
 
@@ -545,6 +569,24 @@ internal static class Program
             DispatcherPriority.ContextIdle,
             new Action(() => frame.Continue = false));
         Dispatcher.PushFrame(frame);
+    }
+
+    private static int ReadIntOption(
+        IReadOnlyList<string> args,
+        string option,
+        int fallback)
+    {
+        for (var index = 0; index < args.Count; index++)
+        {
+            if (!string.Equals(args[index], option, StringComparison.OrdinalIgnoreCase)) continue;
+            if (index + 1 >= args.Count
+                || !int.TryParse(args[index + 1], out var value))
+            {
+                throw new ArgumentException($"{option} requires an integer value.");
+            }
+            return Math.Clamp(value, 0, 30_000);
+        }
+        return fallback;
     }
 
     private static int CountDescendants<T>(DependencyObject source) where T : DependencyObject

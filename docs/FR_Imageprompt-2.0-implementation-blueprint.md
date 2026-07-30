@@ -1,12 +1,13 @@
 # FR_Imageprompt 2.0 实施蓝图
 
-> 文档状态：M0–M7 与 M7.1 P0 回归修复全部完成；FR_Imageprompt 2.0 当前规划阶段已全部实施
+> 文档状态：M0–M7、M7.1 P0 与 M7.2 自适应极速浏览层全部完成
 > 初版日期：2026-07-24
 > 产品定位：本地优先、画布优先、AI 辅助的沉浸式视觉资产工作台
 > 适用仓库：`D:\FR_AI\AI image prompt`
 > 配套接手说明：仓库根目录 `AGENTS.md`
 > M7 详细蓝图：`docs/FR_Imageprompt-M7-interaction-refinement-blueprint.md`
 > M7.1 P0 详细蓝图：`docs/FR_Imageprompt-M7.1-P0-scroll-virtualization-regression-blueprint.md`
+> M7.2 详细蓝图：`docs/FR_Imageprompt-M7.2-adaptive-fast-browsing-blueprint.md`
 
 本文档既是产品与技术规划，也是跨 Codex 对话的长期进度账本。后续实施必须按稳定步骤编号推进，并在完成每一步后立即更新本文档，避免新对话重复调研、遗漏验证或错误判断项目状态。
 
@@ -263,6 +264,7 @@ M1 目标已完成：FTS、游标分页、准确总数、真正的 UI 与数据�
 - [x] M6：发布质量、迁移恢复与文档。
 - [x] M7：沉浸浏览与快速标注重构。详细步骤、真实数据和反馈记录统一维护在 `docs/FR_Imageprompt-M7-interaction-refinement-blueprint.md`。
 - [x] M7.1 P0：滚动与虚拟化回归修复。详细步骤、根因和真实性能证据统一维护在 `docs/FR_Imageprompt-M7.1-P0-scroll-virtualization-regression-blueprint.md`。
+- [x] M7.2：自适应极速浏览层。详细步骤、三规模门禁、4K 真界面、最终体验包和推送记录统一维护在 `docs/FR_Imageprompt-M7.2-adaptive-fast-browsing-blueprint.md`。
 
 ---
 
@@ -1328,6 +1330,17 @@ M7.1 P0 回归修复汇总（2026-07-30）：
 - 550 条隔离图库完成 240→480→550，零重复、零遗漏；Debug/Release 均 0 警告/0 错误，199/199 测试通过。
 - 唯一 M7.1 体验包为 `publish/FR_Imageprompt-M7.1-P0-win-x64.zip`，92,390,746 bytes，SHA-256 `49499174ceddae49ef9884b3a055177ea698f48b516fbb22b600cae2d4c632ba`。包内仅含 237,966,086-byte `PromptVault.exe`。
 - 全部真界面测试使用显式隔离设置、合成图库且关闭剪贴板监听；真实图库未打开或修改。完整记录见 M7.1 独立蓝图与 `docs/performance/2026-07-30-m7.1-p0-regression.json`。
+
+M7.2 自适应极速浏览层（2026-07-30）：
+
+- 权威详细步骤与跨对话执行账本：`docs/FR_Imageprompt-M7.2-adaptive-fast-browsing-blueprint.md`。后续修改缩略图预热、缓存预算、轻量元数据或快速滚动前必须先读该独立蓝图。
+- 浏览集合改用不含提示词/备注的轻量记录；检查器、复制和编辑时才按稳定 ID 懒取完整记录。1,000 张以内暖满 480px；1,001～5,000 张完整扫描 256px 但受 LRU 预算约束；更大图库仅维护方向预测滚动窗口。
+- 新增独立运动预览缓存、Visible 保留通道、150ms 静止高清升级、generation 取消和批量集合 Reset；不清空旧位图、不降低 384MiB 高清缓存或 M7.1 视口完整性门禁。
+- 唯一路径/内容的 550／5,000／30,000 冷图门禁 11/11 通过。550 条暖满后九位置均即时 24/24；5,000 与 30,000 的冷跳转九位置均在 50ms 样点前达到 24/24；典型 16GiB 运动缓存保持约 327.68MiB。
+- 4K、150%、59Hz 隔离主窗口：550 条 365 次、5,000 条 1,084 次、30,000 条 364 次视口采样的可见缺失最大值均为 0；标准滚动 P95 为 16.949ms。三种规模均只使用显式 `--settings` 合成图库，剪贴板与在线 AI 关闭，真实图库未打开或修改。
+- Debug/Release 均 0 警告/0 错误，222/222 测试通过；约 5MB/4K 首次 2800px 解码 234.297ms，缓存切换 0.214ms，媒体缓存均在预算内。
+- 唯一体验包为 `publish/FR_Imageprompt-M7.2-adaptive-fast-browsing-win-x64.zip`，92,408,132 bytes，SHA-256 `13a9af467b57e24782c68d7f53be6ff3f7f8009a484c7499eabce53e6eece4b4`。包内仅含 238,022,406-byte `PromptVault.exe`，EXE SHA-256 `069ce4bddef475964f4ae6d897fa3bfd1d3ba59772766fdf8710065261f4997b`。
+- 最终 EXE 使用显式隔离设置完成暖图、Home/End 大跳转和 Q 详情懒加载；PID 精确停止且无 PromptVault 进程残留。完整记录见 M7.2 独立蓝图。
 
 ---
 

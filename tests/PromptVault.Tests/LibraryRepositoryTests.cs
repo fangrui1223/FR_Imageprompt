@@ -201,6 +201,83 @@ public sealed class LibraryRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task BrowsePagesMatchFullSearchOrderAndExcludeLargeTextFields()
+    {
+        var categoryId = await _repository.AddCategoryAsync("browse-category", "");
+        var longPrompt = new string('p', 64_000);
+        var longNotes = new string('n', 64_000);
+        for (var index = 0; index < 7; index++)
+        {
+            await SaveAsync(
+                $"browse-{index}",
+                $"{longPrompt} marker-{index}",
+                longNotes,
+                [$"tag-{index}", "shared"],
+                index % 2 == 0 ? categoryId : null);
+        }
+
+        await ExecuteSqlAsync(
+            _repository.Paths.Database,
+            "UPDATE collection_items SET created_at = '2026-07-30T08:00:00.0000000+00:00';");
+
+        var full = await _repository.SearchPageAsync(new SearchOptions(
+            Tag: "shared",
+            Sort: GallerySortOrder.NewestFirst,
+            PageSize: 100));
+        var browsed = new List<GalleryBrowseItem>();
+        GalleryPageCursor? cursor = null;
+        do
+        {
+            var page = await _repository.SearchBrowsePageAsync(new SearchOptions(
+                Tag: "shared",
+                Sort: GallerySortOrder.NewestFirst,
+                PageSize: 3,
+                Cursor: cursor));
+            Assert.Equal(full.TotalCount, page.TotalCount);
+            browsed.AddRange(page.Items);
+            cursor = page.NextCursor;
+        }
+        while (cursor is not null);
+
+        Assert.Equal(full.Items.Select(item => item.Id), browsed.Select(item => item.Id));
+        Assert.All(browsed, item =>
+        {
+            var source = Assert.Single(full.Items, value => value.Id == item.Id);
+            Assert.Equal(source.Hash, item.Hash);
+            Assert.Equal(source.ThumbnailPath, item.ThumbnailPath);
+            Assert.Equal(source.Width, item.Width);
+            Assert.Equal(source.Height, item.Height);
+            Assert.Equal(source.CategoryId, item.CategoryId);
+            Assert.Equal(source.CategoryName, item.CategoryName);
+            Assert.Equal(source.Tags, item.Tags);
+            Assert.Equal(source.IsFavorite, item.IsFavorite);
+        });
+        Assert.DoesNotContain(
+            typeof(GalleryBrowseItem).GetProperties(),
+            property => property.Name is nameof(GalleryItem.Prompt) or nameof(GalleryItem.Notes));
+    }
+
+    [Fact]
+    public async Task BrowsePageUsesTheSameSearchAndFilterValidation()
+    {
+        var categoryId = await _repository.AddCategoryAsync("browse-filter", "");
+        await SaveAsync("browse-filter-a", "searchable browse text", "", ["blue"], categoryId);
+        await SaveAsync("browse-filter-b", "other browse text", "", ["red"]);
+
+        var search = await _repository.SearchBrowsePageAsync(new SearchOptions(
+            Query: "searchable",
+            CategoryId: categoryId,
+            Tag: "blue"));
+
+        Assert.Equal(1, search.TotalCount);
+        Assert.Equal("browse-filter-a", Assert.Single(search.Items).Hash);
+        await Assert.ThrowsAsync<ArgumentException>(() => _repository.SearchBrowsePageAsync(
+            new SearchOptions(Source: GallerySourceKind.ExternalFolder, SourceId: "folder")));
+        await Assert.ThrowsAsync<ArgumentException>(() => _repository.SearchBrowsePageAsync(
+            new SearchOptions(CategoryId: categoryId, UncategorizedOnly: true)));
+    }
+
+    [Fact]
     public async Task SearchOptionsUnifyCategoryTrashTagSourceAndSortFilters()
     {
         var categoryId = await _repository.AddCategoryAsync("unified-filter", "");

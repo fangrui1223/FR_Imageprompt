@@ -91,6 +91,29 @@ M1-03 的布局与回收面板探针不加载图片，只测量 30,000 条布局
 
 默认退出时删除所有图片。只有需要继续做隔离真界面验收时才传入工作区内的 `--fixture-output`；验收完成后应在确认绝对路径位于工作区后清理。探针使用真实 WPF JPEG 解码，但不会强制清空 Windows 文件系统缓存，因此报告必须保留这一限制。
 
+## M7.2 自适应极速浏览门禁
+
+M7.2 探针为 550、5,000 和 30,000 三个规模分别生成路径和像素内容都唯一的 PNG，避免重复文件造成虚假缓存命中。它直接验证轻量元数据、后台暖图、滚动窗口、Visible 插队、generation 取消、150ms 静止高清升级和 M7.1 视口完整性：
+
+```powershell
+& '.\.dotnet\dotnet.exe' build `
+  tools\PromptVault.FastBrowseProbe\PromptVault.FastBrowseProbe.csproj `
+  -c Release --no-restore
+
+& '.\.dotnet\dotnet.exe' `
+  tools\PromptVault.FastBrowseProbe\bin\Release\net10.0-windows10.0.19041.0\win-x64\PromptVault.FastBrowseProbe.dll `
+  --output docs\performance\2026-07-30-m7.2-adaptive-fast-browsing.json `
+  --virtualization docs\performance\2026-07-30-m7.1-p0-regression.json
+```
+
+需要同时生成 550 条隔离 UI 图库时，额外传入：
+
+```powershell
+--ui-library-parent .m7-isolated\m7.2-ui
+```
+
+程序会输出带随机后缀的合成图库和显式设置提示；设置中剪贴板监听与在线 AI 均为关闭。报告不得包含绝对路径或用户数据。5,000 条的“全暖”表示所有微缩图都经过低优先级扫描，LRU 仍只保留预算内项目；30,000 条只允许有界滚动窗口，不能把 30,000 张位图常驻内存。
+
 ## Debug UI 诊断
 
 UI 诊断仅在 Debug 构建并显式设置环境变量时启用：
@@ -114,6 +137,7 @@ $env:PROMPTVAULT_LOG_DIRECTORY=(Resolve-Path '.').Path+'\.diagnostics\logs'
 - 搜索、分类与普通图库刷新；`gallery-refresh-transition` 分别记录查询开始和首屏准备完成时旧图库的条目数、行数与整层透明度。
 - `gallery-refresh-applied` 记录查询、首屏准备、同步提交和总耗时，以及复用行数、复用/准备卡片数、首屏总数、提交前就绪数与提交后整层透明度。
 - 缩略图缓存命中、实际解码时间、目标物理像素档位、排队量和缓存占用。
+- M7.2 轻量索引提交、三档自适应计划、运动预览暖图批次、150ms 静止升级，以及运动/高清两个独立缓存快照。
 - 滚动交互期间的帧耗时 P50、P95、P99 和最大值，以及同一时刻的缩略图请求、合并、取消、并发与缓存快照。
 - 剪贴板事件入队、图片准备完成和提示词应用。
 

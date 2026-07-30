@@ -8,6 +8,12 @@ FR_Imageprompt 2.0 的产品决策、分阶段实施步骤、性能验收线和�
 
 - `docs/FR_Imageprompt-2.0-implementation-blueprint.md`
 
+M7.2 自适应极速浏览层的 82 个子步骤、分规模缓存策略、冷图门禁和真实数据单独维护在：
+
+- `docs/FR_Imageprompt-M7.2-adaptive-fast-browsing-blueprint.md`
+
+M7.2 已于 2026-07-30 完成；后续性能修改必须以该文档和 `docs/performance/2026-07-30-m7.2-adaptive-fast-browsing.json` 为回归基线，不得重新引入“只加载 240”、全量位图常驻或滚动时清空旧图。
+
 新的 Codex 对话在进行功能开发、性能优化、UI 重构、无感收录、AI 元数据或自由画板工作前，必须先完整阅读该蓝图。实施时从依赖已经完成的第一个未勾选步骤继续；每完成一步，必须在蓝图中勾选并追加日期、主要文件、验证结果和遗留问题。
 
 ## 1. 技术栈说明

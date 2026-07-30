@@ -26,7 +26,8 @@ public sealed record GalleryEntry(
     DateTimeOffset? DeletedAt,
     bool IsExternal,
     string? ExternalFolderId,
-    bool IsFavorite = false)
+    bool IsFavorite = false,
+    bool HasFullMetadata = true)
 {
     public static GalleryEntry FromLibrary(GalleryItem item) => new(
         item.Id,
@@ -48,6 +49,27 @@ public sealed record GalleryEntry(
         null,
         item.IsFavorite);
 
+    public static GalleryEntry FromBrowse(GalleryBrowseItem item) => new(
+        item.Id,
+        item.Hash,
+        item.OriginalPath,
+        item.ThumbnailPath,
+        item.MediumThumbnailPath,
+        item.Width,
+        item.Height,
+        item.Format,
+        "",
+        "",
+        item.CategoryId,
+        item.CategoryName,
+        item.Tags,
+        item.CreatedAt,
+        item.DeletedAt,
+        false,
+        null,
+        item.IsFavorite,
+        false);
+
     public static GalleryEntry FromExternal(ExternalFileIndexItem item, string rootPath) => new(
         -item.Id,
         $"external:{item.FolderId}:{item.Id}",
@@ -68,28 +90,46 @@ public sealed record GalleryEntry(
         item.FolderId,
         false);
 
-    public GalleryItem ToLibraryItem() => new(
-        Id,
-        Hash,
-        OriginalPath,
-        ThumbnailPath,
-        MediumThumbnailPath,
-        Width,
-        Height,
-        Format,
-        Prompt,
-        Notes,
-        CategoryId,
-        CategoryName,
-        Tags,
-        CreatedAt,
-        DeletedAt,
-        IsFavorite);
+    public GalleryItem ToLibraryItem()
+    {
+        if (!HasFullMetadata)
+        {
+            throw new InvalidOperationException(
+                "Full gallery metadata must be loaded before converting a browse entry.");
+        }
+
+        return new GalleryItem(
+            Id,
+            Hash,
+            OriginalPath,
+            ThumbnailPath,
+            MediumThumbnailPath,
+            Width,
+            Height,
+            Format,
+            Prompt,
+            Notes,
+            CategoryId,
+            CategoryName,
+            Tags,
+            CreatedAt,
+            DeletedAt,
+            IsFavorite);
+    }
 }
 
 public sealed class GalleryCardViewModel : INotifyPropertyChanged
 {
-    private sealed record ThumbnailRequestSpec(string Path, int TargetPhysicalPixels);
+    private enum ThumbnailLoadKind
+    {
+        MotionPreview,
+        HighQuality
+    }
+
+    private sealed record ThumbnailRequestSpec(
+        string Path,
+        int TargetPhysicalPixels,
+        ThumbnailLoadKind Kind);
 
     private BitmapSource? _thumbnail;
     private bool _thumbnailLoadFailed;
@@ -104,6 +144,7 @@ public sealed class GalleryCardViewModel : INotifyPropertyChanged
     private Task? _thumbnailLoadTask;
     private ThumbnailRequestSpec? _activeThumbnailRequest;
     private ThumbnailRequestSpec? _loadedThumbnailRequest;
+    private int _loadedThumbnailPhysicalPixels;
     private int _thumbnailLoadGeneration;
 
     public GalleryCardViewModel(GalleryEntry item, LibraryPaths paths, double layoutWidth, double imageHeight, bool isSelected = false)
@@ -142,6 +183,7 @@ public sealed class GalleryCardViewModel : INotifyPropertyChanged
     public double ImageHeight { get => _imageHeight; private set { if (Math.Abs(_imageHeight - value) < 0.1) return; _imageHeight = value; OnPropertyChanged(); OnPropertyChanged(nameof(CardHeight)); } }
     public double CardHeight => ImageHeight;
     public BitmapSource? Thumbnail { get => _thumbnail; private set { _thumbnail = value; OnPropertyChanged(); } }
+    internal int LoadedThumbnailPhysicalPixels => _loadedThumbnailPhysicalPixels;
     public bool ThumbnailLoadFailed { get => _thumbnailLoadFailed; private set { if (_thumbnailLoadFailed == value) return; _thumbnailLoadFailed = value; OnPropertyChanged(); } }
     public bool IsSelected
     {
@@ -244,6 +286,7 @@ public sealed class GalleryCardViewModel : INotifyPropertyChanged
         if (canKeepThumbnail) return;
         CancelThumbnailLoad();
         _loadedThumbnailRequest = null;
+        _loadedThumbnailPhysicalPixels = 0;
         Thumbnail = null;
         ThumbnailLoadFailed = false;
     }
@@ -252,9 +295,20 @@ public sealed class GalleryCardViewModel : INotifyPropertyChanged
         ThumbnailRequestPriority priority,
         double dpiScale,
         CancellationToken cancellationToken = default)
-        => StartThumbnailLoadAsync(
+        => LoadMotionAsync(
             priority,
-            dpiScale,
+            ThumbnailSizingPolicy.SmallPixels,
+            cancellationToken);
+
+    internal Task LoadMotionAsync(
+        ThumbnailRequestPriority priority,
+        int motionPixels,
+        CancellationToken cancellationToken = default)
+        => StartThumbnailLoadAsync(
+            ThumbnailLoadKind.MotionPreview,
+            priority,
+            dpiScale: 1,
+            motionPixels,
             queuePresentation: true,
             cancellationToken);
 
@@ -263,28 +317,71 @@ public sealed class GalleryCardViewModel : INotifyPropertyChanged
         double dpiScale,
         CancellationToken cancellationToken = default)
         => StartThumbnailLoadAsync(
+            ThumbnailLoadKind.HighQuality,
             priority,
             dpiScale,
+            motionPixels: ThumbnailSizingPolicy.SmallPixels,
             queuePresentation: false,
             cancellationToken);
 
-    private Task StartThumbnailLoadAsync(
+    internal Task LoadHighQualityAsync(
         ThumbnailRequestPriority priority,
         double dpiScale,
+        CancellationToken cancellationToken = default)
+        => StartThumbnailLoadAsync(
+            ThumbnailLoadKind.HighQuality,
+            priority,
+            dpiScale,
+            motionPixels: ThumbnailSizingPolicy.SmallPixels,
+            queuePresentation: true,
+            cancellationToken);
+
+    private Task StartThumbnailLoadAsync(
+        ThumbnailLoadKind kind,
+        ThumbnailRequestPriority priority,
+        double dpiScale,
+        int motionPixels,
         bool queuePresentation,
         CancellationToken cancellationToken)
     {
-        var targetPhysicalPixels = ThumbnailSizingPolicy.SelectTier(
-            LayoutWidth,
-            ImageHeight,
-            dpiScale);
-        var path = targetPhysicalPixels <= ThumbnailSizingPolicy.SmallPixels
+        var targetPhysicalPixels = kind == ThumbnailLoadKind.MotionPreview
+            ? Math.Clamp(
+                motionPixels,
+                AdaptiveFastBrowsePolicy.MicroPreviewPixels,
+                ThumbnailSizingPolicy.SmallPixels)
+            : ThumbnailSizingPolicy.SelectTier(
+                LayoutWidth,
+                ImageHeight,
+                dpiScale);
+        var path = kind == ThumbnailLoadKind.MotionPreview
+            || targetPhysicalPixels <= ThumbnailSizingPolicy.SmallPixels
             ? ThumbnailPath
             : MediumThumbnailPath;
-        var request = new ThumbnailRequestSpec(path, targetPhysicalPixels);
+        var request = new ThumbnailRequestSpec(path, targetPhysicalPixels, kind);
 
-        if (_loadedThumbnailRequest == request && _thumbnail is not null)
+        if (_thumbnail is not null
+            && _loadedThumbnailPhysicalPixels >= targetPhysicalPixels)
         {
+            return Task.CompletedTask;
+        }
+
+        var cacheHit = kind == ThumbnailLoadKind.MotionPreview
+            ? MotionThumbnailCache.TryGetCached(
+                request.Path,
+                request.TargetPhysicalPixels,
+                out var cachedImage)
+            : ThumbnailCache.TryGetCached(
+                request.Path,
+                request.TargetPhysicalPixels,
+                out cachedImage);
+        if (cacheHit && cachedImage is not null)
+        {
+            CancelActiveThumbnailLoad();
+            _thumbnailLoadGeneration++;
+            Thumbnail = cachedImage;
+            _loadedThumbnailRequest = request;
+            _loadedThumbnailPhysicalPixels = request.TargetPhysicalPixels;
+            ThumbnailLoadFailed = false;
             return Task.CompletedTask;
         }
 
@@ -293,10 +390,7 @@ public sealed class GalleryCardViewModel : INotifyPropertyChanged
             if (priority < _thumbnailPriority)
             {
                 _thumbnailPriority = priority;
-                ThumbnailCache.Promote(
-                    request.Path,
-                    request.TargetPhysicalPixels,
-                    priority);
+                PromoteThumbnailRequest(request, priority);
             }
             return _thumbnailLoadTask;
         }
@@ -340,17 +434,24 @@ public sealed class GalleryCardViewModel : INotifyPropertyChanged
     {
         try
         {
-            var image = await ThumbnailCache.LoadAsync(
-                request.Path,
-                request.TargetPhysicalPixels,
-                _thumbnailPriority,
-                cancellation.Token).ConfigureAwait(false);
+            var image = request.Kind == ThumbnailLoadKind.MotionPreview
+                ? await MotionThumbnailCache.LoadAsync(
+                    request.Path,
+                    request.TargetPhysicalPixels,
+                    _thumbnailPriority,
+                    cancellation.Token).ConfigureAwait(false)
+                : await ThumbnailCache.LoadAsync(
+                    request.Path,
+                    request.TargetPhysicalPixels,
+                    _thumbnailPriority,
+                    cancellation.Token).ConfigureAwait(false);
             if (!queuePresentation)
             {
                 if (!cancellation.IsCancellationRequested && generation == _thumbnailLoadGeneration)
                 {
                     _thumbnail = image;
                     _loadedThumbnailRequest = request;
+                    _loadedThumbnailPhysicalPixels = request.TargetPhysicalPixels;
                     _thumbnailLoadFailed = false;
                     CompleteThumbnailLoad(cancellation, generation);
                 }
@@ -363,10 +464,16 @@ public sealed class GalleryCardViewModel : INotifyPropertyChanged
                     {
                         Thumbnail = image;
                         _loadedThumbnailRequest = request;
+                        _loadedThumbnailPhysicalPixels = request.TargetPhysicalPixels;
                         ThumbnailLoadFailed = false;
                         CompleteThumbnailLoad(cancellation, generation);
                     }
-                }, _thumbnailPriority, cancellation.Token).ConfigureAwait(false);
+                },
+                _thumbnailPriority,
+                cancellation.Token,
+                request.Kind == ThumbnailLoadKind.MotionPreview
+                    ? ThumbnailPresentationKind.MotionPreview
+                    : ThumbnailPresentationKind.HighQuality).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
@@ -394,12 +501,36 @@ public sealed class GalleryCardViewModel : INotifyPropertyChanged
                     if (generation != _thumbnailLoadGeneration) return;
                     if (Thumbnail is null) ThumbnailLoadFailed = true;
                     CompleteThumbnailLoad(cancellation, generation);
-                }, _thumbnailPriority).ConfigureAwait(false);
+                },
+                _thumbnailPriority,
+                kind: request.Kind == ThumbnailLoadKind.MotionPreview
+                    ? ThumbnailPresentationKind.MotionPreview
+                    : ThumbnailPresentationKind.HighQuality).ConfigureAwait(false);
             }
         }
         finally
         {
             cancellation.Dispose();
+        }
+    }
+
+    private static void PromoteThumbnailRequest(
+        ThumbnailRequestSpec request,
+        ThumbnailRequestPriority priority)
+    {
+        if (request.Kind == ThumbnailLoadKind.MotionPreview)
+        {
+            MotionThumbnailCache.Promote(
+                request.Path,
+                request.TargetPhysicalPixels,
+                priority);
+        }
+        else
+        {
+            ThumbnailCache.Promote(
+                request.Path,
+                request.TargetPhysicalPixels,
+                priority);
         }
     }
 

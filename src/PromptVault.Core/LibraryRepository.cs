@@ -345,6 +345,111 @@ public sealed partial class LibraryRepository
         }
     }
 
+    public async Task<GalleryBrowsePage> SearchBrowsePageAsync(
+        SearchOptions options,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateLibrarySearchOptions(options);
+        var searchPlan = CreateSearchPlan(options.Query);
+        try
+        {
+            return await SearchBrowsePageCoreAsync(
+                options,
+                searchPlan,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (SqliteException ex) when (
+            searchPlan.Mode == SearchTextMode.Trigram
+            && IsSearchIndexFailure(ex))
+        {
+            _searchIndexBackend = SearchIndexBackend.None;
+            Trace.TraceWarning($"PromptVault full-text search failed and switched to LIKE fallback: {ex}");
+            Diagnostic?.Invoke(this, new RepositoryDiagnostic(
+                "search-index",
+                "全文搜索索引暂不可用，已自动切换到兼容搜索；结果不会丢失，但大图库搜索可能稍慢。",
+                ex));
+            return await SearchBrowsePageCoreAsync(
+                options,
+                CreateSearchPlan(options.Query),
+                cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<GalleryBrowsePage> SearchBrowsePageCoreAsync(
+        SearchOptions options,
+        SearchPlan searchPlan,
+        CancellationToken cancellationToken)
+    {
+        var tagTerms = ParseTagText(options.Tag);
+        var baseConditions = BuildSearchConditions(options, tagTerms, searchPlan, includeCursor: false);
+        var pageConditions = BuildSearchConditions(options, tagTerms, searchPlan, includeCursor: true);
+        var pageSize = Math.Clamp(options.PageSize, 1, 1000);
+
+        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction =
+            (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+
+        var count = connection.CreateCommand();
+        count.Transaction = transaction;
+        count.CommandText = $"""
+            SELECT COUNT(*)
+            FROM collection_items ci
+            JOIN image_assets a ON a.id = ci.asset_id
+            WHERE {string.Join(" AND ", baseConditions)};
+            """;
+        AddSearchParameters(count, options, tagTerms, searchPlan, includeCursor: false);
+        var totalCount = Convert.ToInt64(
+            await count.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) ?? 0L);
+
+        var direction = options.Sort == GallerySortOrder.OldestFirst ? "ASC" : "DESC";
+        var command = BuildGalleryBrowseCommand(
+            connection,
+            $"WHERE {string.Join(" AND ", pageConditions)}",
+            $"ORDER BY ci.created_at {direction}, ci.id {direction} LIMIT $pageLimit",
+            transaction);
+        AddSearchParameters(command, options, tagTerms, searchPlan, includeCursor: true);
+        command.Parameters.AddWithValue("$pageLimit", pageSize + 1);
+
+        var results = new List<GalleryBrowseItem>(pageSize + 1);
+        await using (var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
+        {
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                results.Add(ReadGalleryBrowseItem(reader));
+            }
+        }
+
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+
+        GalleryPageCursor? nextCursor = null;
+        if (results.Count > pageSize)
+        {
+            results.RemoveAt(results.Count - 1);
+            var last = results[^1];
+            nextCursor = new GalleryPageCursor(last.CreatedAt, last.Id);
+        }
+
+        return new GalleryBrowsePage(totalCount, results, nextCursor);
+    }
+
+    private static void ValidateLibrarySearchOptions(SearchOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (options.Source != GallerySourceKind.Library)
+        {
+            throw new ArgumentException(
+                "LibraryRepository can only query the managed library source.",
+                nameof(options));
+        }
+
+        if (options.CategoryId.HasValue && options.UncategorizedOnly)
+        {
+            throw new ArgumentException(
+                "A category and the unclassified-only filter cannot be used together.",
+                nameof(options));
+        }
+    }
+
     private async Task<GallerySearchPage> SearchPageCoreAsync(
         SearchOptions options,
         SearchPlan searchPlan,
@@ -957,11 +1062,54 @@ public sealed partial class LibraryRepository
         return command;
     }
 
+    private static SqliteCommand BuildGalleryBrowseCommand(
+        SqliteConnection connection,
+        string where,
+        string tail,
+        SqliteTransaction? transaction = null)
+    {
+        var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = $"""
+            SELECT ci.id, a.hash, a.original_path, a.thumbnail_path, a.medium_thumbnail_path,
+                   a.width, a.height, a.format, ci.category_id,
+                   COALESCE(c.name, char(26410,20998,31867)),
+                   COALESCE((
+                       SELECT GROUP_CONCAT(t.name, ', ')
+                       FROM item_tags it
+                       JOIN tags t ON t.id = it.tag_id
+                       WHERE it.item_id = ci.id
+                   ), ''), ci.created_at, ci.deleted_at, ci.is_favorite
+            FROM collection_items ci
+            JOIN image_assets a ON a.id = ci.asset_id
+            LEFT JOIN categories c ON c.id = ci.category_id
+            {where}
+            {tail};
+            """;
+        return command;
+    }
+
     private static GalleryItem ReadGalleryItem(SqliteDataReader reader) => new(
         reader.GetInt64(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetString(4), reader.GetInt32(5), reader.GetInt32(6),
         reader.GetString(7), reader.GetString(8), reader.GetString(9), reader.IsDBNull(10) ? null : reader.GetInt64(10), reader.GetString(11),
         reader.GetString(12), DateTimeOffset.Parse(reader.GetString(13)), reader.IsDBNull(14) ? null : DateTimeOffset.Parse(reader.GetString(14)),
         reader.GetInt64(15) != 0);
+
+    private static GalleryBrowseItem ReadGalleryBrowseItem(SqliteDataReader reader) => new(
+        reader.GetInt64(0),
+        reader.GetString(1),
+        reader.GetString(2),
+        reader.GetString(3),
+        reader.GetString(4),
+        reader.GetInt32(5),
+        reader.GetInt32(6),
+        reader.GetString(7),
+        reader.IsDBNull(8) ? null : reader.GetInt64(8),
+        reader.GetString(9),
+        reader.GetString(10),
+        DateTimeOffset.Parse(reader.GetString(11)),
+        reader.IsDBNull(12) ? null : DateTimeOffset.Parse(reader.GetString(12)),
+        reader.GetInt64(13) != 0);
 
     private static void AddItemParameters(SqliteCommand command, long id, SaveItemInput input)
     {

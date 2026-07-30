@@ -54,6 +54,8 @@ public partial class MainWindow
         try
         {
             if (generation != Volatile.Read(ref _inspectorSwitchGeneration)) return;
+            item = await EnsureFullEntryAsync(item) ?? item;
+            if (generation != Volatile.Read(ref _inspectorSwitchGeneration)) return;
             if (_inspectedItem is { } same && same.Id == item.Id && _inspectorVisible)
             {
                 if (thumbnail is not null)
@@ -190,6 +192,10 @@ public partial class MainWindow
         var current = _items.FirstOrDefault(item => item.Id == _inspectedItem.Id);
         if (current is not null)
         {
+            if (!current.HasFullMetadata && _inspectedItem.HasFullMetadata)
+            {
+                current = MergeBrowseStateWithFullMetadata(current, _inspectedItem);
+            }
             _inspectedItem = current;
             var card = Rows.SelectMany(row => row.Items).FirstOrDefault(candidate => candidate.Id == current.Id);
             if (card?.Thumbnail is not null) _inspectedThumbnail = card.Thumbnail;

@@ -163,6 +163,37 @@ internal sealed class ThumbnailScheduler : IAsyncDisposable
         }
     }
 
+    public bool TryGetCached(
+        string path,
+        int targetPhysicalPixels,
+        out BitmapSource? image)
+    {
+        image = null;
+        if (string.IsNullOrWhiteSpace(path) || targetPhysicalPixels <= 0) return false;
+        var fullPath = Path.GetFullPath(path);
+        long lastWriteTicks;
+        try
+        {
+            lastWriteTicks = _lastWriteTicks(fullPath);
+        }
+        catch
+        {
+            return false;
+        }
+
+        var requestKey = CreateRequestKey(fullPath, targetPhysicalPixels);
+        var cacheKey = CreateCacheKey(requestKey, lastWriteTicks);
+        lock (_gate)
+        {
+            if (_disposed || !_cache.TryGetValue(cacheKey, out var cached)) return false;
+            _requestCount++;
+            _cacheHitCount++;
+            TouchCacheEntry(cached);
+            image = cached.Image;
+            return true;
+        }
+    }
+
     public ThumbnailSchedulerSnapshot GetSnapshot()
     {
         lock (_gate)
@@ -525,6 +556,43 @@ public static class ThumbnailCache
         int targetPhysicalPixels,
         ThumbnailRequestPriority priority) =>
         Scheduler.Promote(path, targetPhysicalPixels, priority);
+
+    internal static bool TryGetCached(
+        string path,
+        int targetPhysicalPixels,
+        out BitmapSource? image) =>
+        Scheduler.TryGetCached(path, targetPhysicalPixels, out image);
+
+    internal static ThumbnailSchedulerSnapshot GetSnapshot() => Scheduler.GetSnapshot();
+}
+
+internal static class MotionThumbnailCache
+{
+    private static readonly long MemoryBudgetBytes =
+        AdaptiveFastBrowsePolicy.CalculateMotionMemoryBudget(
+            GC.GetGCMemoryInfo().TotalAvailableMemoryBytes);
+    private static readonly ThumbnailScheduler Scheduler = new(
+        AdaptiveFastBrowsePolicy.MotionDecodeConcurrency,
+        MemoryBudgetBytes);
+
+    internal static Task<BitmapSource> LoadAsync(
+        string path,
+        int targetPhysicalPixels,
+        ThumbnailRequestPriority priority,
+        CancellationToken cancellationToken) =>
+        Scheduler.LoadAsync(path, targetPhysicalPixels, priority, cancellationToken);
+
+    internal static void Promote(
+        string path,
+        int targetPhysicalPixels,
+        ThumbnailRequestPriority priority) =>
+        Scheduler.Promote(path, targetPhysicalPixels, priority);
+
+    internal static bool TryGetCached(
+        string path,
+        int targetPhysicalPixels,
+        out BitmapSource? image) =>
+        Scheduler.TryGetCached(path, targetPhysicalPixels, out image);
 
     internal static ThumbnailSchedulerSnapshot GetSnapshot() => Scheduler.GetSnapshot();
 }

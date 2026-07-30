@@ -25,6 +25,8 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _searchTimer;
     private readonly DispatcherTimer _resizeTimer;
     private readonly DispatcherTimer _subtleStatusTimer;
+    private readonly DispatcherTimer _thumbnailIdleTimer;
+    private readonly FastBrowseGenerationController _fastBrowseGenerations = new();
     private readonly HashSet<long> _selectedItemIds = new();
     private readonly Dictionary<GalleryRow, FrameworkElement> _realizedRowElements = new();
     private IReadOnlyList<CategoryRecord> _categories = [];
@@ -55,10 +57,16 @@ public partial class MainWindow : Window
     private bool _hasMoreItems;
     private bool _isLoadingNextPage;
     private bool _thumbnailPriorityRefreshQueued;
+    private FastBrowseGenerationLease _fastBrowseLease;
+    private AdaptiveFastBrowsePlan _fastBrowsePlan = AdaptiveFastBrowsePolicy.Create(
+        0,
+        GC.GetGCMemoryInfo().TotalAvailableMemoryBytes);
+    private GalleryScrollDirection _galleryScrollDirection;
+    private double _lastGalleryVerticalOffset;
     private EventHandler? _developmentScrollProbeRendering;
     private const double GalleryWheelPixelsPerNotch = 180d;
 
-    public ObservableCollection<GalleryRow> Rows { get; } = new();
+    public BulkObservableCollection<GalleryRow> Rows { get; } = new();
 
     internal MainWindow(
         LibraryRepository repository,
@@ -99,6 +107,15 @@ public partial class MainWindow : Window
         _resizeTimer.Tick += (_, _) => { _resizeTimer.Stop(); RegroupIfNeeded(); };
         _subtleStatusTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1200) };
         _subtleStatusTimer.Tick += (_, _) => { _subtleStatusTimer.Stop(); UpdateBaseStatus(); };
+        _thumbnailIdleTimer = new DispatcherTimer
+        {
+            Interval = AdaptiveFastBrowsePolicy.IdleHighQualityDelay
+        };
+        _thumbnailIdleTimer.Tick += (_, _) =>
+        {
+            _thumbnailIdleTimer.Stop();
+            UpgradeVisibleThumbnailsAfterIdle();
+        };
         _clipboard = new ClipboardMonitor(
             this,
             repository,
@@ -256,6 +273,9 @@ public partial class MainWindow : Window
         _loadCancellation?.Cancel();
         _loadCancellation?.Dispose();
         _loadCancellation = null;
+        _fastBrowseGenerations.Dispose();
+        _thumbnailIdleTimer.Stop();
+        StopFastBrowseBackground();
         foreach (var row in Rows) ReleaseRow(row);
         _frameSampler.Dispose();
         _clipboard.Dispose();
@@ -378,6 +398,7 @@ public partial class MainWindow : Window
         previousCancellation?.Dispose();
         _loadCancellation = new CancellationTokenSource();
         var token = _loadCancellation.Token;
+        _fastBrowseLease = _fastBrowseGenerations.Begin(token);
         try
         {
             StatusText.Text = "正在加载图片…";
@@ -477,6 +498,9 @@ public partial class MainWindow : Window
             _nextPageCursor = nextCursor;
             _nextExternalPageCursor = nextExternalCursor;
             _totalCount = totalCount;
+            _fastBrowsePlan = AdaptiveFastBrowsePolicy.Create(
+                totalCount,
+                GC.GetGCMemoryInfo().TotalAvailableMemoryBytes);
             _hasMoreItems = IsExternalMode
                 ? nextExternalCursor is not null
                 : nextCursor is not null;
@@ -498,6 +522,7 @@ public partial class MainWindow : Window
             UpdateSelectionVisual();
             RestoreInspectorAfterRefresh();
             QueueNextPageIfNeeded();
+            StartFastBrowseBackground(search, _fastBrowseLease);
             refreshStopwatch.Stop();
             DevelopmentPerformanceTrace.Event("gallery-refresh-applied", new
             {
@@ -530,7 +555,13 @@ public partial class MainWindow : Window
 
     private async Task LoadNextPageAsync()
     {
-        if (_isLoadingNextPage || !_hasMoreItems || _activeSearch is null) return;
+        if (_isFastBrowseIndexing
+            || _isLoadingNextPage
+            || !_hasMoreItems
+            || _activeSearch is null)
+        {
+            return;
+        }
         var cancellation = _loadCancellation;
         if (cancellation is null || cancellation.IsCancellationRequested) return;
 
@@ -625,7 +656,7 @@ public partial class MainWindow : Window
 
     private void QueueNextPageIfNeeded()
     {
-        if (!_hasMoreItems || _isLoadingNextPage) return;
+        if (_isFastBrowseIndexing || !_hasMoreItems || _isLoadingNextPage) return;
         _ = Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
         {
             _rowsScrollViewer ??= FindDescendant<ScrollViewer>(RowsList);
@@ -776,7 +807,8 @@ public partial class MainWindow : Window
         IReadOnlyList<GalleryRow> desiredRows,
         double availableWidth,
         GalleryPreparation preparation,
-        bool resetScroll)
+        bool resetScroll,
+        bool bulkRows = false)
     {
         var oldRows = Rows.ToArray();
         var targetRows = new List<GalleryRow>(desiredRows.Count);
@@ -830,19 +862,26 @@ public partial class MainWindow : Window
         _items.Clear();
         _items.AddRange(nextItems);
         _layoutWidth = availableWidth;
-        for (var index = 0; index < targetRows.Count; index++)
+        if (bulkRows)
         {
-            if (index < Rows.Count)
-            {
-                if (!ReferenceEquals(Rows[index], targetRows[index])) Rows[index] = targetRows[index];
-            }
-            else
-            {
-                Rows.Add(targetRows[index]);
-            }
+            Rows.ReplaceAll(targetRows);
         }
+        else
+        {
+            for (var index = 0; index < targetRows.Count; index++)
+            {
+                if (index < Rows.Count)
+                {
+                    if (!ReferenceEquals(Rows[index], targetRows[index])) Rows[index] = targetRows[index];
+                }
+                else
+                {
+                    Rows.Add(targetRows[index]);
+                }
+            }
 
-        while (Rows.Count > targetRows.Count) Rows.RemoveAt(Rows.Count - 1);
+            while (Rows.Count > targetRows.Count) Rows.RemoveAt(Rows.Count - 1);
+        }
 
         InvalidateMasonryLayoutIndex();
         _rowsScrollViewer ??= FindDescendant<ScrollViewer>(RowsList);
@@ -1015,8 +1054,16 @@ public partial class MainWindow : Window
         if (e.OriginalSource is ScrollViewer viewer) _rowsScrollViewer = viewer;
         if (Math.Abs(e.VerticalChange) > 0.01)
         {
+            _galleryScrollDirection = e.VerticalChange > 0
+                ? GalleryScrollDirection.Forward
+                : GalleryScrollDirection.Backward;
+            _lastGalleryVerticalOffset = _rowsScrollViewer?.VerticalOffset
+                ?? _lastGalleryVerticalOffset + e.VerticalChange;
             _frameSampler.BeginInteraction("gallery-scroll", TimeSpan.FromMilliseconds(750));
             ThumbnailPresentationQueue.NotifyHighMotion(TimeSpan.FromMilliseconds(220));
+            _thumbnailIdleTimer.Stop();
+            _thumbnailIdleTimer.Start();
+            QueueRollingWarmup();
         }
         QueueThumbnailPriorityRefresh();
         QueueNextPageIfNeeded();
@@ -1379,9 +1426,49 @@ public partial class MainWindow : Window
             var dpiScale = VisualTreeHelper.GetDpi(element).DpiScaleX;
             foreach (var card in row.Items)
             {
-                _ = card.LoadAsync(priority, dpiScale);
+                _ = card.LoadMotionAsync(
+                    priority,
+                    _fastBrowsePlan.MotionPixels);
             }
         }
+    }
+
+    private void UpgradeVisibleThumbnailsAfterIdle()
+    {
+        var viewportBottom = RowsList.ActualHeight;
+        if (viewportBottom <= 0) return;
+        var upgraded = 0;
+        foreach (var (row, element) in _realizedRowElements.ToArray())
+        {
+            if (!row.IsRealized || !element.IsLoaded) continue;
+            double rowTop;
+            try
+            {
+                rowTop = element.TranslatePoint(new Point(0, 0), RowsList).Y;
+            }
+            catch (InvalidOperationException)
+            {
+                continue;
+            }
+            var rowBottom = rowTop + Math.Max(element.ActualHeight, row.RowHeight);
+            if (rowBottom <= 0 || rowTop >= viewportBottom) continue;
+            var dpiScale = VisualTreeHelper.GetDpi(element).DpiScaleX;
+            foreach (var card in row.Items)
+            {
+                upgraded++;
+                _ = card.LoadHighQualityAsync(
+                    ThumbnailRequestPriority.Visible,
+                    dpiScale);
+            }
+        }
+        DevelopmentPerformanceTrace.Event("thumbnail-idle-upgrade", new
+        {
+            delayMs = _fastBrowsePlan.IdleHighQualityDelay.TotalMilliseconds,
+            direction = _galleryScrollDirection.ToString(),
+            verticalOffset = Math.Round(_lastGalleryVerticalOffset, 3),
+            requestedCards = upgraded,
+            highMotion = ThumbnailPresentationQueue.IsHighMotion
+        });
     }
 
     private void ReleaseRowsOutsideMasonryCache()
@@ -1720,6 +1807,8 @@ public partial class MainWindow : Window
         }
 
         targets = targets.Where(x => !x.IsExternal).ToArray();
+        if (targets.Length == 0) return;
+        targets = await EnsureFullEntriesAsync(targets);
         if (targets.Length == 0) return;
 
         var dialog = new EditMetadataDialog(

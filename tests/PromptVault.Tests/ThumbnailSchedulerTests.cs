@@ -21,6 +21,11 @@ public sealed class ThumbnailSchedulerTests
         Assert.True(
             ThumbnailPresentationQueue.HighMotionPresentationsPerTick
             < ThumbnailPresentationQueue.IdlePresentationsPerTick);
+        Assert.Equal(
+            ThumbnailPresentationQueue.HighMotionPreviewPresentationsPerTick,
+            ThumbnailPresentationQueue.SelectBatchSize(
+                highMotion: true,
+                hasVisibleMotion: true));
     }
 
     [Fact]
@@ -390,6 +395,40 @@ public sealed class ThumbnailSchedulerTests
     }
 
     [Fact]
+    public async Task Scheduler_WarmedBitmapCanBeReadSynchronouslyAndStillChecksModification()
+    {
+        var decodeCount = 0;
+        long lastWriteTicks = 10;
+        var firstImage = CreateBitmap(16, 16);
+        var secondImage = CreateBitmap(20, 20);
+        await using var scheduler = new ThumbnailScheduler(
+            maximumConcurrency: 2,
+            memoryBudgetBytes: 8 * 1024 * 1024,
+            decoder: (_, _) =>
+            {
+                var count = Interlocked.Increment(ref decodeCount);
+                return count == 1 ? firstImage : secondImage;
+            },
+            lastWriteTicks: _ => Interlocked.Read(ref lastWriteTicks));
+        var path = TestPath("synchronous-warm-hit.png");
+
+        await scheduler.LoadAsync(path, 256, ThumbnailRequestPriority.Prefetch);
+
+        Assert.True(scheduler.TryGetCached(path, 256, out var warmed));
+        Assert.Same(firstImage, warmed);
+        Assert.Equal(1, decodeCount);
+
+        Interlocked.Exchange(ref lastWriteTicks, 20);
+        Assert.False(scheduler.TryGetCached(path, 256, out _));
+        var refreshed = await scheduler.LoadAsync(
+            path,
+            256,
+            ThumbnailRequestPriority.Visible);
+        Assert.Same(secondImage, refreshed);
+        Assert.Equal(2, decodeCount);
+    }
+
+    [Fact]
     public async Task CardViewModel_UsesStableFailurePlaceholderWithoutThrowing()
     {
         var missing = TestPath($"missing-{Guid.NewGuid():N}.jpg");
@@ -421,6 +460,71 @@ public sealed class ThumbnailSchedulerTests
 
         Assert.Null(card.Thumbnail);
         Assert.True(card.ThumbnailLoadFailed);
+    }
+
+    [Fact]
+    public async Task CardViewModel_PresentsMotionThenHighQualityWithoutDowngrading()
+    {
+        var root = Path.Combine(
+            Path.GetTempPath(),
+            "PromptVault-ThumbnailSchedulerTests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var path = Path.Combine(root, "progressive.png");
+        await File.WriteAllBytesAsync(
+            path,
+            Convert.FromBase64String(
+                "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAATElEQVR4nO3PQQ0AIBDAsAP/nuGNAvZoFSzZOjNnyNi1gFcBrwJeBbwKeBXwKuBVwKuAVwGvAl4FvAp4FfAq4FXAq4BXAa8CXgW8CngV8CrgDQ8mA40o5H0AAAAASUVORK5CYII="));
+        try
+        {
+            var entry = new GalleryEntry(
+                1,
+                Guid.NewGuid().ToString("N"),
+                path,
+                path,
+                path,
+                800,
+                600,
+                "png",
+                "",
+                "",
+                null,
+                "",
+                "",
+                DateTimeOffset.UtcNow,
+                null,
+                true,
+                null);
+            var card = new GalleryCardViewModel(
+                entry,
+                new LibraryPaths(root),
+                layoutWidth: 280,
+                imageHeight: 210);
+
+            await card.LoadMotionAsync(
+                ThumbnailRequestPriority.Visible,
+                AdaptiveFastBrowsePolicy.MicroPreviewPixels);
+            Assert.NotNull(card.Thumbnail);
+            Assert.Equal(256, card.LoadedThumbnailPhysicalPixels);
+
+            await card.LoadHighQualityAsync(
+                ThumbnailRequestPriority.Visible,
+                dpiScale: 1.5);
+            var highQuality = card.Thumbnail;
+            Assert.NotNull(highQuality);
+            Assert.Equal(480, card.LoadedThumbnailPhysicalPixels);
+
+            await card.LoadMotionAsync(
+                ThumbnailRequestPriority.Visible,
+                AdaptiveFastBrowsePolicy.MicroPreviewPixels);
+            Assert.Same(highQuality, card.Thumbnail);
+            Assert.Equal(480, card.LoadedThumbnailPhysicalPixels);
+            Assert.False(card.ThumbnailLoadFailed);
+        }
+        finally
+        {
+            try { Directory.Delete(root, recursive: true); } catch { }
+        }
     }
 
     private static string TestPath(string fileName) =>

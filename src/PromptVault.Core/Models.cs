@@ -20,6 +20,22 @@ public sealed record GalleryItem(
     DateTimeOffset? DeletedAt,
     bool IsFavorite = false);
 
+public sealed record GalleryBrowseItem(
+    long Id,
+    string Hash,
+    string OriginalPath,
+    string ThumbnailPath,
+    string MediumThumbnailPath,
+    int Width,
+    int Height,
+    string Format,
+    long? CategoryId,
+    string CategoryName,
+    string Tags,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? DeletedAt,
+    bool IsFavorite = false);
+
 public sealed record AssetInput(
     string Hash,
     string OriginalPath,
@@ -353,6 +369,11 @@ public sealed record GalleryPageCursor(DateTimeOffset CreatedAt, long Id);
 public sealed record GallerySearchPage(
     long TotalCount,
     IReadOnlyList<GalleryItem> Items,
+    GalleryPageCursor? NextCursor);
+
+public sealed record GalleryBrowsePage(
+    long TotalCount,
+    IReadOnlyList<GalleryBrowseItem> Items,
     GalleryPageCursor? NextCursor);
 
 public enum ExternalFolderIndexStatus

@@ -42,7 +42,7 @@ public partial class MainWindow
 
         if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && shortcutKey == Key.C)
         {
-            CopyCurrentSelectionPrompts();
+            _ = CopyCurrentSelectionPromptsAsync();
             return true;
         }
 
@@ -295,14 +295,17 @@ public partial class MainWindow
         }));
     }
 
-    private void CopyCurrentSelectionPrompts()
+    private async Task CopyCurrentSelectionPromptsAsync()
     {
-        var selected = _items
+        var selectedEntries = _items
             .Where(item => _selectedItemIds.Contains(item.Id))
-            .Select(item => item.Prompt)
             .ToArray();
-        if (selected.Length == 0 && _inspectedItem is not null) selected = [_inspectedItem.Prompt];
-        CopyPromptsToClipboard(selected);
+        if (selectedEntries.Length == 0 && _inspectedItem is not null)
+        {
+            selectedEntries = [_inspectedItem];
+        }
+        var hydrated = await EnsureFullEntriesAsync(selectedEntries);
+        CopyPromptsToClipboard(hydrated.Select(item => item.Prompt));
     }
 
     private void CopyPromptsToClipboard(IEnumerable<string> prompts)
@@ -326,11 +329,12 @@ public partial class MainWindow
         }
     }
 
-    private void CardAuxiliaryMouseDown(object sender, MouseButtonEventArgs e)
+    private async void CardAuxiliaryMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ChangedButton != MouseButton.Middle) return;
         if ((sender as FrameworkElement)?.DataContext is not GalleryCardViewModel card) return;
-        CopyPromptsToClipboard([card.Item.Prompt]);
+        var item = await EnsureFullEntryAsync(card.Item);
+        if (item is not null) CopyPromptsToClipboard([item.Prompt]);
         e.Handled = true;
     }
 }

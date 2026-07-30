@@ -81,6 +81,8 @@ foreach (var count in options.Counts)
         {
             await MeasureAsync("gallery-first-page-1000", options.Iterations,
                 () => repository.SearchPageAsync(new SearchOptions(PageSize: 1000))),
+            await MeasureAsync("gallery-browse-first-page-1000", options.Iterations,
+                () => repository.SearchBrowsePageAsync(new SearchOptions(PageSize: 1000))),
             await MeasureAsync("text-search-chinese-fragment", options.Iterations,
                 () => repository.SearchPageAsync(new SearchOptions(Query: "赛博朋克", PageSize: 200))),
             await MeasureAsync("text-search-english-fragment", options.Iterations,
@@ -94,6 +96,8 @@ foreach (var count in options.Counts)
         {
             measurements.Add(await MeasureAsync("gallery-keyset-page-1000", options.Iterations,
                 () => repository.SearchPageAsync(new SearchOptions(PageSize: 1000, Cursor: deepCursor))));
+            measurements.Add(await MeasureAsync("gallery-browse-keyset-page-1000", options.Iterations,
+                () => repository.SearchBrowsePageAsync(new SearchOptions(PageSize: 1000, Cursor: deepCursor))));
         }
 
         run.Scales.Add(new ScaleResult(
@@ -328,6 +332,7 @@ static async Task<ScenarioResult> MeasureAsync<T>(string name, int iterations, F
         resultCount = result switch
         {
             GallerySearchPage page => page.Items.Count,
+            GalleryBrowsePage page => page.Items.Count,
             ICollection collection => collection.Count,
             IReadOnlyCollection<GalleryItem> items => items.Count,
             _ => 0

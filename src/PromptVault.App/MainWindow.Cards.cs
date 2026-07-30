@@ -96,16 +96,17 @@ public partial class MainWindow
         return null;
     }
 
-    private void CopyCardPromptClick(object sender, RoutedEventArgs e)
+    private async void CopyCardPromptClick(object sender, RoutedEventArgs e)
     {
         e.Handled = true;
         if ((sender as FrameworkElement)?.DataContext is not GalleryCardViewModel card) return;
-        if (string.IsNullOrWhiteSpace(card.Item.Prompt))
+        var item = await EnsureFullEntryAsync(card.Item);
+        if (item is null || string.IsNullOrWhiteSpace(item.Prompt))
         {
             ToastService.Show(this, "这张图片还没有提示词");
             return;
         }
-        Clipboard.SetText(card.Item.Prompt);
+        Clipboard.SetText(item.Prompt);
         ToastService.Show(this, "提示词已复制");
     }
 

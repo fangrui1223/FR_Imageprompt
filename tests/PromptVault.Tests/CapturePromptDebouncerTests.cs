@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Threading.Channels;
 using PromptVault.Core;
 
 namespace PromptVault.Tests;
@@ -9,20 +10,33 @@ public sealed class CapturePromptDebouncerTests
     public async Task NewPromptResetsDelayAndOnlyLatestValueCompletes()
     {
         var completed = new ConcurrentQueue<string>();
+        var callbackCompleted = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var delays = Channel.CreateUnbounded<TaskCompletionSource>();
         using var debouncer = new CapturePromptDebouncer((_, prompt, _) =>
         {
             completed.Enqueue(prompt);
+            callbackCompleted.TrySetResult();
             return Task.CompletedTask;
+        }, (_, token) =>
+        {
+            var completion = new TaskCompletionSource(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            token.Register(() => completion.TrySetCanceled(token));
+            Assert.True(delays.Writer.TryWrite(completion));
+            return completion.Task;
         });
         var captureId = Guid.NewGuid();
 
         debouncer.Submit(captureId, "partial", TimeSpan.FromMilliseconds(100));
-        await Task.Delay(35);
+        var firstDelay = await delays.Reader.ReadAsync();
         debouncer.Submit(captureId, "complete prompt", TimeSpan.FromMilliseconds(100));
-        await Task.Delay(80);
+        var secondDelay = await delays.Reader.ReadAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => firstDelay.Task);
         Assert.Empty(completed);
 
-        await Task.Delay(70);
+        secondDelay.TrySetResult();
+        await callbackCompleted.Task.WaitAsync(TimeSpan.FromSeconds(2));
         Assert.Equal(["complete prompt"], completed.ToArray());
     }
 
@@ -31,9 +45,12 @@ public sealed class CapturePromptDebouncerTests
     {
         const int captureCount = 25;
         var completed = new ConcurrentDictionary<Guid, ConcurrentQueue<string>>();
+        var allCompleted = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
         using var debouncer = new CapturePromptDebouncer((captureId, prompt, _) =>
         {
             completed.GetOrAdd(captureId, _ => new ConcurrentQueue<string>()).Enqueue(prompt);
+            if (completed.Count == captureCount) allCompleted.TrySetResult();
             return Task.CompletedTask;
         });
         var ids = Enumerable.Range(0, captureCount).Select(_ => Guid.NewGuid()).ToArray();
@@ -46,7 +63,7 @@ public sealed class CapturePromptDebouncerTests
                 $"prompt-{index}",
                 TimeSpan.FromMilliseconds(150));
         }
-        await Task.Delay(300);
+        await allCompleted.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
         Assert.Equal(captureCount, completed.Count);
         for (var idIndex = 0; idIndex < ids.Length; idIndex++)

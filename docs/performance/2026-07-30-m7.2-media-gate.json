@@ -1,0 +1,93 @@
+{
+  "Milestone": "M1-07",
+  "StartedAtUtc": "2026-07-30T04:59:04.942711+00:00",
+  "Environment": {
+    "OperatingSystem": "Microsoft Windows NT 10.0.26200.0",
+    "DotNet": "10.0.9",
+    "LogicalProcessors": 32,
+    "AvailableMemoryBytes": 100516380672
+  },
+  "Fixture": {
+    "Width": 3840,
+    "Height": 2160,
+    "Quality": 76,
+    "Bytes": 5084945,
+    "TargetBytes": 5242880,
+    "WorkingCopyCount": 32,
+    "UiThumbnailBytes": 355055,
+    "RetainedFixtureDirectory": null
+  },
+  "LargeImage": {
+    "DecodeWidth": 2800,
+    "FirstDecodeMs": 234.297,
+    "FirstDecodeCacheHit": false,
+    "CachedSwitchMs": 0.214,
+    "CachedSwitchCacheHit": true,
+    "Unique480": {
+      "Count": 8,
+      "P50Ms": 36.7,
+      "P95Ms": 47.412,
+      "P99Ms": 47.412,
+      "MaximumMs": 47.412
+    },
+    "Unique1600": {
+      "Count": 8,
+      "P50Ms": 42.024,
+      "P95Ms": 47.866,
+      "P99Ms": 47.866,
+      "MaximumMs": 47.866
+    },
+    "Unique2800": {
+      "Count": 8,
+      "P50Ms": 56.106,
+      "P95Ms": 63.995,
+      "P99Ms": 63.995,
+      "MaximumMs": 63.995
+    },
+    "ImmersiveCache": {
+      "RequestCount": 18,
+      "CacheHitCount": 1,
+      "DecodeCount": 17,
+      "CoalescedRequestCount": 0,
+      "EntryCount": 11,
+      "CachedBytes": 194040000,
+      "MemoryBudgetBytes": 201326592
+    }
+  },
+  "ThumbnailScheduler": {
+    "TotalMs": 353.154,
+    "RequestCount": 32,
+    "CacheHitCount": 0,
+    "DecodeCount": 32,
+    "CoalescedRequestCount": 0,
+    "CanceledBeforeStartCount": 0,
+    "MaximumObservedConcurrency": 4,
+    "CacheEntryCount": 32,
+    "CachedBytes": 16588800,
+    "MemoryBudgetBytes": 402653184
+  },
+  "Checks": {
+    "FirstLargeDecode": {
+      "ActualMs": 234.297,
+      "LimitMs": 300,
+      "Passed": true
+    },
+    "CachedLargeSwitch": {
+      "ActualMs": 0.214,
+      "LimitMs": 100,
+      "Passed": true
+    },
+    "ThumbnailMemory": {
+      "ActualBytes": 16588800,
+      "LimitBytes": 536870912,
+      "Passed": true
+    },
+    "ImmersiveMemory": {
+      "ActualBytes": 194040000,
+      "LimitBytes": 201326592,
+      "Passed": true
+    }
+  },
+  "Passed": true,
+  "Caveat": "The representative 5 MB files are independent copies generated on the same local volume. The probe measures real WPF JPEG decode and cache behavior, but does not forcibly purge the Windows filesystem cache."
+}
