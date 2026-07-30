@@ -9,12 +9,14 @@ internal static class ThumbnailPresentationQueue
 {
     private sealed record Presentation(
         Action Action,
+        ThumbnailRequestPriority Priority,
         CancellationToken CancellationToken,
         TaskCompletionSource Completion);
 
     internal const int IdlePresentationsPerTick = 12;
-    internal const int HighMotionPresentationsPerTick = 0;
-    private static readonly ConcurrentQueue<Presentation> Queue = new();
+    internal const int HighMotionPresentationsPerTick = 4;
+    private static readonly ConcurrentQueue<Presentation> VisibleQueue = new();
+    private static readonly ConcurrentQueue<Presentation> PrefetchQueue = new();
     private static readonly TimeSpan TickInterval = TimeSpan.FromMilliseconds(16);
     private static DispatcherTimer? _timer;
     private static int _startRequested;
@@ -22,6 +24,7 @@ internal static class ThumbnailPresentationQueue
 
     public static Task PresentAsync(
         Action action,
+        ThumbnailRequestPriority priority = ThumbnailRequestPriority.Visible,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(action);
@@ -35,7 +38,15 @@ internal static class ThumbnailPresentationQueue
         }
 
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        Queue.Enqueue(new Presentation(action, cancellationToken, completion));
+        var presentation = new Presentation(action, priority, cancellationToken, completion);
+        if (priority == ThumbnailRequestPriority.Visible)
+        {
+            VisibleQueue.Enqueue(presentation);
+        }
+        else
+        {
+            PrefetchQueue.Enqueue(presentation);
+        }
         RequestStart(application.Dispatcher);
         return completion.Task;
     }
@@ -55,6 +66,11 @@ internal static class ThumbnailPresentationQueue
 
     internal static int SelectBatchSize(bool highMotion) =>
         highMotion ? HighMotionPresentationsPerTick : IdlePresentationsPerTick;
+
+    internal static bool CanPresent(
+        ThumbnailRequestPriority priority,
+        bool highMotion) =>
+        !highMotion || priority == ThumbnailRequestPriority.Visible;
 
     private static void RequestStart(Dispatcher dispatcher)
     {
@@ -82,7 +98,8 @@ internal static class ThumbnailPresentationQueue
         var highMotion = Stopwatch.GetTimestamp() <= Interlocked.Read(ref _highMotionUntil);
         var maximumPresentations = SelectBatchSize(highMotion);
         var processed = 0;
-        while (processed < maximumPresentations && Queue.TryDequeue(out var presentation))
+        while (processed < maximumPresentations
+               && TryDequeue(highMotion, out var presentation))
         {
             processed++;
             if (presentation.CancellationToken.IsCancellationRequested)
@@ -102,9 +119,21 @@ internal static class ThumbnailPresentationQueue
             }
         }
 
-        if (!Queue.IsEmpty) return;
+        if (!VisibleQueue.IsEmpty || !PrefetchQueue.IsEmpty) return;
         _timer?.Stop();
         Interlocked.Exchange(ref _startRequested, 0);
-        if (!Queue.IsEmpty) RequestStart(dispatcher);
+        if (!VisibleQueue.IsEmpty || !PrefetchQueue.IsEmpty) RequestStart(dispatcher);
+    }
+
+    private static bool TryDequeue(bool highMotion, out Presentation presentation)
+    {
+        if (VisibleQueue.TryDequeue(out presentation!)) return true;
+        if (CanPresent(ThumbnailRequestPriority.Prefetch, highMotion)
+            && PrefetchQueue.TryDequeue(out presentation!))
+        {
+            return true;
+        }
+        presentation = null!;
+        return false;
     }
 }

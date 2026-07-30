@@ -136,6 +136,70 @@ public sealed class GalleryVirtualizationTests
         Assert.True(rows[formerSectionSize * 2].PanelY > rows[formerSectionSize].PanelY);
     }
 
+    [Fact]
+    public void ViewportIndexMatchesBruteForceAcrossLargeJumpsAndExtremeRatios()
+    {
+        var ratios = new (int Width, int Height)[]
+        {
+            (400, 1600),
+            (900, 1600),
+            (1000, 1500),
+            (1200, 1600),
+            (1200, 1200),
+            (1600, 1200),
+            (1600, 900),
+            (1600, 400)
+        };
+        var entries = CreateEntries(1_200)
+            .Select((item, index) => item with
+            {
+                Width = ratios[index % ratios.Length].Width,
+                Height = ratios[index % ratios.Length].Height
+            })
+            .ToArray();
+        var rows = GalleryLayoutEngine.CreateRows(
+            entries,
+            2500,
+            new GalleryLayoutOptions(GalleryLayoutMode.Waterfall, 8, 320));
+        var index = MasonryViewportIndex.Create(rows);
+        const double viewportHeight = 1600;
+        var scrollableHeight = Math.Max(0, index.ExtentHeight - viewportHeight);
+
+        foreach (var fraction in new[] { 0d, 0.25d, 0.5d, 0.75d, 1d })
+        {
+            var top = scrollableHeight * fraction;
+            var bottom = top + viewportHeight;
+            var expected = rows
+                .Select((row, ownerIndex) => (row, ownerIndex))
+                .Where(pair => pair.row.PanelBottom >= top && pair.row.PanelY <= bottom)
+                .Select(pair => pair.ownerIndex)
+                .Order()
+                .ToArray();
+
+            Assert.Equal(expected, index.Query(top, bottom));
+        }
+    }
+
+    [Fact]
+    public void ViewportIndexRebuildUsesReflowedGeometry()
+    {
+        var entries = CreateEntries(500);
+        var wideRows = GalleryLayoutEngine.CreateRows(entries, 2500);
+        var narrowRows = GalleryLayoutEngine.CreateRows(entries, 760);
+        var wide = MasonryViewportIndex.Create(wideRows);
+        var narrow = MasonryViewportIndex.Create(narrowRows);
+
+        Assert.NotEqual(wide.ColumnCount, narrow.ColumnCount);
+        Assert.NotEqual(wide.ExtentHeight, narrow.ExtentHeight);
+        Assert.Equal(
+            narrowRows
+                .Select((row, ownerIndex) => (row, ownerIndex))
+                .Where(pair => pair.row.PanelBottom >= 3000 && pair.row.PanelY <= 4600)
+                .Select(pair => pair.ownerIndex)
+                .Order(),
+            narrow.Query(3000, 4600));
+    }
+
     [Theory]
     [InlineData(100, 400)]
     [InlineData(900, 1600)]

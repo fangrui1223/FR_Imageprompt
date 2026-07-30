@@ -24,6 +24,20 @@ public sealed class ThumbnailSchedulerTests
     }
 
     [Fact]
+    public void PresentationQueueKeepsVisibleCardsLiveDuringHighMotion()
+    {
+        Assert.True(ThumbnailPresentationQueue.CanPresent(
+            ThumbnailRequestPriority.Visible,
+            highMotion: true));
+        Assert.False(ThumbnailPresentationQueue.CanPresent(
+            ThumbnailRequestPriority.Prefetch,
+            highMotion: true));
+        Assert.True(ThumbnailPresentationQueue.CanPresent(
+            ThumbnailRequestPriority.Prefetch,
+            highMotion: false));
+    }
+
+    [Fact]
     public async Task ImmersiveCacheReusesDecodedImage()
     {
         var decodeCount = 0;

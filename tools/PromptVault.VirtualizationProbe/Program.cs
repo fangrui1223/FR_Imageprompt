@@ -7,6 +7,7 @@ using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Threading;
 using PromptVault.App;
+using PromptVault.Core;
 
 namespace PromptVault.VirtualizationProbe;
 
@@ -40,6 +41,21 @@ internal static class Program
             });
             if (itemCount == 30_000) rows = measuredRows;
         }
+        var viewportIndexBuildClock = Stopwatch.StartNew();
+        var viewportIndex = MasonryViewportIndex.Create(rows);
+        viewportIndexBuildClock.Stop();
+        var viewportIndexQuerySamples = new List<double>();
+        for (var position = 0; position <= 100; position++)
+        {
+            var queryTop = Math.Max(
+                0,
+                (viewportIndex.ExtentHeight - 1600) * position / 100d);
+            var queryClock = Stopwatch.StartNew();
+            _ = viewportIndex.Query(queryTop, queryTop + 1600);
+            queryClock.Stop();
+            viewportIndexQuerySamples.Add(queryClock.Elapsed.TotalMilliseconds);
+        }
+        viewportIndexQuerySamples.Sort();
         var incrementalDifferenceCount = CountIncrementalDifferences(
             entries.Take(1_200).ToArray(),
             2500);
@@ -49,7 +65,8 @@ internal static class Program
         var warmup = TimeSpan.FromMilliseconds(500);
         var measuredDuration = TimeSpan.FromSeconds(3);
         var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        var list = CreateList(rows);
+        var probeView = CreateList(rows);
+        var list = probeView.List;
         var resetProbeRows = GalleryLayoutEngine.CreateRows(entries.Take(9).ToArray(), 2500);
         var window = new Window
         {
@@ -66,7 +83,10 @@ internal static class Program
         };
 
         var realizedContainers = 0;
+        var realizedRows = 0;
+        var maximumRealizedContainers = 0;
         var peakManagedBytes = 0L;
+        var jumpResults = new List<JumpResult>();
         var runClock = new Stopwatch();
         window.Loaded += (_, _) =>
         {
@@ -80,6 +100,50 @@ internal static class Program
                 list.UpdateLayout();
                 var viewer = FindDescendant<ScrollViewer>(list)
                     ?? throw new InvalidOperationException("The probe list did not create a ScrollViewer.");
+                var masonryPanel = FindDescendant<VirtualizingMasonryPanel>(list)
+                    ?? throw new InvalidOperationException("The probe list did not create a masonry panel.");
+                var jumpSequence = new[] { 0d, 0.25d, 0.5d, 0.75d, 1d, 0.75d, 0.5d, 0.25d, 0d };
+                for (var jumpIndex = 0; jumpIndex < jumpSequence.Length; jumpIndex++)
+                {
+                    var percentage = jumpSequence[jumpIndex];
+                    viewer.ScrollToVerticalOffset(viewer.ScrollableHeight * percentage);
+                    list.UpdateLayout();
+                    DrainDispatcher();
+                    list.UpdateLayout();
+                    DrainDispatcher();
+                    var visible = viewportIndex.Query(
+                        viewer.VerticalOffset,
+                        viewer.VerticalOffset + viewer.ViewportHeight);
+                    var cacheHeight = Math.Max(viewer.ViewportHeight, 1) * 2;
+                    var cached = viewportIndex.Query(
+                        Math.Max(0, viewer.VerticalOffset - cacheHeight),
+                        viewer.VerticalOffset + viewer.ViewportHeight + cacheHeight);
+                    var visibleSet = visible.ToHashSet();
+                    var cachedSet = cached.ToHashSet();
+                    var actual = masonryPanel.GetRealizedItemIndices();
+                    var actualSet = actual.ToHashSet();
+                    probeView.Lifecycle.Synchronize(rows, actualSet);
+                    list.UpdateLayout();
+                    var missing = visibleSet.Count(index => !actualSet.Contains(index));
+                    var extra = actualSet.Count(index => !cachedSet.Contains(index));
+                    var unrealizedVisible = visibleSet.Count(
+                        index => index >= rows.Count || !rows[index].IsRealized);
+                    maximumRealizedContainers = Math.Max(
+                        maximumRealizedContainers,
+                        actual.Count);
+                    jumpResults.Add(new JumpResult(
+                        jumpIndex,
+                        percentage,
+                        Math.Round(viewer.VerticalOffset, 3),
+                        visible.Count,
+                        cached.Count,
+                        actual.Count,
+                        missing,
+                        extra,
+                        unrealizedVisible));
+                }
+                viewer.ScrollToTop();
+                list.UpdateLayout();
                 var lastRenderingTime = TimeSpan.Zero;
                 var lastCallbackTimestamp = 0L;
                 var measuring = true;
@@ -116,7 +180,14 @@ internal static class Program
                         _ = window.Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new Action(() =>
                         {
                             list.UpdateLayout();
+                            probeView.Lifecycle.Synchronize(
+                                rows,
+                                masonryPanel.GetRealizedItemIndices().ToHashSet());
                             realizedContainers = CountDescendants<ListBoxItem>(list);
+                            realizedRows = rows.Count(row => row.IsRealized);
+                            maximumRealizedContainers = Math.Max(
+                                maximumRealizedContainers,
+                                masonryPanel.RealizedItemCount);
                             window.Close();
                             application.Shutdown();
                         }));
@@ -141,7 +212,14 @@ internal static class Program
                                  && p99 <= 33.898
                                  && maximum <= 33.898;
         var structuralPassed = realizedContainers < rows.Count / 10;
-        var passed = structuralPassed && frameCadencePassed && !simulateRegression;
+        var viewportCompletenessPassed = jumpResults.All(result =>
+            result.MissingVisible == 0
+            && result.ExtraOutsideCache == 0
+            && result.UnrealizedVisible == 0);
+        var passed = structuralPassed
+                     && viewportCompletenessPassed
+                     && frameCadencePassed
+                     && !simulateRegression;
         var report = new
         {
             StartedAtUtc = DateTimeOffset.UtcNow,
@@ -162,9 +240,22 @@ internal static class Program
             {
                 Benchmarks = layoutBenchmarks,
                 IncrementalDifferenceCount = incrementalDifferenceCount,
+                ViewportIndexBuildMs = Math.Round(viewportIndexBuildClock.Elapsed.TotalMilliseconds, 3),
+                ViewportIndexQueryP95Ms = Percentile(viewportIndexQuerySamples, 0.95),
                 DataSourceResetCount = 2,
                 RealizedContainers = realizedContainers,
+                RealizedRows = realizedRows,
+                MaximumRealizedContainers = maximumRealizedContainers,
+                RowRealizeCount = probeView.Lifecycle.RealizeCount,
+                RowReleaseCount = probeView.Lifecycle.ReleaseCount,
                 PeakManagedBytes = peakManagedBytes
+            },
+            ViewportCompleteness = new
+            {
+                Positions = jumpResults,
+                MissingVisibleTotal = jumpResults.Sum(result => result.MissingVisible),
+                ExtraOutsideCacheTotal = jumpResults.Sum(result => result.ExtraOutsideCache),
+                UnrealizedVisibleTotal = jumpResults.Sum(result => result.UnrealizedVisible)
             },
             Frames = new
             {
@@ -191,6 +282,7 @@ internal static class Program
                 SimulatedRegression = simulateRegression
             },
             StructuralPassed = structuralPassed,
+            ViewportCompletenessPassed = viewportCompletenessPassed,
             StandaloneFrameCadencePassed = frameCadencePassed,
             FrameCadenceAuthority = "The product main-window trace is authoritative when supplied to PromptVault.M6Gate; this simplified window remains a diagnostic fallback.",
             Passed = passed
@@ -204,8 +296,9 @@ internal static class Program
         return passed ? 0 : 2;
     }
 
-    private static ListBox CreateList(IReadOnlyList<GalleryRow> rows)
+    private static ProbeView CreateList(IReadOnlyList<GalleryRow> rows)
     {
+        var lifecycle = new ProbeLifecycle();
         var list = new ListBox
         {
             ItemsSource = rows,
@@ -214,7 +307,7 @@ internal static class Program
         };
         ScrollViewer.SetCanContentScroll(list, true);
         ScrollViewer.SetHorizontalScrollBarVisibility(list, ScrollBarVisibility.Disabled);
-        ScrollViewer.SetIsDeferredScrollingEnabled(list, true);
+        ScrollViewer.SetIsDeferredScrollingEnabled(list, false);
         VirtualizingPanel.SetIsVirtualizing(list, true);
         VirtualizingPanel.SetVirtualizationMode(list, VirtualizationMode.Recycling);
         VirtualizingPanel.SetScrollUnit(list, ScrollUnit.Pixel);
@@ -231,20 +324,63 @@ internal static class Program
 
         var rowItems = new FrameworkElementFactory(typeof(ItemsControl));
         rowItems.SetBinding(FrameworkElement.HeightProperty, new Binding(nameof(GalleryRow.RowHeight)));
-        rowItems.SetBinding(ItemsControl.ItemsSourceProperty, new Binding(nameof(GalleryRow.LayoutItems)));
-        var rowPanel = new FrameworkElementFactory(typeof(StackPanel));
-        rowPanel.SetValue(StackPanel.OrientationProperty, Orientation.Horizontal);
-        rowPanel.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+        rowItems.SetBinding(ItemsControl.ItemsSourceProperty, new Binding(nameof(GalleryRow.Items)));
+        rowItems.AddHandler(
+            FrameworkElement.LoadedEvent,
+            new RoutedEventHandler(lifecycle.RowLoaded));
+        rowItems.AddHandler(
+            FrameworkElement.UnloadedEvent,
+            new RoutedEventHandler(lifecycle.RowUnloaded));
+        var rowPanel = new FrameworkElementFactory(typeof(Canvas));
         rowItems.SetValue(ItemsControl.ItemsPanelProperty, new ItemsPanelTemplate(rowPanel));
+        var cardContainerStyle = new Style(typeof(ContentPresenter));
+        cardContainerStyle.Setters.Add(new Setter(
+            Canvas.LeftProperty,
+            new Binding(nameof(GalleryCardViewModel.LayoutX))));
+        cardContainerStyle.Setters.Add(new Setter(
+            Canvas.TopProperty,
+            new Binding(nameof(GalleryCardViewModel.LayoutY))));
+        rowItems.SetValue(ItemsControl.ItemContainerStyleProperty, cardContainerStyle);
 
         var card = new FrameworkElementFactory(typeof(Border));
-        card.SetBinding(FrameworkElement.WidthProperty, new Binding(nameof(GalleryCardLayout.LayoutWidth)));
-        card.SetBinding(FrameworkElement.HeightProperty, new Binding(nameof(GalleryCardLayout.ImageHeight)));
-        card.SetValue(FrameworkElement.MarginProperty, new Thickness(7, 0, 7, 0));
-        card.SetValue(Border.BackgroundProperty, new SolidColorBrush(Color.FromRgb(22, 34, 48)));
+        card.SetBinding(
+            FrameworkElement.WidthProperty,
+            new Binding(nameof(GalleryCardViewModel.LayoutWidth)));
+        card.SetBinding(
+            FrameworkElement.HeightProperty,
+            new Binding(nameof(GalleryCardViewModel.CardHeight)));
+        card.SetValue(Border.BackgroundProperty, new SolidColorBrush(Color.FromRgb(16, 25, 36)));
+        card.SetValue(Border.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(59, 75, 94)));
+        card.SetValue(Border.BorderThicknessProperty, new Thickness(1));
+        card.SetValue(Border.CornerRadiusProperty, new CornerRadius(12));
+        card.SetValue(Border.ClipToBoundsProperty, true);
+
+        var cardGrid = new FrameworkElementFactory(typeof(Grid));
+        var placeholder = new FrameworkElementFactory(typeof(Border));
+        placeholder.SetValue(
+            Border.BackgroundProperty,
+            new SolidColorBrush(Color.FromRgb(22, 34, 48)));
+        cardGrid.AppendChild(placeholder);
+
+        var image = new FrameworkElementFactory(typeof(Image));
+        image.SetBinding(
+            Image.SourceProperty,
+            new Binding(nameof(GalleryCardViewModel.Thumbnail)));
+        image.SetValue(Image.StretchProperty, Stretch.Uniform);
+        cardGrid.AppendChild(image);
+
+        var selection = new FrameworkElementFactory(typeof(Border));
+        selection.SetValue(Border.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(75, 209, 255)));
+        selection.SetValue(Border.BorderThicknessProperty, new Thickness(1));
+        selection.SetValue(Border.CornerRadiusProperty, new CornerRadius(12));
+        selection.SetBinding(
+            UIElement.OpacityProperty,
+            new Binding(nameof(GalleryCardViewModel.SelectionVisualOpacity)));
+        cardGrid.AppendChild(selection);
+        card.AppendChild(cardGrid);
         rowItems.SetValue(ItemsControl.ItemTemplateProperty, new DataTemplate { VisualTree = card });
         list.ItemTemplate = new DataTemplate { VisualTree = rowItems };
-        return list;
+        return new ProbeView(list, lifecycle);
     }
 
     private static List<GalleryEntry> CreateEntries(int count)
@@ -324,6 +460,73 @@ internal static class Program
         return differences;
     }
 
+    private sealed record ProbeView(ListBox List, ProbeLifecycle Lifecycle);
+
+    private sealed record JumpResult(
+        int Sequence,
+        double Percentage,
+        double VerticalOffset,
+        int ExpectedVisible,
+        int ExpectedCached,
+        int ActualRealized,
+        int MissingVisible,
+        int ExtraOutsideCache,
+        int UnrealizedVisible);
+
+    private sealed class ProbeLifecycle
+    {
+        private readonly LibraryPaths _paths = new(
+            Path.Combine(Path.GetTempPath(), "PromptVault-M7.1-VirtualizationProbe"));
+
+        public int RealizeCount { get; private set; }
+        public int ReleaseCount { get; private set; }
+
+        public void RowLoaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is not FrameworkElement { DataContext: GalleryRow row }) return;
+            if (!row.IsRealized)
+            {
+                row.Realize(_paths, _ => false);
+                RealizeCount++;
+            }
+        }
+
+        public void RowUnloaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is not FrameworkElement { DataContext: GalleryRow row }
+                || !row.IsRealized)
+            {
+                return;
+            }
+
+            row.Release();
+            ReleaseCount++;
+        }
+
+        public void Synchronize(
+            IReadOnlyList<GalleryRow> rows,
+            IReadOnlySet<int> retainedIndices)
+        {
+            for (var index = 0; index < rows.Count; index++)
+            {
+                var row = rows[index];
+                if (retainedIndices.Contains(index))
+                {
+                    if (!row.IsRealized)
+                    {
+                        row.Realize(_paths, _ => false);
+                        RealizeCount++;
+                    }
+                }
+                else if (row.IsRealized)
+                {
+                    row.Release();
+                    ReleaseCount++;
+                }
+            }
+        }
+    }
+
     private static T? FindDescendant<T>(DependencyObject source) where T : DependencyObject
     {
         for (var index = 0; index < VisualTreeHelper.GetChildrenCount(source); index++)
@@ -333,6 +536,15 @@ internal static class Program
             if (FindDescendant<T>(child) is { } descendant) return descendant;
         }
         return null;
+    }
+
+    private static void DrainDispatcher()
+    {
+        var frame = new DispatcherFrame();
+        _ = Dispatcher.CurrentDispatcher.BeginInvoke(
+            DispatcherPriority.ContextIdle,
+            new Action(() => frame.Continue = false));
+        Dispatcher.PushFrame(frame);
     }
 
     private static int CountDescendants<T>(DependencyObject source) where T : DependencyObject

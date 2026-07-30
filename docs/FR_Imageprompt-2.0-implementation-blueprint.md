@@ -1,11 +1,12 @@
 # FR_Imageprompt 2.0 实施蓝图
 
-> 文档状态：M0–M7 全部完成；FR_Imageprompt 2.0 当前规划阶段已全部实施
+> 文档状态：M0–M7 与 M7.1 P0 回归修复全部完成；FR_Imageprompt 2.0 当前规划阶段已全部实施
 > 初版日期：2026-07-24
 > 产品定位：本地优先、画布优先、AI 辅助的沉浸式视觉资产工作台
 > 适用仓库：`D:\FR_AI\AI image prompt`
 > 配套接手说明：仓库根目录 `AGENTS.md`
 > M7 详细蓝图：`docs/FR_Imageprompt-M7-interaction-refinement-blueprint.md`
+> M7.1 P0 详细蓝图：`docs/FR_Imageprompt-M7.1-P0-scroll-virtualization-regression-blueprint.md`
 
 本文档既是产品与技术规划，也是跨 Codex 对话的长期进度账本。后续实施必须按稳定步骤编号推进，并在完成每一步后立即更新本文档，避免新对话重复调研、遗漏验证或错误判断项目状态。
 
@@ -261,6 +262,7 @@ M1 目标已完成：FTS、游标分页、准确总数、真正的 UI 与数据�
 - [x] M5：多命名自由画板。
 - [x] M6：发布质量、迁移恢复与文档。
 - [x] M7：沉浸浏览与快速标注重构。详细步骤、真实数据和反馈记录统一维护在 `docs/FR_Imageprompt-M7-interaction-refinement-blueprint.md`。
+- [x] M7.1 P0：滚动与虚拟化回归修复。详细步骤、根因和真实性能证据统一维护在 `docs/FR_Imageprompt-M7.1-P0-scroll-virtualization-regression-blueprint.md`。
 
 ---
 
@@ -1317,6 +1319,15 @@ M4 目标已完成：AI 草稿与用户事实分层、独立持久 Worker、本�
 - Debug 与 Release 构建 0 警告/0 错误；最终 196/196 自动化测试通过。4K、150%、59Hz 下完成最大化、窄窗、详情、透明、沉浸、外观以及快速/安静合成收录矩阵。
 - 唯一最终体验包为 `publish/FR_Imageprompt-M7-final-win-x64.zip`，92,384,688 bytes，SHA-256 `4ecb6e88684630dfe39f184b9caeca086640d0127837f12db847d231a8b1d29a`。包内仅含 237,912,838-byte `PromptVault.exe`。
 - 所有真界面启动均使用显式隔离设置；真实图库未打开或修改，在线请求、密钥使用均为 0。完整数据见 `docs/performance/2026-07-28-m7-final-gate.json`。
+
+M7.1 P0 回归修复汇总（2026-07-30）：
+
+- M7 最终体验包的大跨度滚动空白根因是 WPF 生成器在非重叠稀疏跳转中回收容器后产生 owner 索引偏移；修复前预期可见 16 项仅映射 8 项，修复后可见与缓存集合全部精确映射。
+- 新增按列二分视口索引、精确稀疏容器生成与视口完整性硬门禁；30,000 项九位置往返跳转缺失 0、缓存外多余 0、未实现可见项 0，最大实现 119 个容器。
+- 关闭延迟滚动，滑块拖动实时跟随；高运动期间继续提交 Visible 缩略图、暂停 Prefetch。4K/150%/59Hz 稳定 219 帧 P50/P95/P99 为 16.671/16.949/33.064ms。
+- 550 条隔离图库完成 240→480→550，零重复、零遗漏；Debug/Release 均 0 警告/0 错误，199/199 测试通过。
+- 唯一 M7.1 体验包为 `publish/FR_Imageprompt-M7.1-P0-win-x64.zip`，92,390,746 bytes，SHA-256 `49499174ceddae49ef9884b3a055177ea698f48b516fbb22b600cae2d4c632ba`。包内仅含 237,966,086-byte `PromptVault.exe`。
+- 全部真界面测试使用显式隔离设置、合成图库且关闭剪贴板监听；真实图库未打开或修改。完整记录见 M7.1 独立蓝图与 `docs/performance/2026-07-30-m7.1-p0-regression.json`。
 
 ---
 

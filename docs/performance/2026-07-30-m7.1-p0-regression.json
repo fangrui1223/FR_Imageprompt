@@ -1,0 +1,109 @@
+{
+  "milestone": "M7.1-P0",
+  "evaluatedAt": "2026-07-30",
+  "regression": {
+    "baselineLargeJump": {
+      "expectedVisible": 16,
+      "realizedVisible": 8,
+      "missingVisible": 8,
+      "cause": "Recycling an item-container-generator position after a non-overlapping sparse jump shifted the generated owner indices."
+    },
+    "fixedLargeJump": {
+      "expectedVisible": 16,
+      "realizedVisible": 16,
+      "missingVisible": 0
+    },
+    "deferredScrollingBefore": true,
+    "deferredScrollingAfter": false
+  },
+  "automation": {
+    "debugBuildWarnings": 0,
+    "debugBuildErrors": 0,
+    "debugTestsPassed": 199,
+    "debugTestsFailed": 0,
+    "releaseBuildWarnings": 0,
+    "releaseBuildErrors": 0,
+    "releaseTestsPassed": 199,
+    "releaseTestsFailed": 0,
+    "gitDiffCheckPassed": true
+  },
+  "virtualizationProbe": {
+    "items": 30000,
+    "layoutMs": 6.722,
+    "viewportIndexBuildMs": 29.448,
+    "viewportIndexQueryP95Ms": 0.002,
+    "jumpPercentages": [
+      0,
+      25,
+      50,
+      75,
+      100,
+      75,
+      50,
+      25,
+      0
+    ],
+    "maximumRealizedContainers": 119,
+    "rowRealizeCount": 1131,
+    "rowReleaseCount": 1013,
+    "missingVisibleMaximum": 0,
+    "extraOutsideCacheMaximum": 0,
+    "unrealizedVisibleMaximum": 0,
+    "peakManagedBytes": 87150784,
+    "frameCount": 181,
+    "frameP95Ms": 16.672,
+    "frameP99Ms": 16.672,
+    "frameMaximumMs": 16.672,
+    "passed": true
+  },
+  "isolatedMainWindow": {
+    "displayPixels": "3840x2560",
+    "scalePercent": 150,
+    "refreshHz": 59,
+    "stableScrollFrames": 219,
+    "frameP50Ms": 16.671,
+    "frameP95Ms": 16.949,
+    "frameP99Ms": 33.064,
+    "frameMaximumMs": 37.224,
+    "masonryViewportSamples": 364,
+    "missingVisibleMaximum": 0,
+    "missingVisibleTotal": 0,
+    "maximumRealizedContainersDuringResizeAndScroll": 217,
+    "thumbnailMaximumConcurrency": 1,
+    "thumbnailCacheMiB": 1.978,
+    "dockedInspectorReflowPassed": true,
+    "narrowThreeColumnJumpPassed": true
+  },
+  "paging": {
+    "syntheticItems": 550,
+    "loadedSequence": [
+      240,
+      480,
+      550
+    ],
+    "duplicates": 0,
+    "missing": 0,
+    "finalHasMore": false
+  },
+  "releaseArtifact": {
+    "directoryFileCount": 1,
+    "executableBytes": 237966086,
+    "executableSha256": "e36d30495751301592a0ffb648617e0d7fa6dee4b786b26e370d3d1c8ed5079f",
+    "zipBytes": 92390746,
+    "zipSha256": "49499174ceddae49ef9884b3a055177ea698f48b516fbb22b600cae2d4c632ba",
+    "containsPdbOrSettingsOrDiagnosticsOrUserData": false,
+    "publishedExecutableCleanLaunch": true,
+    "publishedExecutableLargeJumpSmokePassed": true
+  },
+  "dataSafety": {
+    "explicitSettingsArgument": true,
+    "syntheticLibraryOnly": true,
+    "clipboardMonitoringEnabled": false,
+    "realLibraryOpened": false,
+    "realLibraryModified": false,
+    "onlineRequests": 0,
+    "apiKeysUsed": 0,
+    "isolatedProcessesStopped": true
+  },
+  "passed": true
+}

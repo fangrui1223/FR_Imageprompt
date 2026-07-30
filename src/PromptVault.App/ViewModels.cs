@@ -366,7 +366,7 @@ public sealed class GalleryCardViewModel : INotifyPropertyChanged
                         ThumbnailLoadFailed = false;
                         CompleteThumbnailLoad(cancellation, generation);
                     }
-                }, cancellation.Token).ConfigureAwait(false);
+                }, _thumbnailPriority, cancellation.Token).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
@@ -394,7 +394,7 @@ public sealed class GalleryCardViewModel : INotifyPropertyChanged
                     if (generation != _thumbnailLoadGeneration) return;
                     if (Thumbnail is null) ThumbnailLoadFailed = true;
                     CompleteThumbnailLoad(cancellation, generation);
-                }).ConfigureAwait(false);
+                }, _thumbnailPriority).ConfigureAwait(false);
             }
         }
         finally

@@ -276,8 +276,19 @@ static async Task SeedAsync(string databasePath, int count, RetainedImageSet? re
             ? $"thumbnails/medium/{retainedFileName}"
             : $"thumbnails/medium/{index % 256:x2}/benchmark-{index:D8}.jpg";
         format.Value = retainedImages?.Extension.TrimStart('.') ?? "jpg";
-        width.Value = 768 + index % 2048;
-        height.Value = 768 + index % 1536;
+        var (assetWidth, assetHeight) = (index % 8) switch
+        {
+            0 => (400, 1600),
+            1 => (900, 1600),
+            2 => (1000, 1500),
+            3 => (1200, 1600),
+            4 => (1200, 1200),
+            5 => (1600, 1200),
+            6 => (1600, 900),
+            _ => (1600, 400)
+        };
+        width.Value = assetWidth;
+        height.Value = assetHeight;
         assetCreated.Value = created;
         await insertAsset.ExecuteNonQueryAsync();
 

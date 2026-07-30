@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Collections.Specialized;
+using PromptVault.App.Services;
 using Rect = System.Windows.Rect;
 using Size = System.Windows.Size;
 
@@ -14,6 +15,14 @@ public sealed class VirtualizingMasonryPanel : VirtualizingPanel, IScrollInfo
     private Size _extent;
     private Size _viewport;
     private Point _offset;
+    private MasonryViewportIndex _layoutIndex = MasonryViewportIndex.Empty;
+    private bool _layoutIndexDirty = true;
+    private int _visibleItemCount;
+    private int _cachedItemCount;
+    private double _lastDiagnosticOffset = double.NaN;
+    private int _lastRequestedFirstIndex = -1;
+    private int _lastRequestedLastIndex = -1;
+    private int _lastNewContainerCount;
 
     public bool CanHorizontallyScroll { get; set; }
     public bool CanVerticallyScroll { get; set; } = true;
@@ -24,6 +33,21 @@ public sealed class VirtualizingMasonryPanel : VirtualizingPanel, IScrollInfo
     public double HorizontalOffset => _offset.X;
     public double VerticalOffset => _offset.Y;
     public ScrollViewer? ScrollOwner { get; set; }
+    public int VisibleItemCount => _visibleItemCount;
+    public int CachedItemCount => _cachedItemCount;
+    public int RealizedItemCount => InternalChildren.Count;
+
+    public IReadOnlyList<int> GetRealizedItemIndices()
+    {
+        var owner = ItemsControl.GetItemsOwner(this);
+        if (owner is null) return [];
+        return InternalChildren
+            .Cast<UIElement>()
+            .Select(owner.ItemContainerGenerator.IndexFromContainer)
+            .Where(index => index >= 0)
+            .OrderBy(index => index)
+            .ToArray();
+    }
 
     protected override Size MeasureOverride(Size availableSize)
     {
@@ -31,29 +55,46 @@ public sealed class VirtualizingMasonryPanel : VirtualizingPanel, IScrollInfo
         if (owner is null || owner.Items.Count == 0)
         {
             RemoveAllGeneratedChildren();
+            _layoutIndex = MasonryViewportIndex.Empty;
+            _layoutIndexDirty = false;
+            _visibleItemCount = 0;
+            _cachedItemCount = 0;
             var emptyViewport = NormalizeViewport(availableSize);
             UpdateScrollInfo(emptyViewport, default);
             return emptyViewport;
         }
 
         var viewport = NormalizeViewport(availableSize);
-        var extent = CalculateExtent(owner, viewport.Width);
+        EnsureLayoutIndex(owner);
+        var extent = new Size(
+            Math.Max(viewport.Width, _layoutIndex.ExtentWidth),
+            _layoutIndex.ExtentHeight);
         UpdateScrollInfo(viewport, extent);
 
         var cacheHeight = Math.Max(viewport.Height, 1) * CacheViewports;
         var visibleTop = Math.Max(0, VerticalOffset - cacheHeight);
         var visibleBottom = VerticalOffset + viewport.Height + cacheHeight;
-        var firstIndex = FindFirstIntersectingIndex(owner, visibleTop);
-        var lastIndex = FindLastIntersectingIndex(owner, firstIndex, visibleBottom);
+        var cachedIndices = _layoutIndex.Query(visibleTop, visibleBottom);
+        var viewportIndices = _layoutIndex.Query(
+            VerticalOffset,
+            VerticalOffset + viewport.Height);
+        _visibleItemCount = viewportIndices.Count;
+        _cachedItemCount = cachedIndices.Count;
 
-        if (firstIndex < 0 || lastIndex < firstIndex)
+        if (cachedIndices.Count == 0)
         {
             RemoveAllGeneratedChildren();
             return viewport;
         }
 
-        RemoveChildrenOutsideRange(firstIndex, lastIndex);
-        RealizeRange(owner, firstIndex, lastIndex);
+        var firstIndex = cachedIndices[0];
+        var lastIndex = cachedIndices[^1];
+        _lastRequestedFirstIndex = firstIndex;
+        _lastRequestedLastIndex = lastIndex;
+        _lastNewContainerCount = 0;
+        RemoveChildrenOutsideSet(cachedIndices);
+        RealizeIndices(owner, cachedIndices);
+        TraceViewportDiagnostics(owner, viewportIndices);
         return viewport;
     }
 
@@ -88,8 +129,14 @@ public sealed class VirtualizingMasonryPanel : VirtualizingPanel, IScrollInfo
         {
             RemoveInternalChildRange(0, InternalChildren.Count);
         }
+        _layoutIndexDirty = true;
         InvalidateMeasure();
-        ScrollOwner?.InvalidateScrollInfo();
+    }
+
+    public void InvalidateLayoutIndex()
+    {
+        _layoutIndexDirty = true;
+        InvalidateMeasure();
     }
 
     protected override void BringIndexIntoView(int index)
@@ -143,6 +190,27 @@ public sealed class VirtualizingMasonryPanel : VirtualizingPanel, IScrollInfo
         ScrollOwner?.InvalidateScrollInfo();
     }
 
+    private void RealizeIndices(ItemsControl owner, IReadOnlyList<int> indices)
+    {
+        if (indices.Count == 0) return;
+        var rangeStart = indices[0];
+        var previous = rangeStart;
+        for (var position = 1; position < indices.Count; position++)
+        {
+            var current = indices[position];
+            if (current == previous + 1)
+            {
+                previous = current;
+                continue;
+            }
+
+            RealizeRange(owner, rangeStart, previous);
+            rangeStart = current;
+            previous = current;
+        }
+        RealizeRange(owner, rangeStart, previous);
+    }
+
     private void RealizeRange(ItemsControl owner, int firstIndex, int lastIndex)
     {
         var start = ItemContainerGenerator.GeneratorPositionFromIndex(firstIndex);
@@ -157,6 +225,7 @@ public sealed class VirtualizingMasonryPanel : VirtualizingPanel, IScrollInfo
             var child = (UIElement)ItemContainerGenerator.GenerateNext(out var newlyRealized);
             if (newlyRealized)
             {
+                _lastNewContainerCount++;
                 if (childIndex >= InternalChildren.Count)
                 {
                     AddInternalChild(child);
@@ -178,8 +247,9 @@ public sealed class VirtualizingMasonryPanel : VirtualizingPanel, IScrollInfo
         }
     }
 
-    private void RemoveChildrenOutsideRange(int firstIndex, int lastIndex)
+    private void RemoveChildrenOutsideSet(IReadOnlyList<int> indices)
     {
+        var retained = indices.ToHashSet();
         var owner = ItemsControl.GetItemsOwner(this);
         for (var childIndex = InternalChildren.Count - 1; childIndex >= 0; childIndex--)
         {
@@ -189,7 +259,7 @@ public sealed class VirtualizingMasonryPanel : VirtualizingPanel, IScrollInfo
                 RemoveInternalChildRange(childIndex, 1);
                 continue;
             }
-            if (itemIndex >= firstIndex && itemIndex <= lastIndex) continue;
+            if (retained.Contains(itemIndex)) continue;
             RemoveGeneratedChild(childIndex);
         }
     }
@@ -213,64 +283,87 @@ public sealed class VirtualizingMasonryPanel : VirtualizingPanel, IScrollInfo
 
     private void RemoveGeneratedChild(int childIndex)
     {
-        if (ItemContainerGenerator is IRecyclingItemContainerGenerator recycling)
-        {
-            recycling.Recycle(new GeneratorPosition(childIndex, 0), 1);
-        }
-        else
-        {
-            ItemContainerGenerator.Remove(new GeneratorPosition(childIndex, 0), 1);
-        }
+        // RecyclingItemContainerGenerator applies recycled-position offsets
+        // that assume a linear stacking panel. With absolute masonry geometry,
+        // a non-overlapping scrollbar jump can then shift the requested start
+        // by the entire old child count (for example 84 becomes 120), leaving
+        // half of the viewport blank. Removing the stale mapping is bounded by
+        // the viewport cache and keeps subsequent generation index-correct.
+        ItemContainerGenerator.Remove(new GeneratorPosition(childIndex, 0), 1);
         RemoveInternalChildRange(childIndex, 1);
     }
 
     private void UpdateScrollInfo(Size viewport, Size extent)
     {
+        var changed = !AreClose(_viewport.Width, viewport.Width)
+                      || !AreClose(_viewport.Height, viewport.Height)
+                      || !AreClose(_extent.Width, extent.Width)
+                      || !AreClose(_extent.Height, extent.Height);
         _viewport = viewport;
         _extent = extent;
         _offset.X = ClampOffset(_offset.X, extent.Width, viewport.Width);
         _offset.Y = ClampOffset(_offset.Y, extent.Height, viewport.Height);
-        ScrollOwner?.InvalidateScrollInfo();
+        if (changed) ScrollOwner?.InvalidateScrollInfo();
     }
 
-    private static Size CalculateExtent(ItemsControl owner, double viewportWidth)
+    private void EnsureLayoutIndex(ItemsControl owner)
     {
-        var width = Math.Max(0, viewportWidth);
-        var height = 0d;
-        foreach (var item in owner.Items)
-        {
-            if (item is not GalleryRow row) continue;
-            width = Math.Max(width, row.PanelX + row.PanelWidth);
-            height = Math.Max(height, row.PanelBottom);
-        }
-        return new Size(width, height);
-    }
-
-    private static int FindFirstIntersectingIndex(ItemsControl owner, double top)
-    {
+        if (!_layoutIndexDirty && _layoutIndex.ItemCount == owner.Items.Count) return;
+        var rows = new GalleryRow[owner.Items.Count];
         for (var index = 0; index < owner.Items.Count; index++)
         {
-            if (owner.Items[index] is GalleryRow row && row.PanelBottom >= top)
+            if (owner.Items[index] is not GalleryRow row)
             {
-                return index;
+                _layoutIndex = MasonryViewportIndex.Empty;
+                _layoutIndexDirty = false;
+                return;
             }
+            rows[index] = row;
         }
-        return -1;
+
+        _layoutIndex = MasonryViewportIndex.Create(rows);
+        _layoutIndexDirty = false;
     }
 
-    private static int FindLastIntersectingIndex(
+    private void TraceViewportDiagnostics(
         ItemsControl owner,
-        int firstIndex,
-        double bottom)
+        IReadOnlyList<int> viewportIndices)
     {
-        var last = firstIndex;
-        for (var index = Math.Max(0, firstIndex); index < owner.Items.Count; index++)
+        if (!DevelopmentPerformanceTrace.IsEnabled
+            || AreClose(_lastDiagnosticOffset, VerticalOffset))
         {
-            if (owner.Items[index] is not GalleryRow row) continue;
-            if (row.PanelY > bottom) break;
-            last = index;
+            return;
         }
-        return last;
+
+        _lastDiagnosticOffset = VerticalOffset;
+        var mappedIndices = InternalChildren
+            .Cast<UIElement>()
+            .Select(owner.ItemContainerGenerator.IndexFromContainer)
+            .Where(index => index >= 0)
+            .ToHashSet();
+        var realizedRows = mappedIndices
+            .Where(index => index < owner.Items.Count)
+            .Count(index => owner.Items[index] is GalleryRow { IsRealized: true });
+        DevelopmentPerformanceTrace.Event("masonry-viewport", new
+        {
+            verticalOffset = Math.Round(VerticalOffset, 3),
+            viewportHeight = Math.Round(ViewportHeight, 3),
+            extentHeight = Math.Round(ExtentHeight, 3),
+            ownerItems = owner.Items.Count,
+            expectedVisible = viewportIndices.Count,
+            expectedCached = _cachedItemCount,
+            requestedFirst = _lastRequestedFirstIndex,
+            requestedLast = _lastRequestedLastIndex,
+            requestedRange = _lastRequestedLastIndex - _lastRequestedFirstIndex + 1,
+            newlyRealized = _lastNewContainerCount,
+            realizedChildren = InternalChildren.Count,
+            mappedChildren = mappedIndices.Count,
+            realizedRows,
+            realizedVisible = viewportIndices.Count(mappedIndices.Contains),
+            missingVisible = viewportIndices.Count(index => !mappedIndices.Contains(index)),
+            visibleIndices = viewportIndices,
+            mappedIndices = mappedIndices.OrderBy(index => index).ToArray()
+        });
     }
 
     private Size NormalizeViewport(Size availableSize)
@@ -328,4 +421,7 @@ public sealed class VirtualizingMasonryPanel : VirtualizingPanel, IScrollInfo
         if (!double.IsFinite(offset)) return 0;
         return Math.Clamp(offset, 0, Math.Max(0, extent - viewport));
     }
+
+    private static bool AreClose(double left, double right) =>
+        Math.Abs(left - right) < 0.01;
 }

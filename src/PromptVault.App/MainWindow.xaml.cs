@@ -535,6 +535,7 @@ public partial class MainWindow : Window
         if (cancellation is null || cancellation.IsCancellationRequested) return;
 
         _isLoadingNextPage = true;
+        ShowSubtleStatus("正在准备下一批…");
         var token = cancellation.Token;
         var continuePrefetch = true;
         try
@@ -704,6 +705,7 @@ public partial class MainWindow : Window
             foreach (var row in append.Rows) Rows.Add(row);
         }
 
+        InvalidateMasonryLayoutIndex();
         QueueThumbnailPriorityRefresh();
     }
 
@@ -842,6 +844,7 @@ public partial class MainWindow : Window
 
         while (Rows.Count > targetRows.Count) Rows.RemoveAt(Rows.Count - 1);
 
+        InvalidateMasonryLayoutIndex();
         _rowsScrollViewer ??= FindDescendant<ScrollViewer>(RowsList);
         if (resetScroll) _rowsScrollViewer?.ScrollToTop();
         EmptyGalleryState.Visibility = nextItems.Count == 0
@@ -898,6 +901,19 @@ public partial class MainWindow : Window
         if (RowsList.ActualWidth >= 300) return RowsList.ActualWidth;
         if (GalleryColumn.ActualWidth >= 300) return Math.Max(300, GalleryColumn.ActualWidth - 56);
         return Math.Max(300, ActualWidth - 56);
+    }
+
+    private void InvalidateMasonryLayoutIndex()
+    {
+        var panel = FindDescendant<VirtualizingMasonryPanel>(RowsList);
+        if (panel is not null)
+        {
+            panel.InvalidateLayoutIndex();
+        }
+        else
+        {
+            RowsList.InvalidateMeasure();
+        }
     }
 
     private void ReleaseRow(
@@ -1286,7 +1302,26 @@ public partial class MainWindow : Window
 
     private void GalleryRowUnloaded(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is GalleryRow row) ReleaseRow(row);
+        if (sender is not FrameworkElement element
+            || element.DataContext is not GalleryRow row)
+        {
+            return;
+        }
+
+        _ = Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new Action(() =>
+        {
+            // Recycling can raise DataContextChanged and Unloaded in the same
+            // layout pass, then reattach the same element for the new row.
+            // Releasing synchronously here clears the newly realized row and
+            // leaves an empty card until a later scroll. Only release after
+            // the recycling pass has settled and the element is still detached.
+            if (element.IsLoaded || !ReferenceEquals(element.DataContext, row)) return;
+            if (_realizedRowElements.TryGetValue(row, out var tracked)
+                && ReferenceEquals(tracked, element))
+            {
+                ReleaseRow(row);
+            }
+        }));
     }
 
     private void GalleryRowDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -1322,6 +1357,7 @@ public partial class MainWindow : Window
         _thumbnailPriorityRefreshQueued = false;
         var viewportBottom = RowsList.ActualHeight;
         if (viewportBottom <= 0) return;
+        ReleaseRowsOutsideMasonryCache();
 
         foreach (var (row, element) in _realizedRowElements.ToArray())
         {
@@ -1345,6 +1381,21 @@ public partial class MainWindow : Window
             {
                 _ = card.LoadAsync(priority, dpiScale);
             }
+        }
+    }
+
+    private void ReleaseRowsOutsideMasonryCache()
+    {
+        var panel = FindDescendant<VirtualizingMasonryPanel>(RowsList);
+        if (panel is null || _realizedRowElements.Count == 0) return;
+
+        var retainedRows = panel.GetRealizedItemIndices()
+            .Where(index => index >= 0 && index < Rows.Count)
+            .Select(index => Rows[index])
+            .ToHashSet();
+        foreach (var row in _realizedRowElements.Keys.ToArray())
+        {
+            if (!retainedRows.Contains(row)) ReleaseRow(row);
         }
     }
 
