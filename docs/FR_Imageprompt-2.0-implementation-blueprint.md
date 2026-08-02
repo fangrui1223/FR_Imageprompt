@@ -1,6 +1,6 @@
 # FR_Imageprompt 2.0 实施蓝图
 
-> 文档状态：M0–M7、M7.1 P0 与 M7.2 自适应极速浏览层全部完成
+> 文档状态：M0–M8、M7.1 P0 与 M7.2 自适应极速浏览层全部完成
 > 初版日期：2026-07-24
 > 产品定位：本地优先、画布优先、AI 辅助的沉浸式视觉资产工作台
 > 适用仓库：`D:\FR_AI\AI image prompt`
@@ -8,6 +8,7 @@
 > M7 详细蓝图：`docs/FR_Imageprompt-M7-interaction-refinement-blueprint.md`
 > M7.1 P0 详细蓝图：`docs/FR_Imageprompt-M7.1-P0-scroll-virtualization-regression-blueprint.md`
 > M7.2 详细蓝图：`docs/FR_Imageprompt-M7.2-adaptive-fast-browsing-blueprint.md`
+> M8 详细蓝图：`docs/FR_Imageprompt-M8-pureref-immersive-board-blueprint.md`
 
 本文档既是产品与技术规划，也是跨 Codex 对话的长期进度账本。后续实施必须按稳定步骤编号推进，并在完成每一步后立即更新本文档，避免新对话重复调研、遗漏验证或错误判断项目状态。
 
@@ -248,6 +249,14 @@ M1 目标已完成：FTS、游标分页、准确总数、真正的 UI 与数据�
   - 依据：4K/150% 真机中，10 秒足以从右下角胶囊识别状态并移动到按钮，又不会让成功状态长期遮挡工作区；截止时间持久化，异常退出后剩余时间仍有效。
   - 遗留问题：等待真实长期使用反馈；若调整，只修改集中常量并复测两类撤销语义。
 
+- [x] **D-11 自由画板采用 PureRef 精髓重构，不兼容旧画板操作习惯。**
+
+  完成记录（2026-07-30）：
+  - 结果：保留现有画板数据、撤销、视口裁剪和缓存内核，重做交互外壳。正常状态只显示画板内容；`Space` 聚焦所选或完整画板并可精确恢复；滚轮缩放、中键/Alt+左键平移、Shift 多选、右键上下文命令、隐藏顶部栏、临时检查器和 PureRef 式图片变换成为权威目标。
+  - 补充决定：顶部隐藏栏加入“窗口置顶”按钮，控制当前画板窗口 `Topmost`；按钮状态可持久恢复，但不让顶部栏常显。
+  - 详细步骤：`docs/FR_Imageprompt-M8-pureref-immersive-board-blueprint.md`。
+  - 遗留问题：自由绘制、箭头、矩形标注、画板导出和跨画板复制不进入 M8；设计不应阻塞未来扩展。
+
 ---
 
 ## 6. 总进度
@@ -265,6 +274,7 @@ M1 目标已完成：FTS、游标分页、准确总数、真正的 UI 与数据�
 - [x] M7：沉浸浏览与快速标注重构。详细步骤、真实数据和反馈记录统一维护在 `docs/FR_Imageprompt-M7-interaction-refinement-blueprint.md`。
 - [x] M7.1 P0：滚动与虚拟化回归修复。详细步骤、根因和真实性能证据统一维护在 `docs/FR_Imageprompt-M7.1-P0-scroll-virtualization-regression-blueprint.md`。
 - [x] M7.2：自适应极速浏览层。详细步骤、三规模门禁、4K 真界面、最终体验包和推送记录统一维护在 `docs/FR_Imageprompt-M7.2-adaptive-fast-browsing-blueprint.md`。
+- [x] M8：PureRef 式沉浸自由画板。详细产品契约、逐步清单、真实数据和反馈记录统一维护在 `docs/FR_Imageprompt-M8-pureref-immersive-board-blueprint.md`。
 
 ---
 
@@ -1350,6 +1360,28 @@ M7.2.1 外观回归修复（2026-07-30）：
 - 当前体验包为 `publish/FR_Imageprompt-M7.2.1-appearance-fix-win-x64.zip`，92,407,454 bytes，SHA-256 `5f7a862175c0d1f0080e095bb12044b7ab92d4fd00dc53e7ac7b8dbc4144e142`。包内仅含 238,022,406-byte `PromptVault.exe`。
 - 全部验证使用显式隔离设置、550 条合成图库并关闭剪贴板与在线 AI；真实图库未打开或修改。完整记录见 M7.2 独立蓝图 `M7.2.1`。
 
+## M8：PureRef 式沉浸自由画板
+
+状态：已完成（2026-08-02）。
+
+目标：保留 M5 已验证的画板存储、撤销和 5,000 项视口裁剪，按 PureRef 的画布优先原则重做画板交互外壳，包括 Space 聚焦/恢复、旋转感知适合视野、PureRef 式选择和变换、上下文右键菜单、无边框窗口、隐藏顶部栏、窗口置顶按钮、临时检查器和聚焦渐进高清。
+
+权威详细步骤：
+
+- `docs/FR_Imageprompt-M8-pureref-immersive-board-blueprint.md`
+
+执行要求：
+
+- 新对话必须先完整阅读总蓝图和 M8 独立蓝图，从实际反馈或首个新增阶段继续，不重复执行已完成步骤。
+- 不照顾旧画板 Space 平移、固定检查器或右下角单一缩放块的兼容性；只保留数据与性能内核。
+- 顶部栏置顶按钮控制窗口 `Topmost`，不等于让顶部栏常显。
+- 不回退 M5 5,000 项视口裁剪、M7.2 缓存预算、旧图保持和无黑场协议。
+- M8 详细子步骤、真实数据和反馈在独立蓝图维护；最终 12/12 聚合门禁通过。
+- 最终证据：5,000 项真 WPF 连续平移、缩放和多选变换的 P50/P95/P99/最大值为 16.671/16.671/16.672/16.672ms，已实现元素峰值 37、近黑帧 0；M8/M5 查询 P95 为 0.0329/0.0941ms，均低于 0.10ms 门线。真实图库、剪贴板、网络和密钥使用均为 0。完整报告：`docs/performance/2026-08-01-m8-pureref-board-gate.json`。
+- Release build 0 警告/0 错误、275/275 测试、M8 聚合门禁 12/12 与 M7.2 回归 11/11 通过；最终发布 EXE 的相机、右键命令、窗口置顶、检查器、共同选择变换和渐进高清 6/6 隔离真界面烟测通过，停止后 PromptVault 驻留进程为 0。
+- 唯一体验包为 `publish/FR_Imageprompt-M8-pureref-board-win-x64.zip`，92,476,563 bytes，SHA-256 `AA67E11C077FE5909F079009CB6FA4785D50ACD2A7791E9EEE19525C43B74922`；包内仅含 238,228,230-byte `PromptVault.exe`，且无 PDB、设置、日志、数据库、图片、模型、密钥或本机路径。发布审计见 `docs/performance/2026-08-02-m8-release-package.json`。
+- 本阶段不实现自由绘制、箭头、矩形标注、画板导出或跨画板复制。
+
 ---
 
 ## 8. 数据模型规划
@@ -1733,6 +1765,18 @@ node tools\model-pack\build.mjs
 ## 14. 实施日志
 
 按时间倒序追加，每次只写已经发生的事实。
+
+### 2026-08-02
+
+- M8-00～M8-09 全部完成：PureRef 式 Space 聚焦/精确恢复、选择与框选、统一右键命令、无边框隐藏栏与置顶、临时检查器、共同选择变换和渐进高清已落地；保留 M5 的 5,000 项视口裁剪和 M7.2 的缓存/无黑场协议。
+- 最终 Release build 0 警告/0 错误、275/275 测试、M8 聚合门禁 12/12、M7.2 三规模回归 11/11；4K、150%、59Hz 的 5,000 项真 WPF 帧 P95/P99 均为 16.671/16.672 ms，近黑帧 0。
+- 唯一 M8 ZIP 为 92,476,563 bytes，SHA-256 `AA67E11C077FE5909F079009CB6FA4785D50ACD2A7791E9EEE19525C43B74922`；包内仅有单文件 EXE，隔离最终烟测 6/6 通过，真实图库、剪贴板、网络和密钥使用为 0。
+
+### 2026-07-30
+
+- 用户确认自由画板不需要兼容现有操作习惯，应学习 PureRef 的画布优先、Space 聚焦/恢复、右键命令、隐藏界面和自由变换精髓，并与现有画板数据和性能内核融合。
+- 用户确认隐藏顶部栏增加窗口置顶按钮；置顶、无边框窗口、临时检查器、渐进高清及全部 4K/150% 门禁写入 M8 独立蓝图。
+- 建立 `docs/FR_Imageprompt-M8-pureref-immersive-board-blueprint.md`；M8 尚未修改功能代码，下一步从 M8-00 开始。
 
 ### 2026-07-28
 

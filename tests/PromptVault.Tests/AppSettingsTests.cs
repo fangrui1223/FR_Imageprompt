@@ -48,6 +48,7 @@ public sealed class AppSettingsTests
             settings.InspectorPinned = true;
             settings.EdgeMenuSensitivity = EdgeIntentProfile.HighSensitivity;
             settings.EdgeMenusAlwaysVisible = true;
+            settings.BoardAlwaysOnTop = true;
             settings.Save();
 
             var reloaded = AppSettings.Load(path);
@@ -56,6 +57,7 @@ public sealed class AppSettingsTests
             Assert.True(reloaded.InspectorPinned);
             Assert.Equal(EdgeIntentProfile.HighSensitivity, reloaded.EdgeMenuSensitivity);
             Assert.True(reloaded.EdgeMenusAlwaysVisible);
+            Assert.True(reloaded.BoardAlwaysOnTop);
             Assert.False(reloaded.CaptureListeningEnabled);
             Assert.Equal("D:\\SyntheticLibrary", reloaded.LibraryRoot);
         }

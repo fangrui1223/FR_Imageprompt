@@ -10,6 +10,7 @@ using PromptVault.Core;
 using Brush = System.Windows.Media.Brush;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using Panel = System.Windows.Controls.Panel;
+using ContextMenu = System.Windows.Controls.ContextMenu;
 
 namespace PromptVault.App;
 
@@ -19,6 +20,7 @@ public partial class BoardWindow : Window
 
     private readonly LibraryRepository _repository;
     private readonly BoardWorkspaceService _workspace;
+    private readonly AppSettings _settings;
     private readonly List<BoardRecord> _boards = [];
     private readonly List<BoardItemRecord> _items = [];
     private readonly List<BoardNoteRecord> _notes = [];
@@ -28,37 +30,56 @@ public partial class BoardWindow : Window
     private readonly Dictionary<long, BoardNoteVisual> _realizedNotes = [];
     private readonly Stack<IReadOnlyList<BoardItemRecord>> _undo = [];
     private readonly Stack<IReadOnlyList<BoardItemRecord>> _redo = [];
+    private readonly BoardFocusController _focusController = new();
     private BoardViewport _viewport = new(0, 0, 1, 0, 0);
     private Point? _panStart;
     private BoardViewport _panStartViewport;
-    private bool _spacePressed;
     private long? _dragItemId;
+    private Point _itemPointerStartScreen;
+    private bool _itemDragActive;
     private long? _dragNoteId;
+    private Point _notePointerStartScreen;
+    private bool _noteDragActive;
     private Point _dragStartWorld;
     private Dictionary<long, (double X, double Y)> _dragOrigins = [];
     private (double X, double Y) _noteDragOrigin;
     private BoardNoteRecord? _noteResizeOrigin;
     private long? _selectedNoteId;
+    private Point? _marqueeStartScreen;
+    private HashSet<long> _marqueeBaseline = [];
+    private long? _marqueeBaselineNoteId;
+    private bool _marqueeActive;
     private IReadOnlyList<BoardItemRecord>? _pendingHistorySnapshot;
     private bool _loadingBoard;
     private bool _persistViewQueued;
     private CancellationTokenSource? _viewSaveCancellation;
+    private CancellationTokenSource? _cameraAnimationCancellation;
+    private BoardRightGestureClassifier? _rightGesture;
+    private Point _rightPointerStartScreen;
+    private BoardCommandContextKind _rightContext;
+    private long? _rightTargetId;
+    private bool _rightWindowDragStarted;
+    private ContextMenu? _openBoardContextMenu;
 
     internal BoardWindow(
         LibraryRepository repository,
         BoardWorkspaceService workspace,
+        AppSettings settings,
         long boardId)
     {
         _repository = repository;
         _workspace = workspace;
+        _settings = settings;
         CurrentBoardId = boardId;
         InitializeComponent();
+        ApplyTopmostPreference(_settings.BoardAlwaysOnTop);
     }
 
     internal long CurrentBoardId { get; private set; }
 
     private async void BoardWindowLoaded(object sender, RoutedEventArgs e)
     {
+        InitializeBoardChrome();
         await ReloadBoardsAsync(CurrentBoardId);
     }
 
@@ -96,6 +117,7 @@ public partial class BoardWindow : Window
             var updated = await _repository.AddBoardItemsAsync(CurrentBoardId, placements);
             _items.Clear();
             _items.AddRange(updated);
+            BoardViewportEngine.Invalidate(_items);
             _selectedIds.Clear();
             foreach (var item in updated.TakeLast(requests.Count)) _selectedIds.Add(item.Id);
             RenderVisibleItems();
@@ -134,6 +156,10 @@ public partial class BoardWindow : Window
 
     private async Task LoadBoardAsync(long boardId)
     {
+        CancelCameraAnimation();
+        CancelProgressiveFocusLoad();
+        ExitTransformMode();
+        _focusController.Reset();
         var document = await _repository.GetBoardDocumentAsync(boardId);
         if (document is null) return;
         var previous = CurrentBoardId;
@@ -142,6 +168,7 @@ public partial class BoardWindow : Window
         Title = $"FR_Imageprompt · {document.Board.Name}";
         _items.Clear();
         _items.AddRange(document.Items);
+        BoardViewportEngine.Invalidate(_items);
         _notes.Clear();
         _notes.AddRange(document.Notes);
         _groups.Clear();
@@ -168,13 +195,18 @@ public partial class BoardWindow : Window
     {
         if (_loadingBoard || BoardSelector.SelectedItem is not BoardRecord board
             || board.Id == CurrentBoardId) return;
-        await PersistViewNowAsync();
+        await PersistViewNowAsync(force: true);
         await LoadBoardAsync(board.Id);
     }
 
     private void BoardViewportSizeChanged(object sender, SizeChangedEventArgs e)
     {
         _viewport = _viewport with { Width = e.NewSize.Width, Height = e.NewSize.Height };
+        if (TryRecalculateFocusForViewport())
+        {
+            RenderVisibleItems();
+            return;
+        }
         RenderVisibleItems();
     }
 
@@ -237,6 +269,7 @@ public partial class BoardWindow : Window
             ? Visibility.Visible
             : Visibility.Collapsed;
         VisibleCountText.Text = $"{visible.Count:N0} / {_items.Count:N0} 项";
+        UpdateSelectionOverlay();
         UpdateInspector();
     }
 
@@ -250,7 +283,7 @@ public partial class BoardWindow : Window
         RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.LowQuality);
         var missing = new TextBlock
         {
-            Text = "原图缺失\n双击或在检查器中重新定位",
+            Text = "原图缺失\n请在检查器中重新定位",
             TextAlignment = TextAlignment.Center,
             TextWrapping = TextWrapping.Wrap,
             Foreground = new SolidColorBrush(Color.FromRgb(255, 194, 102)),
@@ -278,24 +311,6 @@ public partial class BoardWindow : Window
         border.PreviewMouseLeftButtonUp += BoardItemMouseLeftButtonUp;
         border.MouseMove += BoardItemMouseMove;
 
-        var resize = new Thumb
-        {
-            Width = 18,
-            Height = 18,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Bottom,
-            Cursor = Cursors.SizeNWSE,
-            Background = (Brush)FindResource("AccentBrush"),
-            BorderBrush = Brushes.White,
-            BorderThickness = new Thickness(2),
-            Tag = item.Id,
-            Margin = new Thickness(0, 0, -4, -4)
-        };
-        resize.DragStarted += ResizeStarted;
-        resize.DragDelta += ResizeDelta;
-        resize.DragCompleted += ResizeCompleted;
-        grid.Children.Add(resize);
-        Panel.SetZIndex(resize, 5);
         UpdateItemElement(border, item);
         _ = LoadItemImageAsync(image, missing, item);
         return border;
@@ -448,25 +463,11 @@ public partial class BoardWindow : Window
                 ThumbnailSizingPolicy.LargeGalleryPixels,
                 ThumbnailRequestPriority.Visible,
                 CancellationToken.None);
-            if (item.CropLeft > 0 || item.CropTop > 0 || item.CropRight > 0 || item.CropBottom > 0)
-            {
-                var x = (int)Math.Round(bitmap.PixelWidth * item.CropLeft);
-                var y = (int)Math.Round(bitmap.PixelHeight * item.CropTop);
-                var width = Math.Max(1, bitmap.PixelWidth - x - (int)Math.Round(bitmap.PixelWidth * item.CropRight));
-                var height = Math.Max(1, bitmap.PixelHeight - y - (int)Math.Round(bitmap.PixelHeight * item.CropBottom));
-                var cropped = new CroppedBitmap(bitmap, new Int32Rect(x, y, width, height));
-                cropped.Freeze();
-                image.Source = cropped;
-            }
-            else
-            {
-                image.Source = bitmap;
-            }
+            image.Source = ApplyCrop(bitmap, item);
         }
         catch (Exception ex)
         {
             AppLog.Warning("board-thumbnail", "Board thumbnail could not be loaded.", ex);
-            image.Source = null;
         }
     }
 
@@ -489,6 +490,7 @@ public partial class BoardWindow : Window
 
     private void BoardViewportMouseWheel(object sender, MouseWheelEventArgs e)
     {
+        InterruptCameraAnimation();
         var pointer = e.GetPosition(BoardViewport);
         var factor = e.Delta > 0 ? 1.12 : 1 / 1.12;
         _viewport = BoardViewportEngine.ZoomAt(
@@ -506,6 +508,7 @@ public partial class BoardWindow : Window
     {
         if (e.ChangedButton == MouseButton.Middle)
         {
+            InterruptCameraAnimation();
             StartPan(e.GetPosition(BoardViewport));
             e.Handled = true;
         }
@@ -522,36 +525,68 @@ public partial class BoardWindow : Window
 
     private void BoardViewportMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (_spacePressed)
+        if (!IsBlankCanvasSource(e.OriginalSource as DependencyObject)) return;
+        if (BoardInspector.Visibility == Visibility.Visible) CloseInspector();
+        InterruptCameraAnimation();
+        var point = e.GetPosition(BoardViewport);
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
         {
-            StartPan(e.GetPosition(BoardViewport));
+            StartPan(point);
             e.Handled = true;
             return;
         }
-        if (e.OriginalSource == BoardViewport || FindParent<Border>(e.OriginalSource as DependencyObject) is null)
+        _marqueeStartScreen = point;
+        _marqueeBaseline = _selectedIds.ToHashSet();
+        _marqueeBaselineNoteId = _selectedNoteId;
+        _marqueeActive = false;
+        BoardViewport.CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void BoardViewportMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_panStart is not null)
+        {
+            EndPan();
+            e.Handled = true;
+            return;
+        }
+        if (_marqueeStartScreen is null) return;
+        if (!_marqueeActive && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
         {
             _selectedIds.Clear();
             _selectedNoteId = null;
             RenderVisibleItems();
         }
-    }
-
-    private void BoardViewportMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-    {
-        if (_panStart is not null) EndPan();
+        EndMarquee();
+        e.Handled = true;
     }
 
     private void BoardViewportMouseMove(object sender, MouseEventArgs e)
     {
-        if (_panStart is not { } start) return;
-        var current = e.GetPosition(BoardViewport);
-        _viewport = _panStartViewport with
+        if (_rightGesture is not null)
         {
-            OffsetX = _panStartViewport.OffsetX + current.X - start.X,
-            OffsetY = _panStartViewport.OffsetY + current.Y - start.Y
-        };
-        ApplyViewportMatrix();
-        RenderVisibleItems();
+            HandleRightGestureMove(e);
+            return;
+        }
+        if (_panStart is { } start)
+        {
+            var current = e.GetPosition(BoardViewport);
+            _viewport = _panStartViewport with
+            {
+                OffsetX = _panStartViewport.OffsetX + current.X - start.X,
+                OffsetY = _panStartViewport.OffsetY + current.Y - start.Y
+            };
+            ApplyViewportMatrix();
+            RenderVisibleItems();
+            return;
+        }
+        if (_marqueeStartScreen is not { } marqueeStart || e.LeftButton != MouseButtonState.Pressed) return;
+        var pointer = e.GetPosition(BoardViewport);
+        if (!_marqueeActive && !BoardInteractionEngine.ExceedsDragThreshold(
+                marqueeStart.X, marqueeStart.Y, pointer.X, pointer.Y)) return;
+        _marqueeActive = true;
+        UpdateMarquee(marqueeStart, pointer, Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
     }
 
     private void StartPan(Point point)
@@ -571,43 +606,91 @@ public partial class BoardWindow : Window
         QueuePersistView();
     }
 
+    private bool IsBlankCanvasSource(DependencyObject? source)
+    {
+        var taggedBorder = FindParent<Border>(source);
+        return taggedBorder?.Tag is not long;
+    }
+
+    private void UpdateMarquee(Point start, Point current, bool additive)
+    {
+        var left = Math.Min(start.X, current.X);
+        var top = Math.Min(start.Y, current.Y);
+        MarqueeSelection.Width = Math.Abs(current.X - start.X);
+        MarqueeSelection.Height = Math.Abs(current.Y - start.Y);
+        MarqueeSelection.Margin = new Thickness(left, top, 0, 0);
+        MarqueeSelection.Visibility = Visibility.Visible;
+
+        var worldStart = ToWorld(start);
+        var worldCurrent = ToWorld(current);
+        var worldRect = new BoardWorldRect(
+            worldStart.X,
+            worldStart.Y,
+            worldCurrent.X - worldStart.X,
+            worldCurrent.Y - worldStart.Y);
+        var selection = BoardInteractionEngine.SelectItemsInMarquee(
+            _items,
+            worldRect,
+            _marqueeBaseline,
+            additive);
+        _selectedIds.Clear();
+        _selectedIds.UnionWith(selection);
+        var noteHits = BoardInteractionEngine.SelectNotesInMarquee(_notes, worldRect);
+        _selectedNoteId = noteHits.Count > 0
+            ? noteHits[0]
+            : additive ? _marqueeBaselineNoteId : null;
+        RenderVisibleItems();
+    }
+
+    private void EndMarquee()
+    {
+        _marqueeStartScreen = null;
+        _marqueeActive = false;
+        _marqueeBaseline.Clear();
+        _marqueeBaselineNoteId = null;
+        MarqueeSelection.Visibility = Visibility.Collapsed;
+        if (Mouse.Captured == BoardViewport) BoardViewport.ReleaseMouseCapture();
+    }
+
     private void BoardItemMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (sender is not Border { Tag: long id } border) return;
+        if (FindParent<Thumb>(e.OriginalSource as DependencyObject) is not null) return;
         _selectedNoteId = null;
         if (e.ClickCount > 1)
         {
             _selectedIds.Clear();
             _selectedIds.Add(id);
             RenderVisibleItems();
-            RelinkSourceClick(sender, new RoutedEventArgs());
+            FocusItemFromDoubleClick(id);
             e.Handled = true;
             return;
         }
-        var clicked = _items.Single(item => item.Id == id);
-        if ((Keyboard.Modifiers & ModifierKeys.Control) != 0)
+        var selection = BoardInteractionEngine.SelectItem(
+            _items,
+            _selectedIds,
+            id,
+            Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
+        _selectedIds.Clear();
+        _selectedIds.UnionWith(selection);
+        _cropModeActive = false;
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
-            if (!_selectedIds.Add(id)) _selectedIds.Remove(id);
-        }
-        else if (!_selectedIds.Contains(id))
-        {
-            _selectedIds.Clear();
-            if (clicked.GroupId is { } groupId)
-            {
-                foreach (var groupItem in _items.Where(item => item.GroupId == groupId))
-                    _selectedIds.Add(groupItem.Id);
-            }
-            else
-            {
-                _selectedIds.Add(id);
-            }
+            _dragItemId = id;
+            BeginRotationGesture(ToWorld(e.GetPosition(BoardViewport)));
+            border.CaptureMouse();
+            RenderVisibleItems();
+            e.Handled = true;
+            return;
         }
         _dragItemId = id;
+        _itemPointerStartScreen = e.GetPosition(BoardViewport);
+        _itemDragActive = false;
         _dragStartWorld = ToWorld(e.GetPosition(BoardViewport));
         _dragOrigins = _items
             .Where(item => _selectedIds.Contains(item.Id))
             .ToDictionary(item => item.Id, item => (item.X, item.Y));
-        _pendingHistorySnapshot = SnapshotItems();
+        _pendingHistorySnapshot = null;
         border.CaptureMouse();
         RenderVisibleItems();
         e.Handled = true;
@@ -616,7 +699,24 @@ public partial class BoardWindow : Window
     private void BoardItemMouseMove(object sender, MouseEventArgs e)
     {
         if (_dragItemId is null || e.LeftButton != MouseButtonState.Pressed) return;
-        var current = ToWorld(e.GetPosition(BoardViewport));
+        if (_rotationGestureActive)
+        {
+            UpdateRotationGesture(ToWorld(e.GetPosition(BoardViewport)));
+            e.Handled = true;
+            return;
+        }
+        var screen = e.GetPosition(BoardViewport);
+        if (!_itemDragActive)
+        {
+            if (!BoardInteractionEngine.ExceedsDragThreshold(
+                    _itemPointerStartScreen.X,
+                    _itemPointerStartScreen.Y,
+                    screen.X,
+                    screen.Y)) return;
+            _itemDragActive = true;
+            _pendingHistorySnapshot = SnapshotItems();
+        }
+        var current = ToWorld(screen);
         var dx = current.X - _dragStartWorld.X;
         var dy = current.Y - _dragStartWorld.Y;
         for (var index = 0; index < _items.Count; index++)
@@ -625,6 +725,7 @@ public partial class BoardWindow : Window
             if (!_dragOrigins.TryGetValue(item.Id, out var origin)) continue;
             _items[index] = item with { X = origin.X + dx, Y = origin.Y + dy };
         }
+        BoardViewportEngine.RefreshBounds(_items, _selectedIds);
         RenderVisibleItems();
     }
 
@@ -633,11 +734,18 @@ public partial class BoardWindow : Window
         if (sender is Border border) border.ReleaseMouseCapture();
         if (_dragItemId is null) return;
         _dragItemId = null;
-        if (_pendingHistorySnapshot is { } before && HasLayoutChanged(before, _items))
+        if (_rotationGestureActive)
+        {
+            await CompleteRotationGestureAsync();
+            e.Handled = true;
+            return;
+        }
+        if (_itemDragActive && _pendingHistorySnapshot is { } before && HasLayoutChanged(before, _items))
         {
             CommitHistorySnapshot(before);
             await SaveSelectedItemsAsync();
         }
+        _itemDragActive = false;
         _pendingHistorySnapshot = null;
         e.Handled = true;
     }
@@ -645,8 +753,13 @@ public partial class BoardWindow : Window
     private void NoteRootMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (sender is not Border { Tag: long id }) return;
-        _selectedNoteId = id;
-        _selectedIds.Clear();
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+            _selectedNoteId = _selectedNoteId == id ? null : id;
+        else
+        {
+            _selectedNoteId = id;
+            _selectedIds.Clear();
+        }
         RenderVisibleItems();
     }
 
@@ -655,9 +768,22 @@ public partial class BoardWindow : Window
         if (sender is not Border { Tag: long id } header) return;
         var note = _notes.SingleOrDefault(candidate => candidate.Id == id);
         if (note is null) return;
-        _selectedNoteId = id;
-        _selectedIds.Clear();
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+            _selectedNoteId = _selectedNoteId == id ? null : id;
+        else
+        {
+            _selectedNoteId = id;
+            _selectedIds.Clear();
+        }
+        if (_selectedNoteId != id)
+        {
+            RenderVisibleItems();
+            e.Handled = true;
+            return;
+        }
         _dragNoteId = id;
+        _notePointerStartScreen = e.GetPosition(BoardViewport);
+        _noteDragActive = false;
         _dragStartWorld = ToWorld(e.GetPosition(BoardViewport));
         _noteDragOrigin = (note.X, note.Y);
         header.CaptureMouse();
@@ -670,7 +796,17 @@ public partial class BoardWindow : Window
         if (_dragNoteId is not { } id || e.LeftButton != MouseButtonState.Pressed) return;
         var note = _notes.SingleOrDefault(candidate => candidate.Id == id);
         if (note is null) return;
-        var current = ToWorld(e.GetPosition(BoardViewport));
+        var screen = e.GetPosition(BoardViewport);
+        if (!_noteDragActive)
+        {
+            if (!BoardInteractionEngine.ExceedsDragThreshold(
+                    _notePointerStartScreen.X,
+                    _notePointerStartScreen.Y,
+                    screen.X,
+                    screen.Y)) return;
+            _noteDragActive = true;
+        }
+        var current = ToWorld(screen);
         ReplaceNote(note with
         {
             X = _noteDragOrigin.X + current.X - _dragStartWorld.X,
@@ -685,7 +821,8 @@ public partial class BoardWindow : Window
         if (_dragNoteId is not { } id) return;
         _dragNoteId = null;
         var note = _notes.SingleOrDefault(candidate => candidate.Id == id);
-        if (note is not null) await SaveNoteAsync(note, "便签位置已保存");
+        if (_noteDragActive && note is not null) await SaveNoteAsync(note, "便签位置已保存");
+        _noteDragActive = false;
         e.Handled = true;
     }
 
@@ -735,47 +872,15 @@ public partial class BoardWindow : Window
         SetStatus(status);
     }
 
-    private void ResizeStarted(object sender, DragStartedEventArgs e)
-    {
-        if (sender is not Thumb { Tag: long id }) return;
-        if (!_selectedIds.Contains(id))
-        {
-            _selectedIds.Clear();
-            _selectedIds.Add(id);
-        }
-        _pendingHistorySnapshot = SnapshotItems();
-    }
-
-    private void ResizeDelta(object sender, DragDeltaEventArgs e)
-    {
-        if (sender is not Thumb { Tag: long id }) return;
-        var index = _items.FindIndex(item => item.Id == id);
-        if (index < 0) return;
-        var item = _items[index];
-        _items[index] = item with
-        {
-            Width = Math.Max(72, item.Width + e.HorizontalChange / _viewport.Zoom),
-            Height = Math.Max(72, item.Height + e.VerticalChange / _viewport.Zoom)
-        };
-        RenderVisibleItems();
-    }
-
-    private async void ResizeCompleted(object sender, DragCompletedEventArgs e)
-    {
-        if (_pendingHistorySnapshot is not { } before) return;
-        CommitHistorySnapshot(before);
-        _pendingHistorySnapshot = null;
-        await SaveSelectedItemsAsync();
-    }
-
     private async Task SaveSelectedItemsAsync()
     {
         try
         {
-            foreach (var item in _items.Where(item => _selectedIds.Contains(item.Id)))
-            {
-                await _repository.UpdateBoardItemAsync(CurrentBoardId, ToUpdate(item));
-            }
+            var updates = _items
+                .Where(item => _selectedIds.Contains(item.Id))
+                .Select(ToUpdate)
+                .ToArray();
+            await _repository.UpdateBoardItemsAsync(CurrentBoardId, updates);
             SetStatus($"已保存 {_selectedIds.Count} 个画板项");
         }
         catch (Exception ex)
@@ -793,6 +898,7 @@ public partial class BoardWindow : Window
         {
             if (_selectedIds.Contains(_items[index].Id)) _items[index] = transform(_items[index]);
         }
+        BoardViewportEngine.RefreshBounds(_items, _selectedIds);
         CommitHistorySnapshot(before);
         RecreateSelectedVisuals();
         await SaveSelectedItemsAsync();
@@ -800,46 +906,30 @@ public partial class BoardWindow : Window
 
     private async void LayerForwardClick(object sender, RoutedEventArgs e)
     {
-        var top = _items.Count == 0 ? 0 : _items.Max(item => item.ZIndex);
-        await MutateSelectionAsync(item => item with { ZIndex = ++top });
+        await ExecuteBoardCommandAsync(BoardCommandId.LayerForward);
     }
 
     private async void LayerBackwardClick(object sender, RoutedEventArgs e)
     {
-        var bottom = _items.Count == 0 ? 0 : _items.Min(item => item.ZIndex);
-        await MutateSelectionAsync(item => item with { ZIndex = --bottom });
+        await ExecuteBoardCommandAsync(BoardCommandId.LayerBackward);
     }
 
     private async void RotateLeftClick(object sender, RoutedEventArgs e) =>
-        await MutateSelectionAsync(item => item with { Rotation = item.Rotation - 5 });
+        await ExecuteBoardCommandAsync(BoardCommandId.RotateLeft);
 
     private async void RotateRightClick(object sender, RoutedEventArgs e) =>
-        await MutateSelectionAsync(item => item with { Rotation = item.Rotation + 5 });
+        await ExecuteBoardCommandAsync(BoardCommandId.RotateRight);
 
     private async void CropHorizontalClick(object sender, RoutedEventArgs e) =>
-        await MutateSelectionAsync(item =>
-        {
-            var increment = item.CropLeft + item.CropRight >= 0.8 ? 0 : 0.025;
-            return item with { CropLeft = item.CropLeft + increment, CropRight = item.CropRight + increment };
-        });
+        await ExecuteBoardCommandAsync(BoardCommandId.CropHorizontal);
 
     private async void CropVerticalClick(object sender, RoutedEventArgs e) =>
-        await MutateSelectionAsync(item =>
-        {
-            var increment = item.CropTop + item.CropBottom >= 0.8 ? 0 : 0.025;
-            return item with { CropTop = item.CropTop + increment, CropBottom = item.CropBottom + increment };
-        });
+        await ExecuteBoardCommandAsync(BoardCommandId.CropVertical);
 
     private async void ResetCropClick(object sender, RoutedEventArgs e) =>
-        await MutateSelectionAsync(item => item with
-        {
-            CropLeft = 0,
-            CropTop = 0,
-            CropRight = 0,
-            CropBottom = 0
-        });
+        await ExecuteBoardCommandAsync(BoardCommandId.ResetCrop);
 
-    private async void DeleteSelectionClick(object sender, RoutedEventArgs e) => await DeleteSelectionAsync();
+    private async void DeleteSelectionClick(object sender, RoutedEventArgs e) => await ExecuteBoardCommandAsync(BoardCommandId.RemoveSelection);
 
     private async Task DeleteSelectionAsync()
     {
@@ -870,7 +960,7 @@ public partial class BoardWindow : Window
         UpdateUndoButtons();
     }
 
-    private async void UndoClick(object sender, RoutedEventArgs e) => await UndoAsync();
+    private async void UndoClick(object sender, RoutedEventArgs e) => await ExecuteBoardCommandAsync(BoardCommandId.Undo);
 
     private async Task UndoAsync()
     {
@@ -880,7 +970,7 @@ public partial class BoardWindow : Window
         await RestoreSnapshotAsync(snapshot, "已撤销");
     }
 
-    private async void RedoClick(object sender, RoutedEventArgs e) => await RedoAsync();
+    private async void RedoClick(object sender, RoutedEventArgs e) => await ExecuteBoardCommandAsync(BoardCommandId.Redo);
 
     private async Task RedoAsync()
     {
@@ -895,6 +985,7 @@ public partial class BoardWindow : Window
         await _repository.ReplaceBoardItemsAsync(CurrentBoardId, snapshot);
         _items.Clear();
         _items.AddRange(await _repository.GetBoardItemsAsync(CurrentBoardId));
+        BoardViewportEngine.Invalidate(_items);
         _selectedIds.RemoveWhere(id => _items.All(item => item.Id != id));
         RenderVisibleItems();
         UpdateUndoButtons();
@@ -910,36 +1001,7 @@ public partial class BoardWindow : Window
 
     private void FitBoardClick(object sender, RoutedEventArgs e)
     {
-        if (_items.Count == 0 && _notes.Count == 0)
-        {
-            _viewport = _viewport with { OffsetX = BoardViewport.ActualWidth / 2, OffsetY = BoardViewport.ActualHeight / 2, Zoom = 1 };
-        }
-        else
-        {
-            var bounds = _items
-                .Select(item => new BoardWorldRect(item.X, item.Y, item.Width, item.Height))
-                .Concat(_notes.Select(note => new BoardWorldRect(note.X, note.Y, note.Width, note.Height)))
-                .ToArray();
-            var minX = bounds.Min(item => item.X);
-            var minY = bounds.Min(item => item.Y);
-            var maxX = bounds.Max(item => item.X + item.Width);
-            var maxY = bounds.Max(item => item.Y + item.Height);
-            var width = Math.Max(1, maxX - minX);
-            var height = Math.Max(1, maxY - minY);
-            var zoom = Math.Min(
-                Math.Max(1, BoardViewport.ActualWidth - 100) / width,
-                Math.Max(1, BoardViewport.ActualHeight - 100) / height);
-            zoom = BoardViewportEngine.ClampZoom(zoom);
-            _viewport = _viewport with
-            {
-                Zoom = zoom,
-                OffsetX = (BoardViewport.ActualWidth - width * zoom) / 2 - minX * zoom,
-                OffsetY = (BoardViewport.ActualHeight - height * zoom) / 2 - minY * zoom
-            };
-        }
-        ApplyViewportMatrix();
-        RenderVisibleItems();
-        QueuePersistView();
+        _ = ExecuteBoardCommandAsync(BoardCommandId.FocusAll);
     }
 
     private void QueuePersistView()
@@ -961,15 +1023,16 @@ public partial class BoardWindow : Window
         });
     }
 
-    private async Task PersistViewNowAsync()
+    private async Task PersistViewNowAsync(bool force = false)
     {
-        if (!_persistViewQueued && _boards.Count > 0) return;
+        if (!force && !_persistViewQueued && _boards.Count > 0) return;
         _persistViewQueued = false;
+        var workingViewport = _focusController.WorkingViewport(_viewport);
         await _repository.UpdateBoardViewAsync(
             CurrentBoardId,
-            _viewport.OffsetX,
-            _viewport.OffsetY,
-            _viewport.Zoom);
+            workingViewport.OffsetX,
+            workingViewport.OffsetY,
+            workingViewport.Zoom);
     }
 
     private async void BackgroundSelectorChanged(object sender, SelectionChangedEventArgs e)
@@ -980,7 +1043,9 @@ public partial class BoardWindow : Window
         SetStatus("画板背景已保存");
     }
 
-    private async void AddNoteClick(object sender, RoutedEventArgs e)
+    private async void AddNoteClick(object sender, RoutedEventArgs e) => await ExecuteBoardCommandAsync(BoardCommandId.AddNote);
+
+    private async Task AddNoteAsync()
     {
         await EnsureBoardLoadedAsync();
         var center = BoardViewportEngine.ScreenToWorld(
@@ -1009,7 +1074,9 @@ public partial class BoardWindow : Window
         SetStatus("已新建便签");
     }
 
-    private async void CycleNoteColorClick(object sender, RoutedEventArgs e)
+    private async void CycleNoteColorClick(object sender, RoutedEventArgs e) => await ExecuteBoardCommandAsync(BoardCommandId.CycleNoteColor);
+
+    private async Task CycleSelectedNoteColorAsync()
     {
         if (_selectedNoteId is not { } id) return;
         var note = _notes.SingleOrDefault(candidate => candidate.Id == id);
@@ -1027,7 +1094,7 @@ public partial class BoardWindow : Window
         await SaveNoteAsync(note, "便签颜色已保存");
     }
 
-    private async void DeleteNoteClick(object sender, RoutedEventArgs e) => await DeleteSelectedNoteAsync();
+    private async void DeleteNoteClick(object sender, RoutedEventArgs e) => await ExecuteBoardCommandAsync(BoardCommandId.DeleteNote);
 
     private async Task DeleteSelectedNoteAsync()
     {
@@ -1039,20 +1106,26 @@ public partial class BoardWindow : Window
         SetStatus("便签已删除");
     }
 
-    private async void NewBoardClick(object sender, RoutedEventArgs e)
+    private async void NewBoardClick(object sender, RoutedEventArgs e) => await ExecuteBoardCommandAsync(BoardCommandId.NewBoard);
+
+    private async Task CreateBoardAsync()
     {
+        await PersistViewNowAsync(force: true);
         var name = UniqueBoardName("新画板");
         var board = await _repository.CreateBoardAsync(name);
         await ReloadBoardsAsync(board.Id);
     }
 
-    private async void RenameBoardClick(object sender, RoutedEventArgs e)
+    private async void RenameBoardClick(object sender, RoutedEventArgs e) => await ExecuteBoardCommandAsync(BoardCommandId.RenameBoard);
+
+    private async Task RenameCurrentBoardAsync()
     {
         if (BoardSelector.SelectedItem is not BoardRecord board) return;
         var name = PromptForText("重命名画板", "画板名称", board.Name);
         if (string.IsNullOrWhiteSpace(name)) return;
         try
         {
+            await PersistViewNowAsync(force: true);
             await _repository.RenameBoardAsync(board.Id, name);
             await ReloadBoardsAsync(board.Id);
         }
@@ -1062,7 +1135,9 @@ public partial class BoardWindow : Window
         }
     }
 
-    private async void DeleteBoardClick(object sender, RoutedEventArgs e)
+    private async void DeleteBoardClick(object sender, RoutedEventArgs e) => await ExecuteBoardCommandAsync(BoardCommandId.DeleteBoard);
+
+    private async Task DeleteCurrentBoardAsync()
     {
         if (BoardSelector.SelectedItem is not BoardRecord board) return;
         if (MessageBox.Show(
@@ -1071,13 +1146,16 @@ public partial class BoardWindow : Window
                 "删除画板",
                 MessageBoxButton.OKCancel,
                 MessageBoxImage.Warning) != MessageBoxResult.OK) return;
+        await PersistViewNowAsync(force: true);
         await _repository.DeleteBoardAsync(board.Id);
         var remaining = await _repository.GetBoardsAsync();
         var next = remaining.FirstOrDefault() ?? await _repository.CreateBoardAsync("灵感画板");
         await ReloadBoardsAsync(next.Id);
     }
 
-    private async void GroupSelectionClick(object sender, RoutedEventArgs e)
+    private async void GroupSelectionClick(object sender, RoutedEventArgs e) => await ExecuteBoardCommandAsync(BoardCommandId.GroupSelection);
+
+    private async Task GroupSelectionAsync()
     {
         if (_selectedIds.Count == 0) return;
         var group = await _repository.CreateBoardGroupAsync(CurrentBoardId, GroupNameBox.Text);
@@ -1086,7 +1164,9 @@ public partial class BoardWindow : Window
         SetStatus($"已组合为“{group.Name}”");
     }
 
-    private async void UngroupSelectionClick(object sender, RoutedEventArgs e)
+    private async void UngroupSelectionClick(object sender, RoutedEventArgs e) => await ExecuteBoardCommandAsync(BoardCommandId.UngroupSelection);
+
+    private async Task UngroupSelectionAsync()
     {
         if (_selectedIds.Count == 0) return;
         await _repository.SetBoardItemsGroupAsync(CurrentBoardId, _selectedIds.ToArray(), null);
@@ -1094,7 +1174,9 @@ public partial class BoardWindow : Window
         SetStatus("已取消分组");
     }
 
-    private async void RenameSelectedGroupClick(object sender, RoutedEventArgs e)
+    private async void RenameSelectedGroupClick(object sender, RoutedEventArgs e) => await ExecuteBoardCommandAsync(BoardCommandId.RenameGroup);
+
+    private async Task RenameSelectedGroupAsync()
     {
         var groupIds = _items
             .Where(item => _selectedIds.Contains(item.Id) && item.GroupId is not null)
@@ -1120,6 +1202,7 @@ public partial class BoardWindow : Window
         if (document is null) return;
         _items.Clear();
         _items.AddRange(document.Items);
+        BoardViewportEngine.Invalidate(_items);
         _notes.Clear();
         _notes.AddRange(document.Notes);
         _groups.Clear();
@@ -1127,7 +1210,9 @@ public partial class BoardWindow : Window
         RenderVisibleItems();
     }
 
-    private async void RelinkSourceClick(object sender, RoutedEventArgs e)
+    private async void RelinkSourceClick(object sender, RoutedEventArgs e) => await ExecuteBoardCommandAsync(BoardCommandId.RelinkSource);
+
+    private async Task RelinkSelectedSourceAsync()
     {
         if (_selectedIds.Count != 1) return;
         var item = _items.Single(candidate => _selectedIds.Contains(candidate.Id));
@@ -1159,60 +1244,124 @@ public partial class BoardWindow : Window
 
     private void BoardWindowPreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Space)
+        var textEditing = IsTextEditingFocus();
+        if (textEditing)
         {
-            _spacePressed = true;
+            if (e.Key == Key.Escape)
+            {
+                Keyboard.Focus(BoardViewport);
+                e.Handled = true;
+            }
+            return;
+        }
+        if (e.Key == Key.Escape)
+        {
+            if (ExitTransformMode())
+            {
+            }
+            else if (_focusController.IsActive)
+            {
+                ToggleSelectionFocus();
+            }
+            else if (_marqueeStartScreen is not null)
+            {
+                EndMarquee();
+            }
+            else if (BoardInspector.Visibility == Visibility.Visible)
+            {
+                CloseInspector();
+            }
+            else if (_selectedIds.Count > 0 || _selectedNoteId is not null)
+            {
+                _selectedIds.Clear();
+                _selectedNoteId = null;
+                RenderVisibleItems();
+            }
             e.Handled = true;
             return;
         }
-        if (e.Key == Key.Z && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        if (e.Key == Key.F10 || (e.Key == Key.System && e.SystemKey == Key.LeftAlt))
         {
-            _ = UndoAsync();
+            ShowTopBarFromKeyboard();
+            e.Handled = true;
+            return;
+        }
+        if (HandleCameraKey(e.Key, Keyboard.Modifiers, e.IsRepeat))
+        {
+            e.Handled = true;
+            return;
+        }
+        if (e.Key == Key.A
+            && Keyboard.Modifiers.HasFlag(ModifierKeys.Control)
+            && Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+        {
+            _ = ExecuteBoardCommandAsync(BoardCommandId.ToggleTopmost);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.I && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            _ = ExecuteBoardCommandAsync(BoardCommandId.ShowInspector);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.D0 && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        {
+            _ = ExecuteBoardCommandAsync(BoardCommandId.ResetView);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.C && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        {
+            _ = ExecuteBoardCommandAsync(BoardCommandId.Copy);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.V && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        {
+            _ = ExecuteBoardCommandAsync(BoardCommandId.Paste);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.N && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        {
+            _ = ExecuteBoardCommandAsync(BoardCommandId.AddNote);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Z && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        {
+            _ = ExecuteBoardCommandAsync(BoardCommandId.Undo);
             e.Handled = true;
         }
         else if (e.Key == Key.Y && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
-            _ = RedoAsync();
+            _ = ExecuteBoardCommandAsync(BoardCommandId.Redo);
             e.Handled = true;
         }
         else if (e.Key == Key.Delete)
         {
-            if (_selectedNoteId is not null)
-                _ = DeleteSelectedNoteAsync();
-            else
-                _ = DeleteSelectionAsync();
+            _ = ExecuteBoardCommandAsync(
+                _selectedNoteId is not null ? BoardCommandId.DeleteNote : BoardCommandId.RemoveSelection);
             e.Handled = true;
         }
         else if (e.Key == Key.A && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
             _selectedIds.Clear();
-            _selectedNoteId = null;
+            _selectedNoteId = _notes.FirstOrDefault()?.Id;
             foreach (var item in _items) _selectedIds.Add(item.Id);
             RenderVisibleItems();
             e.Handled = true;
         }
     }
 
-    protected override void OnKeyUp(KeyEventArgs e)
-    {
-        if (e.Key == Key.Space)
-        {
-            _spacePressed = false;
-            if (_panStart is not null) EndPan();
-        }
-        base.OnKeyUp(e);
-    }
-
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
+        CancelCameraAnimation();
+        CancelProgressiveFocusLoad();
         _viewSaveCancellation?.Cancel();
         try
         {
+            var workingViewport = _focusController.WorkingViewport(_viewport);
             _repository.UpdateBoardViewAsync(
                     CurrentBoardId,
-                    _viewport.OffsetX,
-                    _viewport.OffsetY,
-                    _viewport.Zoom)
+                    workingViewport.OffsetX,
+                    workingViewport.OffsetY,
+                    workingViewport.Zoom)
                 .GetAwaiter()
                 .GetResult();
         }
@@ -1251,45 +1400,14 @@ public partial class BoardWindow : Window
 
     private void UpdateInspector()
     {
-        if (_selectedNoteId is { } noteId)
-        {
-            var note = _notes.SingleOrDefault(candidate => candidate.Id == noteId);
-            SelectionSummaryText.Text = note is null
-                ? "未选择图片"
-                : $"已选择便签 · {note.Width:N0} × {note.Height:N0}";
-            SourceStateText.Text = note is null
-                ? "选择一张图片查看状态"
-                : "便签只保存在当前画板，不会修改图库图片或提示词。";
-            return;
-        }
-        var selectedGroups = _items
-            .Where(item => _selectedIds.Contains(item.Id) && item.GroupId is not null)
-            .Select(item => item.GroupId!.Value)
-            .Distinct()
-            .ToArray();
-        var groupLabel = selectedGroups.Length == 1
-            ? _groups.FirstOrDefault(group => group.Id == selectedGroups[0])?.Name
-            : null;
-        SelectionSummaryText.Text = _selectedIds.Count == 0
-            ? "未选择图片"
-            : string.IsNullOrWhiteSpace(groupLabel)
-                ? $"已选择 {_selectedIds.Count} 项"
-                : $"已选择 {_selectedIds.Count} 项 · 分组：{groupLabel}";
-        if (_selectedIds.Count == 1)
-        {
-            var item = _items.Single(candidate => _selectedIds.Contains(candidate.Id));
-            var path = ResolveItemOriginalPath(item);
-            SourceStateText.Text = File.Exists(path)
-                ? $"原图可用\n{path}"
-                : $"原图缺失，可重新定位\n记录路径：{item.SourcePathOverride ?? item.SourcePathSnapshot}";
-        }
-        else
-        {
-            SourceStateText.Text = _selectedIds.Count > 1 ? "多选状态" : "选择一张图片查看状态";
-        }
+        UpdateInspectorContent();
     }
 
-    private void SetStatus(string text) => BoardStatusText.Text = text;
+    private void SetStatus(string text)
+    {
+        BoardStatusText.Text = text;
+        ShowStatusOverlay();
+    }
 
     private string UniqueBoardName(string prefix)
     {
@@ -1338,7 +1456,11 @@ public partial class BoardWindow : Window
     private void ReplaceItem(BoardItemRecord replacement)
     {
         var index = _items.FindIndex(item => item.Id == replacement.Id);
-        if (index >= 0) _items[index] = replacement;
+        if (index >= 0)
+        {
+            _items[index] = replacement;
+            BoardViewportEngine.RefreshBounds(_items, [replacement.Id]);
+        }
     }
 
     private void ReplaceNote(BoardNoteRecord replacement)

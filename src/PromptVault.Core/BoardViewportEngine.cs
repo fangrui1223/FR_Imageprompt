@@ -1,7 +1,11 @@
+using System.Runtime.CompilerServices;
+
 namespace PromptVault.Core;
 
 public static class BoardViewportEngine
 {
+    private sealed record VisibilityBounds(BoardWorldRect[] Items, IReadOnlyDictionary<long, int> IdIndexes);
+    private static readonly ConditionalWeakTable<IReadOnlyList<BoardItemRecord>, VisibilityBounds> BoundsCache = new();
     public const double MinimumZoom = 0.1;
     public const double MaximumZoom = 8;
 
@@ -51,22 +55,35 @@ public static class BoardViewportEngine
     {
         var visible = VisibleWorldRect(viewport, overscanPixels);
         var result = new List<BoardItemRecord>(Math.Min(items.Count, 256));
-        foreach (var item in items)
+        if (!BoundsCache.TryGetValue(items, out var cached))
         {
-            var radius = Math.Abs(item.Rotation % 180) < 0.01
-                ? 0
-                : Math.Max(item.Width, item.Height) * 0.25;
-            if (Intersects(
-                    visible,
-                    item.X - radius,
-                    item.Y - radius,
-                    item.Width + radius * 2,
-                    item.Height + radius * 2))
-            {
-                result.Add(item);
-            }
+            cached = new VisibilityBounds(
+                items.Select(BoardCameraEngine.ItemBounds).ToArray(),
+                items.Select((item, index) => (item.Id, index)).ToDictionary(pair => pair.Id, pair => pair.index));
+            BoundsCache.Add(items, cached);
+        }
+        var boundsItems = cached.Items;
+        for (var index = 0; index < items.Count; index++)
+        {
+            var bounds = boundsItems[index];
+            if (Intersects(visible, bounds.X, bounds.Y, bounds.Width, bounds.Height))
+                result.Add(items[index]);
         }
         return result;
+    }
+
+    public static void Invalidate(IReadOnlyList<BoardItemRecord> items) => BoundsCache.Remove(items);
+
+    public static void RefreshBounds(
+        IReadOnlyList<BoardItemRecord> items,
+        IEnumerable<long> changedItemIds)
+    {
+        if (!BoundsCache.TryGetValue(items, out var cached)) return;
+        foreach (var id in changedItemIds.Distinct())
+        {
+            if (!cached.IdIndexes.TryGetValue(id, out var index) || index >= items.Count) continue;
+            cached.Items[index] = BoardCameraEngine.ItemBounds(items[index]);
+        }
     }
 
     public static IReadOnlyList<BoardNoteRecord> QueryVisible(

@@ -281,6 +281,46 @@ public sealed partial class LibraryRepository
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task UpdateBoardItemsAsync(
+        long boardId,
+        IReadOnlyList<BoardItemUpdate> updates,
+        CancellationToken cancellationToken = default)
+    {
+        if (updates.Count == 0) return;
+        if (updates.Select(update => update.Id).Distinct().Count() != updates.Count)
+            throw new ArgumentException("批量画板更新不能包含重复项目。", nameof(updates));
+        foreach (var update in updates) ValidateItemUpdate(update);
+        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction =
+            (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        var now = DateTimeOffset.UtcNow.ToString("O");
+        foreach (var update in updates)
+        {
+            if (update.GroupId is { } groupId)
+            {
+                await EnsureGroupBelongsToBoardAsync(
+                    connection, transaction, boardId, groupId, cancellationToken).ConfigureAwait(false);
+            }
+            var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = """
+                UPDATE board_items
+                SET x = $x, y = $y, width = $width, height = $height,
+                    z_index = $z, rotation = $rotation,
+                    crop_left = $cropLeft, crop_top = $cropTop,
+                    crop_right = $cropRight, crop_bottom = $cropBottom,
+                    group_id = $group, source_path_override = $override,
+                    updated_at = $now
+                WHERE id = $id AND board_id = $board;
+                """;
+            AddItemUpdateParameters(command, boardId, update, now);
+            if (await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) == 0)
+                throw new KeyNotFoundException($"画板项 {update.Id} 不存在。");
+        }
+        await TouchBoardAsync(connection, transaction, boardId, cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task DeleteBoardItemsAsync(
         long boardId,
         IReadOnlyCollection<long> itemIds,

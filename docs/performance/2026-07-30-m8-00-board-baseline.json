@@ -1,0 +1,226 @@
+{
+  "Milestone": "M8-00-pureref-board-baseline",
+  "GeneratedAt": "2026-07-30T19:49:30.9132627+08:00",
+  "DataKind": "synthetic",
+  "Environment": {
+    "Runtime": ".NET 10.0.9",
+    "OS": "Microsoft Windows 10.0.26200",
+    "Architecture": "X64"
+  },
+  "FixtureContract": {
+    "Sizes": [
+      20,
+      500,
+      5000
+    ],
+    "AspectRatios": [
+      "1:4",
+      "1:2",
+      "2:3",
+      "1:1",
+      "3:2",
+      "2:1",
+      "4:1"
+    ],
+    "HasRotation": true,
+    "HasCrop": true,
+    "HasTwoGroups": true,
+    "HasTwoNotes": true,
+    "IntentionallyMissingUniqueSourceCount": 1,
+    "UsesFixedSeed": true
+  },
+  "Fixtures": [
+    {
+      "RelativeRoot": "board-20",
+      "BoardName": "M8 \u57FA\u7EBF\u753B\u677F 20",
+      "LibraryItemCount": 8,
+      "BoardItemCount": 20,
+      "GroupCount": 2,
+      "NoteCount": 2,
+      "BackgroundStyle": "blueprint",
+      "AspectRatios": [
+        "1:1",
+        "1:2",
+        "1:4",
+        "2:1",
+        "2:3",
+        "3:2",
+        "4:1"
+      ],
+      "RotatedItemCount": 16,
+      "CroppedItemCount": 1,
+      "IntentionallyMissingUniqueSourceCount": 1,
+      "SeedMs": 402.026,
+      "RestartDocumentLoadMs": 9.809,
+      "ViewportQueries": 301,
+      "ViewportQueryP50Ms": 0.0008,
+      "ViewportQueryP95Ms": 0.0009,
+      "ViewportQueryP99Ms": 0.0013,
+      "ViewportQueryMaxMs": 0.5211,
+      "MaximumRealizedCandidateCount": 12,
+      "Passed": true
+    },
+    {
+      "RelativeRoot": "board-500",
+      "BoardName": "M8 \u57FA\u7EBF\u753B\u677F 500",
+      "LibraryItemCount": 8,
+      "BoardItemCount": 500,
+      "GroupCount": 2,
+      "NoteCount": 2,
+      "BackgroundStyle": "blueprint",
+      "AspectRatios": [
+        "1:1",
+        "1:2",
+        "1:4",
+        "2:1",
+        "2:3",
+        "3:2",
+        "4:1"
+      ],
+      "RotatedItemCount": 416,
+      "CroppedItemCount": 45,
+      "IntentionallyMissingUniqueSourceCount": 1,
+      "SeedMs": 349.363,
+      "RestartDocumentLoadMs": 2.496,
+      "ViewportQueries": 301,
+      "ViewportQueryP50Ms": 0.0195,
+      "ViewportQueryP95Ms": 0.0238,
+      "ViewportQueryP99Ms": 0.0271,
+      "ViewportQueryMaxMs": 0.0293,
+      "MaximumRealizedCandidateCount": 36,
+      "Passed": true
+    },
+    {
+      "RelativeRoot": "board-5000",
+      "BoardName": "M8 \u57FA\u7EBF\u753B\u677F 5,000",
+      "LibraryItemCount": 8,
+      "BoardItemCount": 5000,
+      "GroupCount": 2,
+      "NoteCount": 2,
+      "BackgroundStyle": "blueprint",
+      "AspectRatios": [
+        "1:1",
+        "1:2",
+        "1:4",
+        "2:1",
+        "2:3",
+        "3:2",
+        "4:1"
+      ],
+      "RotatedItemCount": 4166,
+      "CroppedItemCount": 454,
+      "IntentionallyMissingUniqueSourceCount": 1,
+      "SeedMs": 463.397,
+      "RestartDocumentLoadMs": 41.342,
+      "ViewportQueries": 301,
+      "ViewportQueryP50Ms": 0.0526,
+      "ViewportQueryP95Ms": 0.057,
+      "ViewportQueryP99Ms": 0.0854,
+      "ViewportQueryMaxMs": 1.3145,
+      "MaximumRealizedCandidateCount": 36,
+      "Passed": true
+    }
+  ],
+  "UiFixture": {
+    "RelativeRoot": "board-20",
+    "SettingsFile": "m8-00-ui-settings.json",
+    "BoardName": "M8 \u57FA\u7EBF\u753B\u677F 20",
+    "BoardItemCount": 20,
+    "CaptureListeningEnabled": false,
+    "CaptureQuickEditEnabled": false,
+    "OnlineAiEnabled": false
+  },
+  "UiBaseline": {
+    "Display": {
+      "PhysicalWidth": 3840,
+      "PhysicalHeight": 2560,
+      "AppliedDpi": 144,
+      "DpiScale": 1.5,
+      "RefreshHz": 59,
+      "Adapter": "NVIDIA GeForce RTX 5090"
+    },
+    "MaximizedWindow": {
+      "CapturedLogicalWidth": 2560,
+      "CapturedLogicalHeight": 1659,
+      "BoardViewportLogicalWidth": 2240,
+      "BoardViewportLogicalHeight": 1547,
+      "FixedTopToolbarVisible": true,
+      "FixedInspectorWidth": 320,
+      "FixedStatusBarHeight": 30
+    },
+    "InitialView": {
+      "ZoomPercent": 115,
+      "VisibleImages": 10,
+      "TotalImagesDuringUiOpen": 21,
+      "VisibleNotes": 2,
+      "SpaceAloneChangedView": false
+    },
+    "FitAll": {
+      "ZoomPercent": 40,
+      "VisibleImages": 21,
+      "TotalImagesDuringUiOpen": 21
+    },
+    "ProcessAtInitialMaximizedView": {
+      "WorkingSetBytes": 360976384,
+      "PrivateMemoryBytes": 559165440,
+      "HandleCount": 806,
+      "ThreadCount": 17,
+      "Responding": true
+    },
+    "VerifiedAutomationIds": [
+      "BoardWindow",
+      "BoardSelector",
+      "BoardUndoButton",
+      "BoardRedoButton",
+      "BoardFitButton",
+      "BoardZoomText",
+      "BoardStatusText",
+      "BoardVisibleCountText"
+    ],
+    "Observation": "The current product has no direct open-existing-board entry, so UI validation opened the board by adding one synthetic item. The fixed 20-item fixture was regenerated clean after validation."
+  },
+  "RegressionBaseline": {
+    "DebugAppBuildWarnings": 0,
+    "DebugAppBuildErrors": 0,
+    "DebugTestsPassed": 227,
+    "DebugTestsFailed": 0,
+    "M5BoardProbe": {
+      "BoardItems": 5000,
+      "ViewportQueryP50Ms": 0.0738,
+      "ViewportQueryP95Ms": 0.0791,
+      "ViewportQueryMaxMs": 1.5152,
+      "MaximumRealizedCandidateCount": 108,
+      "Passed": true
+    },
+    "M7_1Virtualization": {
+      "ItemCount": 30000,
+      "MissingVisibleTotal": 0,
+      "ExtraOutsideCacheTotal": 0,
+      "UnrealizedVisibleTotal": 0,
+      "FrameP95Ms": 16.672,
+      "FrameP99Ms": 16.674,
+      "Passed": true
+    },
+    "M7_2AdaptiveFastBrowse": {
+      "ChecksPassed": 11,
+      "ChecksTotal": 11,
+      "Passed": true
+    }
+  },
+  "Gates": {
+    "ViewportQueryP95LimitMs": 0.1,
+    "MaximumRealizedCandidateLimit": 300,
+    "Passed": true
+  },
+  "DataSafety": {
+    "SyntheticFixturesOnly": true,
+    "RealLibraryOpened": false,
+    "RealLibraryModified": false,
+    "RealLibraryDeleted": false,
+    "ClipboardUsed": false,
+    "NetworkUsed": false,
+    "ApiKeyUsed": false,
+    "AbsolutePathsIncludedInReport": false
+  },
+  "Passed": true
+}

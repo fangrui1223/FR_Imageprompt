@@ -15,6 +15,7 @@ public sealed class AppSettings
     public double InspectorWidth { get; set; } = 440;
     public string EdgeMenuSensitivity { get; set; } = EdgeIntentProfile.NormalSensitivity;
     public bool EdgeMenusAlwaysVisible { get; set; }
+    public bool BoardAlwaysOnTop { get; set; }
     public bool OnlineAiEnabled { get; set; }
     public string OnlineAiEndpoint { get; set; } = "";
     public string OnlineAiModel { get; set; } = "";

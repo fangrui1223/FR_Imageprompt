@@ -1,0 +1,119 @@
+{
+  "Milestone": "M8-pureref-board-aggregate-gate",
+  "GeneratedAt": "2026-08-02T11:06:42.0584074+08:00",
+  "Environment": {
+    "Runtime": ".NET 10.0.9",
+    "OS": "Microsoft Windows 10.0.26200",
+    "Architecture": "X64",
+    "Display": "3840x2560 @ 150% / 59Hz"
+  },
+  "Checks": [
+    {
+      "Name": "fixture",
+      "Passed": true,
+      "Source": "m8-08-release-probe.json"
+    },
+    {
+      "Name": "camera",
+      "Passed": true,
+      "Source": "m8-08-camera.json"
+    },
+    {
+      "Name": "input",
+      "Passed": true,
+      "Source": "m8-08-input.json"
+    },
+    {
+      "Name": "command",
+      "Passed": true,
+      "Source": "m8-08-command.json"
+    },
+    {
+      "Name": "chrome",
+      "Passed": true,
+      "Source": "m8-08-chrome.json"
+    },
+    {
+      "Name": "inspector",
+      "Passed": true,
+      "Source": "m8-08-inspector.json"
+    },
+    {
+      "Name": "transform",
+      "Passed": true,
+      "Source": "m8-08-transform.json"
+    },
+    {
+      "Name": "image",
+      "Passed": true,
+      "Source": "m8-08-image-rerun.json"
+    },
+    {
+      "Name": "frame",
+      "Passed": true,
+      "Source": "m8-08-5000-ui-gate-rerun.json"
+    },
+    {
+      "Name": "m5",
+      "Passed": true,
+      "Source": "m8-08-m5-report.json"
+    },
+    {
+      "Name": "m7",
+      "Passed": true,
+      "Source": "m8-08-m7.2-fast-browse.json"
+    },
+    {
+      "Name": "media",
+      "Passed": true,
+      "Source": "m8-07-media-gate-rerun.json"
+    }
+  ],
+  "Comparison": {
+    "M8FiveThousand": {
+      "ViewportQueryP95Ms": 0.0329,
+      "BaselineM8_00P95Ms": 0.057,
+      "LimitMs": 0.1,
+      "MaximumCandidates": 34
+    },
+    "M5Regression": {
+      "ViewportQueryP95Ms": 0.0941,
+      "BaselineP95Ms": 0.0558,
+      "LimitMs": 0.1,
+      "MaximumCandidates": 107
+    },
+    "RealWpfFrames": {
+      "P50Ms": 16.671,
+      "P95Ms": 16.671,
+      "P99Ms": 16.672,
+      "MaximumMs": 16.672,
+      "OneRefreshLimitMs": 16.949,
+      "TwoRefreshLimitMs": 33.898,
+      "MaximumRealizedElements": 37,
+      "NearBlackFrames": 0
+    },
+    "FourKMedia": {
+      "FixtureBytes": 5084945,
+      "FirstDecodeMs": 77.311,
+      "CachedSwitchMs": 0.188,
+      "CacheBytes": 194040000,
+      "CacheBudgetBytes": 201326592
+    }
+  },
+  "DataSafety": {
+    "SyntheticFixturesOnly": true,
+    "ExplicitSettingsUsed": true,
+    "CaptureListeningEnabled": false,
+    "CaptureQuickEditEnabled": false,
+    "OnlineAiEnabled": false,
+    "RealLibraryOpened": false,
+    "RealLibraryModified": false,
+    "RealLibraryMigrated": false,
+    "RealLibraryDeleted": false,
+    "ClipboardUsed": false,
+    "NetworkUsed": false,
+    "ApiKeysUsed": false,
+    "AbsolutePathsSerialized": false
+  },
+  "Passed": true
+}

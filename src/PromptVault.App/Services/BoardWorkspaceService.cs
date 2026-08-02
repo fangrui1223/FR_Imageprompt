@@ -8,12 +8,14 @@ internal sealed record BoardAddItem(long CollectionItemId, int Width, int Height
 internal sealed class BoardWorkspaceService
 {
     private readonly LibraryRepository _repository;
+    private readonly AppSettings _settings;
     private readonly Dictionary<long, BoardWindow> _windows = [];
     private long? _lastBoardId;
 
-    public BoardWorkspaceService(LibraryRepository repository)
+    public BoardWorkspaceService(LibraryRepository repository, AppSettings settings)
     {
         _repository = repository;
+        _settings = settings;
     }
 
     public async Task<BoardWindow> OpenAsync(Window? owner = null, long? boardId = null)
@@ -34,7 +36,7 @@ internal sealed class BoardWorkspaceService
             return existing;
         }
 
-        var window = new BoardWindow(_repository, this, targetId.Value);
+        var window = new BoardWindow(_repository, this, _settings, targetId.Value);
         _windows[targetId.Value] = window;
         _lastBoardId = targetId.Value;
         window.Closed += (_, _) => _windows.Remove(window.CurrentBoardId);
@@ -57,5 +59,12 @@ internal sealed class BoardWorkspaceService
         _windows.Remove(previousBoardId);
         _windows[currentBoardId] = window;
         _lastBoardId = currentBoardId;
+    }
+
+    public void SetAlwaysOnTop(bool value)
+    {
+        _settings.BoardAlwaysOnTop = value;
+        _settings.Save();
+        foreach (var window in _windows.Values.Distinct()) window.ApplyTopmostPreference(value);
     }
 }

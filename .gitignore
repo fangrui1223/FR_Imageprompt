@@ -23,6 +23,7 @@ PromptVaultLibrary/
 .m5-isolated/
 .m6-isolated/
 .m7-isolated/
+.m8-isolated/
 *.db
 *.db-shm
 *.db-wal

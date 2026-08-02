@@ -1,0 +1,64 @@
+{
+  "Milestone": "M8-09-release-package",
+  "GeneratedAt": "2026-08-02T11:37:02+08:00",
+  "Configuration": "Release",
+  "Runtime": "win-x64",
+  "SelfContained": true,
+  "SingleFile": true,
+  "Build": {
+    "Warnings": 0,
+    "Errors": 0
+  },
+  "Tests": {
+    "Passed": 275,
+    "Failed": 0,
+    "Skipped": 0
+  },
+  "Gates": {
+    "M8AggregatePassed": true,
+    "M8AggregateChecks": 12,
+    "M72Passed": true,
+    "M72Checks": 11,
+    "FinalPublishedExeSmokeReports": 6,
+    "FinalPublishedExeSmokePassed": 6,
+    "RemainingPromptVaultProcesses": 0
+  },
+  "Package": {
+    "Directory": "publish/FR_Imageprompt-M8-pureref-board-win-x64",
+    "Zip": "publish/FR_Imageprompt-M8-pureref-board-win-x64.zip",
+    "Executable": {
+      "Name": "PromptVault.exe",
+      "Bytes": 238228230,
+      "Sha256": "7C688D27E2114BD8E4874450C102CAB23DB5A7FC0EEEA5DC7B3A68A2CABD7DA7"
+    },
+    "Archive": {
+      "Bytes": 92476563,
+      "Sha256": "AA67E11C077FE5909F079009CB6FA4785D50ACD2A7791E9EEE19525C43B74922",
+      "Entries": [
+        "FR_Imageprompt-M8-pureref-board-win-x64/PromptVault.exe"
+      ]
+    }
+  },
+  "Audit": {
+    "PdbFiles": 0,
+    "SettingsFiles": 0,
+    "LogFiles": 0,
+    "DatabaseFiles": 0,
+    "ImageFiles": 0,
+    "ModelFiles": 0,
+    "MachineAbsolutePathMatches": 0,
+    "ApiSecretMatches": 0,
+    "SyntheticFixturesOnly": true,
+    "ExplicitSettingsUsed": true,
+    "CaptureListeningEnabled": false,
+    "CaptureQuickEditEnabled": false,
+    "OnlineAiEnabled": false,
+    "RealLibraryOpened": false,
+    "RealLibraryModified": false,
+    "RealLibraryMigrated": false,
+    "RealLibraryDeleted": false,
+    "ClipboardUsed": false,
+    "NetworkUsed": false
+  },
+  "Passed": true
+}

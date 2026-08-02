@@ -102,6 +102,64 @@ public sealed class BoardRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task BatchTransformUpdateCommitsEverySelectedItemAtomically()
+    {
+        var first = await SaveItemAsync("board-batch-first");
+        var second = await SaveItemAsync("board-batch-second");
+        var board = await _repository.CreateBoardAsync("batch-transform");
+        var items = await _repository.AddBoardItemsAsync(
+            board.Id,
+            [
+                new BoardItemPlacementInput(first.ItemId, 0, 0, 300, 200),
+                new BoardItemPlacementInput(second.ItemId, 340, 0, 300, 200)
+            ]);
+
+        await _repository.UpdateBoardItemsAsync(
+            board.Id,
+            items.Select((item, index) => new BoardItemUpdate(
+                item.Id,
+                item.X + 25 + index,
+                item.Y + 40,
+                item.Width * 1.25,
+                item.Height * 1.25,
+                item.ZIndex,
+                15 + index,
+                0.05,
+                0.04,
+                0.03,
+                0.02,
+                item.GroupId,
+                item.SourcePathOverride)).ToArray());
+
+        var persisted = await _repository.GetBoardItemsAsync(board.Id);
+        Assert.All(persisted, item => Assert.Equal(375, item.Width));
+        Assert.Equal([25d, 366d], persisted.OrderBy(item => item.Id).Select(item => item.X));
+        Assert.Equal([15d, 16d], persisted.OrderBy(item => item.Id).Select(item => item.Rotation));
+        Assert.All(persisted, item => Assert.Equal(0.05, item.CropLeft));
+    }
+
+    [Fact]
+    public async Task BatchTransformUpdateRejectsDuplicatesBeforeWriting()
+    {
+        var saved = await SaveItemAsync("board-batch-duplicate");
+        var board = await _repository.CreateBoardAsync("batch-duplicate");
+        var item = Assert.Single(await _repository.AddBoardItemsAsync(
+            board.Id,
+            [new BoardItemPlacementInput(saved.ItemId, 10, 20, 300, 200)]));
+        var update = new BoardItemUpdate(
+            item.Id, 90, 80, 500, 400, item.ZIndex, item.Rotation,
+            item.CropLeft, item.CropTop, item.CropRight, item.CropBottom,
+            item.GroupId, item.SourcePathOverride);
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => _repository.UpdateBoardItemsAsync(board.Id, [update, update]));
+
+        var persisted = Assert.Single(await _repository.GetBoardItemsAsync(board.Id));
+        Assert.Equal((10d, 20d, 300d, 200d),
+            (persisted.X, persisted.Y, persisted.Width, persisted.Height));
+    }
+
+    [Fact]
     public async Task BoardDeletionNeverDeletesLibraryAssetOrSourceFile()
     {
         var saved = await SaveItemAsync("board-safe-delete", createFiles: true);

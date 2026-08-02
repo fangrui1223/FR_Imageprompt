@@ -20,8 +20,27 @@ public partial class App : System.Windows.Application
         AppLog.Information("startup", "Application startup began.");
         DevelopmentPerformanceTrace.Event("app-startup-begin");
         var isAiWorker = e.Args.Contains("--ai-worker", StringComparer.OrdinalIgnoreCase);
+        var openBoardForDiagnostics = e.Args.Contains(
+            "--open-board",
+            StringComparer.OrdinalIgnoreCase);
+        string? boardCameraSmokeReport = null;
+        string? boardInputSmokeReport = null;
+        string? boardCommandSmokeReport = null;
+        string? boardChromeSmokeReport = null;
+        string? boardInspectorSmokeReport = null;
+        string? boardTransformSmokeReport = null;
+        string? boardImageSmokeReport = null;
+        string? boardM8GateReport = null;
         try
         {
+            boardCameraSmokeReport = GetOptionValue(e.Args, "--board-camera-smoke");
+            boardInputSmokeReport = GetOptionValue(e.Args, "--board-input-smoke");
+            boardCommandSmokeReport = GetOptionValue(e.Args, "--board-command-smoke");
+            boardChromeSmokeReport = GetOptionValue(e.Args, "--board-chrome-smoke");
+            boardInspectorSmokeReport = GetOptionValue(e.Args, "--board-inspector-smoke");
+            boardTransformSmokeReport = GetOptionValue(e.Args, "--board-transform-smoke");
+            boardImageSmokeReport = GetOptionValue(e.Args, "--board-image-smoke");
+            boardM8GateReport = GetOptionValue(e.Args, "--board-m8-gate");
             if (isAiWorker)
             {
                 var libraryRoot = GetOptionValue(e.Args, "--library")
@@ -104,13 +123,49 @@ public partial class App : System.Windows.Application
                     data: new { recoveredAiJobs });
             }
             _capture = new CaptureCoordinator(_repository);
-            _boardWorkspace = new BoardWorkspaceService(_repository);
+            _boardWorkspace = new BoardWorkspaceService(_repository, _settings);
             _externalIndex = new ExternalFolderIndexService(_repository);
             _externalIndex.Start(_settings.ExternalFolders);
             var window = CreateMainWindow(false, null);
             MainWindow = window;
             _tray = new TrayService(window, () => Shutdown());
             window.Show();
+            if (openBoardForDiagnostics || boardCameraSmokeReport is not null || boardInputSmokeReport is not null || boardCommandSmokeReport is not null || boardChromeSmokeReport is not null || boardInspectorSmokeReport is not null || boardTransformSmokeReport is not null || boardImageSmokeReport is not null || boardM8GateReport is not null)
+            {
+                var boardWindow = await _boardWorkspace.OpenAsync(window);
+                if (boardCameraSmokeReport is not null)
+                {
+                    await boardWindow.RunCameraSmokeAsync(boardCameraSmokeReport, _settings);
+                }
+                if (boardInputSmokeReport is not null)
+                {
+                    await boardWindow.RunInputSmokeAsync(boardInputSmokeReport, _settings);
+                }
+                if (boardCommandSmokeReport is not null)
+                {
+                    await boardWindow.RunCommandSmokeAsync(boardCommandSmokeReport, _settings);
+                }
+                if (boardChromeSmokeReport is not null)
+                {
+                    await boardWindow.RunChromeSmokeAsync(boardChromeSmokeReport, _settings);
+                }
+                if (boardInspectorSmokeReport is not null)
+                {
+                    await boardWindow.RunInspectorSmokeAsync(boardInspectorSmokeReport, _settings);
+                }
+                if (boardTransformSmokeReport is not null)
+                {
+                    await boardWindow.RunTransformSmokeAsync(boardTransformSmokeReport, _settings);
+                }
+                if (boardImageSmokeReport is not null)
+                {
+                    await boardWindow.RunImageSmokeAsync(boardImageSmokeReport, _settings);
+                }
+                if (boardM8GateReport is not null)
+                {
+                    await boardWindow.RunM8GateSmokeAsync(boardM8GateReport, _settings);
+                }
+            }
             DevelopmentPerformanceTrace.Event("main-window-shown");
         }
         catch (Exception ex)
@@ -137,7 +192,7 @@ public partial class App : System.Windows.Application
             if (!string.Equals(args[index], option, StringComparison.OrdinalIgnoreCase)) continue;
             if (index + 1 >= args.Count || string.IsNullOrWhiteSpace(args[index + 1]))
             {
-                throw new ArgumentException($"{option} 需要一个设置文件路径。");
+                throw new ArgumentException($"{option} 需要一个路径参数。");
             }
             return Path.GetFullPath(args[index + 1]);
         }
