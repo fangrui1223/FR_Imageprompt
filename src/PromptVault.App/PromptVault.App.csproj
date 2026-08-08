@@ -11,9 +11,9 @@
     <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <AssemblyName>PromptVault</AssemblyName>
+    <AssemblyName>FR_Imageprompt</AssemblyName>
     <Product>FR_Imageprompt AI 图片提示词收藏器</Product>
-    <ApplicationIcon>..\..\PromptVault.ico</ApplicationIcon>
+    <ApplicationIcon>..\..\FR_Imageprompt.ico</ApplicationIcon>
     <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
     <DebugSymbols Condition="'$(Configuration)' == 'Release'">false</DebugSymbols>
   </PropertyGroup>

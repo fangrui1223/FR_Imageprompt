@@ -34,6 +34,7 @@ public partial class App : System.Windows.Application
         string? boardM82SmokeReport = null;
         string? boardM83SmokeReport = null;
         string? boardM84SmokeReport = null;
+        string? boardM85SmokeReport = null;
         string? galleryPartialCardSmokeReport = null;
         try
         {
@@ -48,6 +49,7 @@ public partial class App : System.Windows.Application
             boardM82SmokeReport = GetOptionValue(e.Args, "--board-m82-smoke");
             boardM83SmokeReport = GetOptionValue(e.Args, "--board-m83-smoke");
             boardM84SmokeReport = GetOptionValue(e.Args, "--board-m84-smoke");
+            boardM85SmokeReport = GetOptionValue(e.Args, "--board-m85-smoke");
             galleryPartialCardSmokeReport = GetOptionValue(e.Args, "--gallery-partial-card-smoke");
             if (isAiWorker)
             {
@@ -167,7 +169,7 @@ public partial class App : System.Windows.Application
                 Shutdown(passed ? 0 : 2);
                 return;
             }
-            if (openBoardForDiagnostics || boardCameraSmokeReport is not null || boardInputSmokeReport is not null || boardCommandSmokeReport is not null || boardChromeSmokeReport is not null || boardInspectorSmokeReport is not null || boardTransformSmokeReport is not null || boardImageSmokeReport is not null || boardM8GateReport is not null || boardM82SmokeReport is not null || boardM83SmokeReport is not null || boardM84SmokeReport is not null)
+            if (openBoardForDiagnostics || boardCameraSmokeReport is not null || boardInputSmokeReport is not null || boardCommandSmokeReport is not null || boardChromeSmokeReport is not null || boardInspectorSmokeReport is not null || boardTransformSmokeReport is not null || boardImageSmokeReport is not null || boardM8GateReport is not null || boardM82SmokeReport is not null || boardM83SmokeReport is not null || boardM84SmokeReport is not null || boardM85SmokeReport is not null)
             {
                 var boardWindow = await _boardWorkspace.OpenAsync(window);
                 if (boardCameraSmokeReport is not null)
@@ -213,6 +215,12 @@ public partial class App : System.Windows.Application
                 if (boardM84SmokeReport is not null)
                 {
                     await boardWindow.RunM84SmokeAsync(boardM84SmokeReport, _settings);
+                }
+                if (boardM85SmokeReport is not null)
+                {
+                    var passed = await boardWindow.RunM85SmokeAsync(boardM85SmokeReport, _settings);
+                    Shutdown(passed ? 0 : 2);
+                    return;
                 }
             }
             DevelopmentPerformanceTrace.Event("main-window-shown");

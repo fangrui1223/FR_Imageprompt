@@ -229,8 +229,8 @@ public partial class BoardWindow
             DispatcherPriority.Loaded,
             new Action(() =>
             {
-                if (TryRecalculateFocusForViewport())
-                    RenderVisibleItems();
+                TryRecalculateFocusForViewport();
+                RenderVisibleItems();
             }));
     }
 }

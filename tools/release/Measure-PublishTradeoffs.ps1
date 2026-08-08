@@ -117,7 +117,7 @@ foreach ($variant in $variants) {
         $trace = Join-Path $variantRoot "startup-$index.jsonl"
         $extract = Join-Path $variantRoot "extract-$index"
         $samples += Measure-Launch `
-            -Executable (Join-Path $publish "PromptVault.exe") `
+            -Executable (Join-Path $publish "FR_Imageprompt.exe") `
             -TracePath $trace `
             -ExtractPath $extract
     }

@@ -18,7 +18,7 @@ FR_Imageprompt（内部项目名 PromptVault）是 Windows 10/11 x64 的本地�
 ## 安装与第一次运行
 
 1. 解压 `FR_Imageprompt-M8.2-transform-crop-window-win-x64.zip`。
-2. 运行 `PromptVault.exe`。发布包自带 .NET 运行时，不需要另装 .NET。
+2. 运行 `FR_Imageprompt.exe`。发布包自带 .NET 运行时，不需要另装 .NET。
 3. 首次运行选择一个新的或已有的图库文件夹。图库中的 `promptvault.db`、`originals`、`thumbnails` 和 `backups` 均由应用管理。
 4. 默认开启剪贴板收录。若暂时不需要，在顶部菜单点击“收录监听”关闭。
 

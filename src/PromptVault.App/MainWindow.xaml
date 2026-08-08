@@ -140,7 +140,7 @@
      <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="DragAreaMouseDown" Cursor="SizeAll">
       <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
       <StackPanel Grid.Column="0" VerticalAlignment="Top" Margin="0,8,10,0" MouseLeftButtonDown="DragAreaMouseDown" Background="Transparent" Cursor="SizeAll">
-       <TextBlock Text="FR_Imageprompt" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}"/><TextBlock Text="AI IMAGE LIBRARY" FontSize="9" Foreground="{DynamicResource AccentBrush}"/>
+       <TextBlock Text="FR_Imageprompt" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}"/><TextBlock x:Name="ProductSubtitleText" Text="图片资产库 V2.0" FontSize="9" Foreground="{DynamicResource AccentBrush}"/>
       </StackPanel>
       <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10,8,0,0" Background="Transparent">
        <Button x:Name="PinButton" Width="52" Height="30" Margin="0,0,6,0" Padding="0" Background="Transparent" Content="置顶" Click="PinButtonClick"/>

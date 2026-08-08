@@ -322,10 +322,11 @@ public partial class BoardWindow : Window
         {
             Tag = item.Id,
             Background = (Brush)FindResource("ImageWellBrush"),
-            BorderThickness = new Thickness(2),
-            BorderBrush = (Brush)FindResource("CardBorderBrush"),
+            BorderThickness = new Thickness(0),
+            BorderBrush = Brushes.Transparent,
             CornerRadius = new CornerRadius(8),
             ClipToBounds = true,
+            SnapsToDevicePixels = true,
             Child = grid,
             RenderTransformOrigin = new Point(0.5, 0.5),
             Cursor = Cursors.SizeAll
@@ -349,11 +350,37 @@ public partial class BoardWindow : Window
         element.RenderTransform = new RotateTransform(item.Rotation);
         if (element is Border border)
         {
-            border.BorderBrush = _selectedIds.Contains(item.Id)
-                ? (Brush)FindResource("SelectionStrokeBrush")
-                : (Brush)FindResource("CardBorderBrush");
+            UpdateItemSelectionBorder(border, item.Id);
         }
         ApplyImageViewport(element, item);
+    }
+
+    private void UpdateItemSelectionBorder(Border border, long itemId)
+    {
+        var showBorder = BoardSelectionVisualPolicy.ShowIndividualImageBorder(
+            _selectedIds.Contains(itemId),
+            _selectedIds.Count);
+        if (!showBorder)
+        {
+            border.BorderThickness = new Thickness(0);
+            border.BorderBrush = Brushes.Transparent;
+            return;
+        }
+
+        var dpiScale = VisualTreeHelper.GetDpi(this).DpiScaleX;
+        var thickness = BoardSelectionVisualPolicy.WorldThicknessForOnePhysicalPixel(
+            _viewport.Zoom,
+            dpiScale);
+        border.BorderThickness = new Thickness(thickness);
+        border.BorderBrush = (Brush)FindResource("SelectionStrokeBrush");
+    }
+
+    private void UpdateRealizedImageSelectionBorders()
+    {
+        foreach (var (itemId, element) in _realized)
+        {
+            if (element is Border border) UpdateItemSelectionBorder(border, itemId);
+        }
     }
 
     private BoardNoteVisual CreateNoteVisual(BoardNoteRecord note)

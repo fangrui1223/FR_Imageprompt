@@ -66,6 +66,20 @@ public sealed class UiLayoutContractTests
             capture);
     }
 
+    [Fact]
+    public void ProductPackagingUsesFrImagepromptExecutableAndIcon()
+    {
+        var project = ReadProjectFile("src", "PromptVault.App", "PromptVault.App.csproj");
+        var releaseScript = ReadProjectFile("tools", "release", "Publish-Release.ps1");
+        var icon = new FileInfo(FindProjectFile("FR_Imageprompt.ico"));
+
+        Assert.Contains("<AssemblyName>FR_Imageprompt</AssemblyName>", project);
+        Assert.Contains("<ApplicationIcon>..\\..\\FR_Imageprompt.ico</ApplicationIcon>", project);
+        Assert.Contains("FR_Imageprompt.exe", releaseScript);
+        Assert.DoesNotContain("PromptVault.exe", releaseScript);
+        Assert.True(icon.Length > 0);
+    }
+
     private static double ReadSetterNumber(string xaml, string property)
     {
         var match = Regex.Match(
@@ -76,12 +90,15 @@ public sealed class UiLayoutContractTests
     }
 
     private static string ReadProjectFile(params string[] segments)
+        => File.ReadAllText(FindProjectFile(segments));
+
+    private static string FindProjectFile(params string[] segments)
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null)
         {
             var candidate = Path.Combine([directory.FullName, .. segments]);
-            if (File.Exists(candidate)) return File.ReadAllText(candidate);
+            if (File.Exists(candidate)) return candidate;
             directory = directory.Parent;
         }
 

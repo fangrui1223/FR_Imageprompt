@@ -30,7 +30,7 @@ $env:NUGET_PACKAGES = Join-Path $root ".packages"
     -p:PromptVaultUserPackage=true -o $packageDirectory
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-$executablePath = Join-Path $packageDirectory "PromptVault.exe"
+$executablePath = Join-Path $packageDirectory "FR_Imageprompt.exe"
 $productVersion = (Get-Item -LiteralPath $executablePath).VersionInfo.ProductVersion
 if ($productVersion -ne $Version) {
     throw "Published ProductVersion '$productVersion' does not match requested package version '$Version'."
@@ -54,7 +54,7 @@ $files = @(Get-ChildItem -LiteralPath $packageDirectory -File -Recurse | Sort-Ob
         path = $_.FullName.Substring($packagePrefix.Length).Replace("\", "/")
         bytes = $_.Length
         sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-        purpose = if ($_.Name -eq "PromptVault.exe") { "FR_Imageprompt application and bundled runtime" } else { "Required runtime asset" }
+        purpose = if ($_.Name -eq "FR_Imageprompt.exe") { "FR_Imageprompt application and bundled runtime" } else { "Required runtime asset" }
     }
 })
 $manifest = [ordered]@{

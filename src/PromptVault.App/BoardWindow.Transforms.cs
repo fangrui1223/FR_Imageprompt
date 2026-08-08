@@ -25,6 +25,7 @@ public partial class BoardWindow
 
     private void UpdateSelectionOverlay()
     {
+        UpdateRealizedImageSelectionBorders();
         if (_selectedIds.Count == 0 || _selectedNoteId is not null)
         {
             SelectionBoundsOverlay.Visibility = Visibility.Collapsed;
@@ -56,7 +57,11 @@ public partial class BoardWindow
         SelectionOutline.BorderBrush = _cropModeActive
             ? new SolidColorBrush(Color.FromRgb(255, 176, 76))
             : new SolidColorBrush(Color.FromArgb(204, 99, 215, 247));
-        SelectionOutline.BorderThickness = new Thickness(_cropModeActive ? 2 : 1);
+        var dpiScale = VisualTreeHelper.GetDpi(this).DpiScaleX;
+        var outlineThickness = _cropModeActive
+            ? 2d
+            : BoardSelectionVisualPolicy.ScreenThicknessForOnePhysicalPixel(dpiScale);
+        SelectionOutline.BorderThickness = new Thickness(outlineThickness);
         var cornerVisibility = _cropModeActive ? Visibility.Collapsed : Visibility.Visible;
         TopLeftHandle.Visibility = cornerVisibility;
         TopRightHandle.Visibility = cornerVisibility;

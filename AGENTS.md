@@ -32,11 +32,17 @@ M8.4 图片等比缩放跟手与无闪烁回归蓝图维护在：
 
 - `docs/FR_Imageprompt-M8.4-smooth-proportional-image-resize-blueprint.md`
 
+M8.5 画板选择轮廓与产品副标题回归蓝图维护在：
+
+- `docs/FR_Imageprompt-M8.5-board-selection-visuals-branding-blueprint.md`
+
 M8 已于 2026-08-02 完成。自由画板现采用 PureRef 式画布优先交互：Space 聚焦/精确恢复、滚轮缩放、中键、Alt+左键或普通右键平移、右键短按命令、隐藏顶部栏、窗口置顶、临时检查器、共同选择变换和渐进高清。M8.1 首轮体验回归在同日完成并生成 `publish/FR_Imageprompt-M8.1-regression-win-x64.zip`；M8.2 于 2026-08-03 完成图片/便签四角真实缩放、Shift/Alt 变换、统一便签历史、Ctrl+右键整窗移动和固定相框裁剪；M8.3 同日修复图片角点被父级 Preview 空白画布入口抢占的问题，并把普通右拖统一为画布平移、Ctrl+右拖统一为整窗移动。后续画板修改必须保持四角 28 DIP 命中区、图片变换期间选择快照与输入所有权、裁剪期间零位图重建/零数据库写入和完成时单次提交，不得恢复 M8.1 的四边手柄、Ctrl+右键平移或旧收紧式裁剪。不得回退 M5 的画板持久化与 5,000 项视口裁剪、M7.2 的受控缓存与无黑场协议，并继续以 `docs/performance/2026-08-01-m8-pureref-board-gate.json`、`docs/performance/2026-08-02-m8.1-experience-regression.json`、M8.2 和 M8.3 最终性能记录为回归基线。
 
 M8.4 于 2026-08-03 修复大图普通等比拖角时的闪烁与尺寸跳变：生产鼠标路径必须以固定按下点到当前鼠标点的绝对屏幕位移计算，不得重新累加会被手柄自身移动污染的 `Thumb.DragDelta`；拖动预览只更新冻结选择集及选择框，完成时复用现有图片视觉和位图。后续不得恢复逐帧全量 `RenderVisibleItems()` 或完成时 `RecreateSelectedVisuals()` 的旧路径；Shift 自由拉伸、Alt 中心缩放、裁剪和便签行为必须保持。性能记录见 `docs/performance/2026-08-03-m8.4-smooth-proportional-image-resize.json`。
 
-新的 Codex 对话在进行功能开发、性能优化、UI 重构、无感收录、AI 元数据或自由画板工作前，必须先完整阅读适用蓝图。自由画板还必须完整阅读 M8、M8.2、M8.3 与 M8.4；实施时从适用蓝图中第一个未勾选步骤继续。每完成一步，必须在对应蓝图中勾选并追加日期、主要文件、验证结果和遗留问题。
+M8.5 于 2026-08-08 完成画板选择视觉收口：未选中图片和单选图片根元素必须保持零边框；单选只显示共同变换细框，多选才为每张成员显示独立蓝色细框并同时保留共同外框。普通选择线必须按画布 Zoom 与窗口 DPI 补偿到约一个物理像素，不得恢复图片常驻 2 DIP 粗边框；裁剪继续使用 2 DIP 橙框。主界面蓝色副标题固定为“图片资产库 V2.0”，主标题、字号、颜色和位置不变。性能与体验记录见 `docs/performance/2026-08-08-m8.5-board-selection-visuals-branding.json`。
+
+新的 Codex 对话在进行功能开发、性能优化、UI 重构、无感收录、AI 元数据或自由画板工作前，必须先完整阅读适用蓝图。自由画板还必须完整阅读 M8、M8.2、M8.3、M8.4 与 M8.5；实施时从适用蓝图中第一个未勾选步骤继续。每完成一步，必须在对应蓝图中勾选并追加日期、主要文件、验证结果和遗留问题。
 
 ## 1. 技术栈说明
 
@@ -45,6 +51,8 @@ M8.4 于 2026-08-03 修复大图普通等比拖角时的闪烁与尺寸跳变：
 仓库地址：https://github.com/fangrui1223/FR_Imageprompt.git
 
 项目类型：Windows 本地图像提示词收藏工具。
+
+正式用户程序名称为 `FR_Imageprompt.exe`；主应用程序集名为 `FR_Imageprompt`，图标来自仓库根目录 `FR_Imageprompt.ico`。内部项目目录和 C# 命名空间继续保留 `PromptVault`，不要为了程序文件名再大范围重命名源码。
 
 主要技术：
 
@@ -110,7 +118,7 @@ Compress-Archive -LiteralPath 'artifacts\PromptVault-CLIP-ViT-B32\clip' -Destina
 - `PromptVault.slnx`：解决方案入口。
 - `Directory.Build.props`：共享 C# 构建设置。
 - `NuGet.Config`：NuGet 配置。
-- `PromptVault.ico`：应用图标。
+- `FR_Imageprompt.ico`：应用图标，也是正式 `FR_Imageprompt.exe` 的图标来源。
 - `README.md`：项目说明。
 - `AGENTS.md`：给 Codex 的项目接手说明。
 
