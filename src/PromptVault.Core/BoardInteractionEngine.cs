@@ -14,6 +14,17 @@ public static class BoardInteractionEngine
 {
     public const double DefaultDragThreshold = 5;
 
+    public static bool ShouldPanCanvasWithRightDrag(bool controlPressed, bool windowMaximized) =>
+        !controlPressed; // Window state is intentionally irrelevant in M8.3.
+
+    public static bool ShouldMoveWindowWithRightDrag(bool controlPressed, bool windowMaximized) =>
+        controlPressed; // Maximized windows are restored by the WPF gesture path.
+
+    public static bool ShouldBeginBlankCanvasGesture(
+        bool pointerOriginatesFromThumb,
+        bool pointerIsOverBlankCanvas) =>
+        !pointerOriginatesFromThumb && pointerIsOverBlankCanvas;
+
     public static BoardInputPriority ResolvePriority(
         bool hasModal,
         bool isTextEditing,

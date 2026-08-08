@@ -1369,6 +1369,7 @@ M7.2.1 外观回归修复（2026-07-30）：
 权威详细步骤：
 
 - `docs/FR_Imageprompt-M8-pureref-immersive-board-blueprint.md`
+- M8.2 回归完成记录：`docs/FR_Imageprompt-M8.2-transform-crop-window-drag-blueprint.md`（2026-08-03 已完成、验证并打包）
 
 执行要求：
 
@@ -1381,6 +1382,9 @@ M7.2.1 外观回归修复（2026-07-30）：
 - Release build 0 警告/0 错误、275/275 测试、M8 聚合门禁 12/12 与 M7.2 回归 11/11 通过；最终发布 EXE 的相机、右键命令、窗口置顶、检查器、共同选择变换和渐进高清 6/6 隔离真界面烟测通过，停止后 PromptVault 驻留进程为 0。
 - 唯一体验包为 `publish/FR_Imageprompt-M8-pureref-board-win-x64.zip`，92,476,563 bytes，SHA-256 `AA67E11C077FE5909F079009CB6FA4785D50ACD2A7791E9EEE19525C43B74922`；包内仅含 238,228,230-byte `PromptVault.exe`，且无 PDB、设置、日志、数据库、图片、模型、密钥或本机路径。发布审计见 `docs/performance/2026-08-02-m8-release-package.json`。
 - 本阶段不实现自由绘制、箭头、矩形标注、画板导出或跨画板复制。
+- 2026-08-02 用户复验 M8.1 后确认图片/便签真实缩放、Ctrl+右键整窗移动和固定相框裁剪仍需回归；M8.2 已于 2026-08-03 完成，冲突交互以 M8.2 独立蓝图为最新权威契约。
+- M8.2 最终结果：四个 28 DIP 角手柄、图片默认等比/Shift 自由/Alt 中心、便签自由缩放与统一历史、Ctrl+右键整窗移动、固定相框内滚轮缩放与左键取景均已落地。Debug/Release 303/303；5,000 项真 WPF 帧 P95/P99 16.671/16.672 ms、近黑帧 0、查询 P95 0.036 ms；M5/M7.2 回归通过。
+- M8.2 体验包为 `publish/FR_Imageprompt-M8.2-transform-crop-window-win-x64.zip`，92,496,904 B，SHA-256 `f493eefcce5819b85de4739cf8c83f95e3be3427c9c7209e056fbeb2393bf0f6`；发布 EXE 合成真界面复验通过，按用户要求未提交、未推送。
 
 ---
 
@@ -1766,8 +1770,15 @@ node tools\model-pack\build.mjs
 
 按时间倒序追加，每次只写已经发生的事实。
 
+### 2026-08-03
+
+- M8.2-00～M8.2-09 全部完成：图片/便签四角真实缩放、Shift/Alt 变换、完整场景撤销、Ctrl+右键整窗移动和固定相框裁剪已落地；旧四边手柄、Ctrl+右键平移和收紧式裁剪不再作为当前契约。
+- Debug/Release 303/303；M5、M7.2、M8 和 4K/150%/5,000 项门禁通过。120 次裁剪更新 P95 0.001 ms、位图重建 0、数据库写入 0，完成时提交 1 次。
+- 最终 ZIP 92,496,904 B，SHA-256 `f493eefcce5819b85de4739cf8c83f95e3be3427c9c7209e056fbeb2393bf0f6`；发布 EXE 仅用显式合成设置复验，真实图库、剪贴板、网络和密钥使用为 0，残留 PromptVault 进程 0；按用户要求未提交、未推送。
+
 ### 2026-08-02
 
+- 建立 `docs/FR_Imageprompt-M8.2-transform-crop-window-drag-blueprint.md`：图片四角默认等比、Shift 自由、Alt 中心，便签四角自由，Ctrl+右键移动整个窗口，裁剪改为固定相框内滚轮缩放和左键拖动；当前只建档，尚未实施。
 - M8-00～M8-09 全部完成：PureRef 式 Space 聚焦/精确恢复、选择与框选、统一右键命令、无边框隐藏栏与置顶、临时检查器、共同选择变换和渐进高清已落地；保留 M5 的 5,000 项视口裁剪和 M7.2 的缓存/无黑场协议。
 - 最终 Release build 0 警告/0 错误、275/275 测试、M8 聚合门禁 12/12、M7.2 三规模回归 11/11；4K、150%、59Hz 的 5,000 项真 WPF 帧 P95/P99 均为 16.671/16.672 ms，近黑帧 0。
 - 唯一 M8 ZIP 为 92,476,563 bytes，SHA-256 `AA67E11C077FE5909F079009CB6FA4785D50ACD2A7791E9EEE19525C43B74922`；包内仅有单文件 EXE，隔离最终烟测 6/6 通过，真实图库、剪贴板、网络和密钥使用为 0。

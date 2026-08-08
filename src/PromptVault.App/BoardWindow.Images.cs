@@ -82,7 +82,7 @@ public partial class BoardWindow
             if (generation != _boardImageGeneration
                 || !_realized.TryGetValue(item.Id, out var element)
                 || FindItemImage(element) is not { } image) return;
-            image.Source = ApplyCrop(result.Image, item);
+            SetItemImageSource(element, result.Image, item);
             RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.HighQuality);
             _boardHighResolutionCompleteCount++;
             if (result.CacheHit) _boardHighResolutionCacheHitCount++;
@@ -144,16 +144,34 @@ public partial class BoardWindow
             ? grid.Children.OfType<System.Windows.Controls.Image>().FirstOrDefault()
             : null;
 
-    private static BitmapSource ApplyCrop(BitmapSource bitmap, BoardItemRecord item)
+    private static Border? FindItemImageSurface(FrameworkElement element) =>
+        element is Border { Child: Grid grid }
+            ? grid.Children.OfType<Border>().FirstOrDefault(child => Equals(child.Tag, "BoardImageSurface"))
+            : null;
+
+    private void SetItemImageSource(FrameworkElement element, BitmapSource? bitmap, BoardItemRecord item)
     {
-        if (item.CropLeft <= 0 && item.CropTop <= 0 && item.CropRight <= 0 && item.CropBottom <= 0)
-            return bitmap;
-        var x = (int)Math.Round(bitmap.PixelWidth * item.CropLeft);
-        var y = (int)Math.Round(bitmap.PixelHeight * item.CropTop);
-        var width = Math.Max(1, bitmap.PixelWidth - x - (int)Math.Round(bitmap.PixelWidth * item.CropRight));
-        var height = Math.Max(1, bitmap.PixelHeight - y - (int)Math.Round(bitmap.PixelHeight * item.CropBottom));
-        var cropped = new CroppedBitmap(bitmap, new System.Windows.Int32Rect(x, y, width, height));
-        cropped.Freeze();
-        return cropped;
+        if (FindItemImage(element) is { } sourceImage) sourceImage.Source = bitmap;
+        if (FindItemImageSurface(element) is not { } surface) return;
+        if (surface.Background is not ImageBrush brush)
+        {
+            brush = new ImageBrush
+            {
+                Stretch = Stretch.Fill,
+                ViewboxUnits = BrushMappingMode.RelativeToBoundingBox,
+                AlignmentX = AlignmentX.Center,
+                AlignmentY = AlignmentY.Center
+            };
+            surface.Background = brush;
+        }
+        brush.ImageSource = bitmap;
+        ApplyImageViewport(element, item);
+    }
+
+    private void ApplyImageViewport(FrameworkElement element, BoardItemRecord item)
+    {
+        if (FindItemImageSurface(element)?.Background is not ImageBrush brush) return;
+        var viewport = GetDisplayCropViewport(item);
+        brush.Viewbox = new Rect(viewport.X, viewport.Y, viewport.Width, viewport.Height);
     }
 }

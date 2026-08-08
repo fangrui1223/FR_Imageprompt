@@ -83,7 +83,7 @@ public partial class MainWindow
         _ = LoadViewerImageAsync();
     }
 
-    private void MainWindowPreviewKeyDown(object sender, KeyEventArgs e)
+    private async void MainWindowPreviewKeyDown(object sender, KeyEventArgs e)
     {
         DevelopmentPerformanceTrace.Event("preview-key", new
         {
@@ -94,6 +94,15 @@ public partial class MainWindow
             galleryShortcutContext = _galleryShortcutContext,
             focusedType = Keyboard.FocusedElement?.GetType().Name
         });
+        if (IsOpenBoardShortcut(
+                ResolveShortcutKey(e.Key, e.ImeProcessedKey, e.SystemKey),
+                Keyboard.Modifiers))
+        {
+            await _boardWorkspace.OpenAsync(this);
+            e.Handled = true;
+            return;
+        }
+
         if (DevelopmentPerformanceTrace.IsEnabled
             && Keyboard.Modifiers.HasFlag(ModifierKeys.Control)
             && Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)
@@ -157,6 +166,18 @@ public partial class MainWindow
 
         if (HandleGallerySelectionKey(e)) e.Handled = true;
     }
+
+    internal static bool IsOpenBoardShortcut(Key key, ModifierKeys modifiers) =>
+        key == Key.F
+        && modifiers.HasFlag(ModifierKeys.Control)
+        && modifiers.HasFlag(ModifierKeys.Shift);
+
+    internal static Key ResolveShortcutKey(Key key, Key imeProcessedKey, Key systemKey) => key switch
+    {
+        Key.ImeProcessed => imeProcessedKey,
+        Key.System => systemKey,
+        _ => key
+    };
 
     private void MainWindowPreviewMouseDown(object sender, MouseButtonEventArgs e)
     {

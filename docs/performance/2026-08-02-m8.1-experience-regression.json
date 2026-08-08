@@ -1,0 +1,113 @@
+{
+  "Milestone": "M8.1-first-experience-regression",
+  "GeneratedAt": "2026-08-02T16:32:41+08:00",
+  "DataKind": "synthetic",
+  "Scope": {
+    "TopBarTypographyAndReveal": true,
+    "SelectedItemDragAndResize": true,
+    "NoteResizeAndResetSize": true,
+    "CtrlRightCanvasPan": true,
+    "MainWindowCtrlShiftF": true
+  },
+  "BuildAndTests": {
+    "DebugBuildWarnings": 0,
+    "DebugBuildErrors": 0,
+    "DebugTestsPassed": 288,
+    "DebugTestsFailed": 0,
+    "ReleaseBuildWarnings": 0,
+    "ReleaseBuildErrors": 0,
+    "ReleaseTestsPassed": 288,
+    "ReleaseTestsFailed": 0
+  },
+  "Display": {
+    "PhysicalWidth": 3840,
+    "PhysicalHeight": 2560,
+    "AppliedDpi": 144,
+    "DpiScale": 1.5
+  },
+  "RealWpfReports": {
+    "Input": {
+      "Passed": true,
+      "CtrlRightPanPolicy": true,
+      "DragThresholdDip": 5
+    },
+    "Command": {
+      "Passed": true
+    },
+    "Chrome": {
+      "Passed": true,
+      "ToolbarTextFits": true,
+      "ToolbarTextButtonCount": 9,
+      "TopmostVisualMatched": true,
+      "ActivationZoneHeightDip": 28,
+      "ActivationZoneClearsResizeBorder": true,
+      "KeyboardRevealTransient": true,
+      "OverlayDidNotResizeViewport": true
+    },
+    "Transform": {
+      "Passed": true,
+      "SelectionOverlayEmptyAreaPassesThrough": true,
+      "EightImageResizeHandlesVisible": true,
+      "FourNoteResizeHandlesVisible": true,
+      "EdgeHandleFreeAxis": true,
+      "DefaultAspectRatioPreserved": true,
+      "ResetSizePreservesNaturalAspect": true,
+      "DatabaseWritesDuringGesture": false,
+      "SingleUndoRecord": true,
+      "BatchPersistenceComplete": true
+    }
+  },
+  "ComputerUse": {
+    "SyntheticBoardItemCount": 20,
+    "SelectedImageDraggedAgain": true,
+    "ObservedDragDeltaX": 90,
+    "ObservedDragDeltaY": 80,
+    "EightHandlesObserved": true,
+    "AltRevealObserved": true,
+    "PointerLeaveAutoHideObserved": true,
+    "ChineseImeCtrlShiftFReopenedBoard": true
+  },
+  "PerformanceRegression": {
+    "BoardItemCount": 5000,
+    "ViewportQueries": 301,
+    "ViewportQueryP95Ms": 0.0948,
+    "ViewportQueryLimitMs": 0.1,
+    "MaximumRealizedCandidateCount": 34,
+    "MaximumRealizedCandidateLimit": 300,
+    "MaximumObservedWorkingSetBytes": 316739584,
+    "Passed": true
+  },
+  "ExperiencePackage": {
+    "FileName": "FR_Imageprompt-M8.1-regression-win-x64.zip",
+    "SizeBytes": 94547259,
+    "EntryCount": 4,
+    "ExecutableBytes": 238245638,
+    "Sha256": "8AF7EC3B056942BFFAC8D9DB420B24FB4AE918E19E9CC95F9B839037359A867E",
+    "PackagedInputSmokePassed": true,
+    "PackagedCommandSmokePassed": true,
+    "PackagedChromeSmokePassed": true,
+    "PackagedTransformSmokePassed": true,
+    "SourceCommitted": false,
+    "SourcePushed": false
+  },
+  "DataSafety": {
+    "ExplicitSettingsUsed": true,
+    "SyntheticFixtureOnly": true,
+    "CaptureListeningEnabled": false,
+    "CaptureQuickEditEnabled": false,
+    "OnlineAiEnabled": false,
+    "RealLibraryOpened": false,
+    "RealLibraryModified": false,
+    "RealLibraryDeleted": false,
+    "ClipboardUsed": false,
+    "NetworkUsed": false,
+    "ApiKeyUsed": false,
+    "PromptVaultProcessesRemaining": 0
+  },
+  "Notes": [
+    "Ctrl+Shift+F now normalizes IME-processed and system keys before shortcut matching.",
+    "The selection overlay no longer owns a transparent interior hit target; image bodies receive repeat drags while transform handles remain interactive.",
+    "One transient SQLite ObjectDisposedException occurred in an earlier development test run; the affected test, subsequent full Debug runs, and the final Debug and Release suites all passed."
+  ],
+  "Passed": true
+}

@@ -16,7 +16,11 @@ public sealed class BoardCommandSystemTests
         var selected = empty with { SelectedItemCount = 2, CanUndo = true, BoardCount = 2 };
         Assert.True(BoardCommandPolicy.CanExecute(BoardCommandId.RemoveSelection, selected));
         Assert.True(BoardCommandPolicy.CanExecute(BoardCommandId.GroupSelection, selected));
+        Assert.True(BoardCommandPolicy.CanExecute(BoardCommandId.ResetSize, selected));
         Assert.True(BoardCommandPolicy.CanExecute(BoardCommandId.DeleteBoard, selected));
+
+        var note = empty with { HasSelectedNote = true };
+        Assert.True(BoardCommandPolicy.CanExecute(BoardCommandId.ResetSize, note));
     }
 
     [Fact]

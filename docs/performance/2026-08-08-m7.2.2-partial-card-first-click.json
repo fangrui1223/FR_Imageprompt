@@ -1,0 +1,84 @@
+{
+  "Milestone": "M7.2.2-partial-card-first-click",
+  "GeneratedAt": "2026-08-08T15:50:30.7097555+08:00",
+  "DataKind": "synthetic",
+  "Passed": true,
+  "Display": {
+    "PhysicalWidth": 3840,
+    "PhysicalHeight": 2560,
+    "AppliedDpi": 144,
+    "DpiScale": 1.5,
+    "ActualWidth": 2079.333333333333,
+    "ActualHeight": 1604.1166666666668
+  },
+  "PartialCard": {
+    "ItemId": 414,
+    "Top": -1363.619,
+    "Bottom": 52,
+    "PartialVisible": true,
+    "ImplicitRequestObserved": true,
+    "ImplicitRequestHandled": true,
+    "ImplicitOffsetBefore": 10863.095,
+    "ImplicitOffsetAfter": 10863.095,
+    "BodySelected": true,
+    "BodyOffsetStable": true
+  },
+  "HoverActions": {
+    "Count": 4,
+    "AllFocusOffsetsStable": true,
+    "Results": [
+      {
+        "Label": "\u8BE6\u60C5",
+        "Focused": true,
+        "OffsetBefore": 10863.095,
+        "OffsetAfter": 10863.095,
+        "OffsetStable": true
+      },
+      {
+        "Label": "\u590D\u5236",
+        "Focused": true,
+        "OffsetBefore": 10863.095,
+        "OffsetAfter": 10863.095,
+        "OffsetStable": true
+      },
+      {
+        "Label": "\u2606",
+        "Focused": true,
+        "OffsetBefore": 10863.095,
+        "OffsetAfter": 10863.095,
+        "OffsetStable": true
+      },
+      {
+        "Label": "\u753B\u677F",
+        "Focused": true,
+        "OffsetBefore": 10863.095,
+        "OffsetAfter": 10863.095,
+        "OffsetStable": true
+      }
+    ],
+    "DetailsOpenedOnFirstInvocation": true,
+    "DetailsInspectorReflowAccepted": true
+  },
+  "ExplicitNavigation": {
+    "TargetItemId": 330,
+    "OffsetBefore": 10863.095,
+    "OffsetAfter": 15421.375,
+    "Moved": true
+  },
+  "Regression": {
+    "HoverButtonPositionsChanged": false,
+    "VirtualizingPanelChanged": false,
+    "MasonryGeometryChanged": false,
+    "CacheOrBitmapSchedulingChanged": false
+  },
+  "DataSafety": {
+    "SyntheticFixtureOnly": true,
+    "CaptureListeningEnabled": false,
+    "CaptureQuickEditEnabled": false,
+    "OnlineAiEnabled": false,
+    "RealLibraryOpened": false,
+    "ClipboardUsed": false,
+    "NetworkUsed": false,
+    "ApiKeyUsed": false
+  }
+}

@@ -32,9 +32,10 @@ public partial class BoardWindow
             Command(BoardCommandId.RotateLeft, "左转 5°"),
             Command(BoardCommandId.RotateRight, "右转 5°"),
             Command(BoardCommandId.ResetRotation, "重置旋转"),
+            Command(BoardCommandId.ResetSize, "重置尺寸"),
             Command(BoardCommandId.EnterCrop, "裁剪模式"),
-            Command(BoardCommandId.CropHorizontal, "横向收紧"),
-            Command(BoardCommandId.CropVertical, "纵向收紧"),
+            Command(BoardCommandId.CompleteCrop, "完成裁剪", "Enter"),
+            Command(BoardCommandId.CancelCrop, "取消裁剪", "Esc"),
             Command(BoardCommandId.ResetCrop, "重置裁剪"),
             Command(BoardCommandId.GroupSelection, "组合所选"),
             Command(BoardCommandId.UngroupSelection, "取消分组"),
@@ -66,14 +67,21 @@ public partial class BoardWindow
         _boards.Count,
         _selectedIds.Count == 1 && !File.Exists(ResolveItemOriginalPath(_items.Single(item => _selectedIds.Contains(item.Id)))));
 
-    private void BoardViewportMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    private async void BoardViewportMouseRightButtonDown(object sender, MouseButtonEventArgs e)
     {
+        var initialTarget = ResolveRightTarget(e.OriginalSource as DependencyObject);
+        if (_cropModeActive && initialTarget.TargetId != _cropItemId)
+            await CommitCropModeAsync("裁剪已保存");
         var point = e.GetPosition(BoardViewport);
         _rightPointerStartScreen = point;
         _rightGesture = new BoardRightGestureClassifier(point.X, point.Y);
         _rightWindowDragStarted = false;
-        (_rightContext, _rightTargetId) = ResolveRightTarget(e.OriginalSource as DependencyObject);
-        SelectRightTargetIfNeeded(_rightContext, _rightTargetId);
+        _rightControlPressed = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+        _rightPointerStartPhysical = PointToScreen(point);
+        _rightWindowStartLeft = Left;
+        _rightWindowStartTop = Top;
+        (_rightContext, _rightTargetId) = initialTarget;
+        if (!_rightControlPressed) SelectRightTargetIfNeeded(_rightContext, _rightTargetId);
         _panStartViewport = _viewport;
         BoardViewport.CaptureMouse();
         e.Handled = true;
@@ -84,7 +92,9 @@ public partial class BoardWindow
         if (_rightGesture is null || e.RightButton != MouseButtonState.Pressed) return;
         var point = e.GetPosition(BoardViewport);
         if (_rightGesture.Move(point.X, point.Y) != BoardRightGestureKind.Drag) return;
-        if (WindowState == WindowState.Maximized)
+        if (BoardInteractionEngine.ShouldPanCanvasWithRightDrag(
+                _rightControlPressed,
+                WindowState == WindowState.Maximized))
         {
             InterruptCameraAnimation();
             _viewport = _panStartViewport with
@@ -96,10 +106,32 @@ public partial class BoardWindow
             RenderVisibleItems();
             return;
         }
-        if (_rightWindowDragStarted) return;
-        _rightWindowDragStarted = true;
-        try { DragMove(); }
-        catch (InvalidOperationException) { }
+        if (!BoardInteractionEngine.ShouldMoveWindowWithRightDrag(
+                _rightControlPressed,
+                WindowState == WindowState.Maximized)) return;
+        var pointerPhysical = PointToScreen(point);
+        if (!_rightWindowDragStarted)
+        {
+            _rightWindowDragStarted = true;
+            if (WindowState == WindowState.Maximized)
+            {
+                var dpi = VisualTreeHelper.GetDpi(this);
+                var restore = RestoreBounds;
+                var ratioX = Math.Clamp(point.X / Math.Max(1, ActualWidth), 0.05, 0.95);
+                WindowState = WindowState.Normal;
+                Width = Math.Max(MinWidth, restore.Width);
+                Height = Math.Max(MinHeight, restore.Height);
+                Left = pointerPhysical.X / dpi.DpiScaleX - Width * ratioX;
+                Top = pointerPhysical.Y / dpi.DpiScaleY - Math.Min(36, Height * 0.08);
+                _rightWindowStartLeft = Left;
+                _rightWindowStartTop = Top;
+                _rightPointerStartPhysical = pointerPhysical;
+                return;
+            }
+        }
+        var currentDpi = VisualTreeHelper.GetDpi(this);
+        Left = _rightWindowStartLeft + (pointerPhysical.X - _rightPointerStartPhysical.X) / currentDpi.DpiScaleX;
+        Top = _rightWindowStartTop + (pointerPhysical.Y - _rightPointerStartPhysical.Y) / currentDpi.DpiScaleY;
     }
 
     private void BoardViewportMouseRightButtonUp(object sender, MouseButtonEventArgs e)
@@ -109,7 +141,7 @@ public partial class BoardWindow
         var result = _rightGesture.Release(point.X, point.Y);
         _rightGesture = null;
         if (Mouse.Captured == BoardViewport) BoardViewport.ReleaseMouseCapture();
-        if (result == BoardRightGestureKind.Menu)
+        if (result == BoardRightGestureKind.Menu && !_rightControlPressed)
         {
             if (_openBoardContextMenu is not null) _openBoardContextMenu.IsOpen = false;
             var menu = BuildContextMenu(_rightContext);
@@ -118,12 +150,15 @@ public partial class BoardWindow
             menu.PlacementTarget = BoardViewport;
             menu.IsOpen = true;
         }
-        else if (WindowState == WindowState.Maximized)
+        else if (BoardInteractionEngine.ShouldPanCanvasWithRightDrag(
+                     _rightControlPressed,
+                     WindowState == WindowState.Maximized))
         {
             QueuePersistView();
         }
         _rightTargetId = null;
         _rightWindowDragStarted = false;
+        _rightControlPressed = false;
         e.Handled = true;
     }
 
@@ -185,10 +220,11 @@ public partial class BoardWindow
             case BoardCommandId.RotateLeft: await MutateSelectionAsync(item => item with { Rotation = item.Rotation - 5 }); break;
             case BoardCommandId.RotateRight: await MutateSelectionAsync(item => item with { Rotation = item.Rotation + 5 }); break;
             case BoardCommandId.ResetRotation: await MutateSelectionAsync(item => item with { Rotation = 0 }); break;
-            case BoardCommandId.EnterCrop: ToggleCropMode(); break;
-            case BoardCommandId.CropHorizontal: await MutateSelectionAsync(TightenHorizontalCrop); break;
-            case BoardCommandId.CropVertical: await MutateSelectionAsync(TightenVerticalCrop); break;
-            case BoardCommandId.ResetCrop: await MutateSelectionAsync(ResetCrop); break;
+            case BoardCommandId.ResetSize: await ResetSelectedSizeAsync(); break;
+            case BoardCommandId.EnterCrop: BeginCropMode(); break;
+            case BoardCommandId.CompleteCrop: await CommitCropModeAsync(); break;
+            case BoardCommandId.CancelCrop: CancelCropMode(); break;
+            case BoardCommandId.ResetCrop: await ResetCropViewportAsync(); break;
             case BoardCommandId.GroupSelection: await GroupSelectionAsync(); break;
             case BoardCommandId.UngroupSelection: await UngroupSelectionAsync(); break;
             case BoardCommandId.RenameGroup: await RenameSelectedGroupAsync(); break;
@@ -206,7 +242,10 @@ public partial class BoardWindow
                 ToggleTopmostPreference();
                 break;
             case BoardCommandId.ShowShortcuts:
-                MessageBox.Show(this, "Space 聚焦/恢复 · Ctrl+Space 显示全部 · Shift 多选 · 中键/Alt+左键平移 · I 属性", "画板快捷键");
+                MessageBox.Show(
+                    this,
+                    "Space 聚焦/恢复 · Ctrl+Space 显示全部 · 四角等比缩放 · Shift+拖角自由拉伸 · Alt+拖角中心缩放 · Ctrl+右键移动窗口 · 中键/Alt+左键平移画布 · I 属性",
+                    "画板快捷键");
                 break;
             case BoardCommandId.ShowSettings:
                 SetStatus("画板设置可从顶部栏和画布菜单访问");
@@ -251,25 +290,43 @@ public partial class BoardWindow
         await MutateSelectionAsync(item => item with { ZIndex = item.ZIndex + Math.Sign(direction) });
     }
 
-    private static BoardItemRecord TightenHorizontalCrop(BoardItemRecord item)
+    private async Task ResetSelectedSizeAsync()
     {
-        var increment = item.CropLeft + item.CropRight >= 0.8 ? 0 : 0.025;
-        return item with { CropLeft = item.CropLeft + increment, CropRight = item.CropRight + increment };
-    }
+        if (_selectedNoteId is { } noteId)
+        {
+            var note = _notes.SingleOrDefault(candidate => candidate.Id == noteId);
+            if (note is null) return;
+            var noteBefore = SnapshotScene();
+            var centerX = note.X + note.Width / 2;
+            var centerY = note.Y + note.Height / 2;
+            note = note with
+            {
+                X = centerX - 150,
+                Y = centerY - 110,
+                Width = 300,
+                Height = 220
+            };
+            ReplaceNote(note);
+            RenderVisibleItems();
+            CommitSceneHistorySnapshot(noteBefore);
+            await SaveNoteAsync(note, "便签尺寸已重置");
+            return;
+        }
 
-    private static BoardItemRecord TightenVerticalCrop(BoardItemRecord item)
-    {
-        var increment = item.CropTop + item.CropBottom >= 0.8 ? 0 : 0.025;
-        return item with { CropTop = item.CropTop + increment, CropBottom = item.CropBottom + increment };
+        if (_selectedIds.Count == 0) return;
+        var before = SnapshotItems();
+        for (var index = 0; index < _items.Count; index++)
+        {
+            var item = _items[index];
+            if (!_selectedIds.Contains(item.Id)) continue;
+            _items[index] = BoardTransformEngine.ResetSize(item);
+        }
+        BoardViewportEngine.RefreshBounds(_items, _selectedIds);
+        CommitHistorySnapshot(before);
+        RecreateSelectedVisuals();
+        await SaveSelectedItemsAsync();
+        SetStatus(_selectedIds.Count > 1 ? "所选图片尺寸已重置" : "图片尺寸已重置");
     }
-
-    private static BoardItemRecord ResetCrop(BoardItemRecord item) => item with
-    {
-        CropLeft = 0,
-        CropTop = 0,
-        CropRight = 0,
-        CropBottom = 0
-    };
 
     private void OpenSelectedOriginal()
     {
@@ -316,6 +373,15 @@ public partial class BoardWindow
     private ContextMenu BuildContextMenu(BoardCommandContextKind context)
     {
         var menu = new ContextMenu { Tag = context };
+        if (_cropModeActive)
+        {
+            AddCommands(menu, BoardCommandContextKind.Item,
+                BoardCommandId.CompleteCrop,
+                BoardCommandId.CancelCrop,
+                BoardCommandId.ResetCrop);
+            menu.Closed += (_, _) => { if (ReferenceEquals(_openBoardContextMenu, menu)) _openBoardContextMenu = null; };
+            return menu;
+        }
         if (context == BoardCommandContextKind.Canvas)
         {
             AddCommands(menu, context, BoardCommandId.Undo, BoardCommandId.Redo);
@@ -329,13 +395,13 @@ public partial class BoardWindow
         }
         else if (context == BoardCommandContextKind.Note)
         {
-            AddCommands(menu, context, BoardCommandId.ShowInspector, BoardCommandId.CycleNoteColor, BoardCommandId.DeleteNote);
+            AddCommands(menu, context, BoardCommandId.ShowInspector, BoardCommandId.ResetSize, BoardCommandId.CycleNoteColor, BoardCommandId.DeleteNote);
         }
         else
         {
             AddCommands(menu, context, BoardCommandId.FocusSelection, BoardCommandId.OpenOriginal, BoardCommandId.Copy);
-            menu.Items.Add(Submenu("变换", context, BoardCommandId.RotateLeft, BoardCommandId.RotateRight, BoardCommandId.ResetRotation));
-            menu.Items.Add(Submenu("裁剪", context, BoardCommandId.EnterCrop, BoardCommandId.CropHorizontal, BoardCommandId.CropVertical, BoardCommandId.ResetCrop));
+            menu.Items.Add(Submenu("变换", context, BoardCommandId.ResetSize, BoardCommandId.RotateLeft, BoardCommandId.RotateRight, BoardCommandId.ResetRotation));
+            menu.Items.Add(Submenu("裁剪", context, BoardCommandId.EnterCrop, BoardCommandId.ResetCrop));
             menu.Items.Add(Submenu("层级", context, BoardCommandId.LayerFront, BoardCommandId.LayerForward, BoardCommandId.LayerBackward, BoardCommandId.LayerBack));
             menu.Items.Add(Submenu("分组", context, BoardCommandId.GroupSelection, BoardCommandId.UngroupSelection, BoardCommandId.RenameGroup));
             menu.Items.Add(new Separator());

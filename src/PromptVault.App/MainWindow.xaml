@@ -59,7 +59,7 @@
           <DataTemplate>
             <Border Width="{Binding LayoutWidth}" Height="{Binding CardHeight}" Background="{DynamicResource CardSurfaceBrush}"
              BorderBrush="{DynamicResource GalleryCardBorderBrush}" BorderThickness="{DynamicResource GalleryCardBorderThickness}"
-             Focusable="True" FocusVisualStyle="{x:Null}"
+             Focusable="False" FocusVisualStyle="{x:Null}" RequestBringIntoView="CardRequestBringIntoView"
              CornerRadius="{DynamicResource GalleryCardCornerRadius}" ClipToBounds="True" Cursor="Hand" MouseEnter="CardMouseEnter" MouseLeave="CardMouseLeave"
              Unloaded="CardUnloaded"
              MouseLeftButtonDown="CardMouseDown" MouseDown="CardAuxiliaryMouseDown" MouseMove="CardMouseMove" MouseLeftButtonUp="CardClick" ContextMenuOpening="CardContextMenuOpening"

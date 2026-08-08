@@ -16,9 +16,10 @@ public enum BoardCommandId
     RotateLeft,
     RotateRight,
     ResetRotation,
+    ResetSize,
     EnterCrop,
-    CropHorizontal,
-    CropVertical,
+    CompleteCrop,
+    CancelCrop,
     ResetCrop,
     GroupSelection,
     UngroupSelection,
@@ -81,12 +82,13 @@ public static class BoardCommandPolicy
         BoardCommandId.FocusSelection => state.SelectedItemCount > 0 || state.HasSelectedNote,
         BoardCommandId.RemoveSelection => state.SelectedItemCount > 0,
         BoardCommandId.DeleteNote or BoardCommandId.CycleNoteColor => state.HasSelectedNote,
+        BoardCommandId.ResetSize => state.SelectedItemCount > 0 || state.HasSelectedNote,
         BoardCommandId.LayerFront or BoardCommandId.LayerForward
             or BoardCommandId.LayerBackward or BoardCommandId.LayerBack
             or BoardCommandId.RotateLeft or BoardCommandId.RotateRight
-            or BoardCommandId.ResetRotation or BoardCommandId.CropHorizontal
-            or BoardCommandId.CropVertical or BoardCommandId.ResetCrop
+            or BoardCommandId.ResetRotation or BoardCommandId.ResetCrop
             or BoardCommandId.Copy => state.SelectedItemCount > 0,
+        BoardCommandId.CompleteCrop or BoardCommandId.CancelCrop => state.SelectedItemCount == 1,
         BoardCommandId.GroupSelection => state.SelectedItemCount > 1,
         BoardCommandId.UngroupSelection or BoardCommandId.RenameGroup => state.SelectedItemCount > 0,
         BoardCommandId.RelinkSource or BoardCommandId.OpenOriginal or BoardCommandId.EnterCrop => state.SelectedItemCount == 1,

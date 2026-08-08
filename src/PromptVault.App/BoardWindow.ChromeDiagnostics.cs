@@ -1,8 +1,11 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 using PromptVault.App.Services;
+using ButtonBase = System.Windows.Controls.Primitives.ButtonBase;
 using Size = System.Windows.Size;
 
 namespace PromptVault.App;
@@ -34,6 +37,23 @@ public partial class BoardWindow
         var shown = BoardTopBar.IsHitTestVisible && BoardTopBar.Opacity >= 0.999;
         var overlayDidNotResizeViewport = NearlyEqual(viewportBefore.Width, viewportDuring.Width)
             && NearlyEqual(viewportBefore.Height, viewportDuring.Height);
+        var toolbarButtons = FindVisualChildren<ButtonBase>(BoardTopBar)
+            .Where(button => button.Content is string)
+            .ToArray();
+        var dpi = VisualTreeHelper.GetDpi(this);
+        var toolbarTextFits = toolbarButtons.Length >= 8
+            && toolbarButtons.All(button => ToolbarTextFits(button, dpi.PixelsPerDip));
+        var topmostVisualMatched = ReferenceEquals(
+            TopmostButton.Style,
+            FindResource("BoardToolbarToggleStyle"));
+        var chrome = System.Windows.Shell.WindowChrome.GetWindowChrome(this);
+        var activationZoneClearsResizeBorder = TopEdgeActivationZone.ActualHeight >= 28
+            && TopEdgeActivationZone.ActualHeight >= (chrome?.ResizeBorderThickness.Top ?? 0) + 16;
+
+        HideBoardTopBar();
+        TopEdgeMouseEnter(TopEdgeActivationZone, new MouseEventArgs(Mouse.PrimaryDevice, 0));
+        await WaitForLayoutAsync();
+        var pointerReveal = BoardTopBar.IsHitTestVisible && BoardTopBar.Opacity >= 0.999;
 
         var previous = Topmost;
         var secondaryBoard = await _repository.CreateBoardAsync("M8 窗口同步烟测");
@@ -62,13 +82,16 @@ public partial class BoardWindow
         var restored = WindowState == WindowState.Normal;
         ShowTopBarFromKeyboard();
         await WaitForLayoutAsync();
-        var keyboardReveal = BoardTopBar.IsHitTestVisible && BoardSelector.IsKeyboardFocusWithin;
+        var keyboardReveal = BoardTopBar.IsHitTestVisible && !BoardSelector.IsKeyboardFocusWithin;
 
-        var dpi = VisualTreeHelper.GetDpi(this);
         var process = Process.GetCurrentProcess();
         var passed = hidden
             && shown
             && overlayDidNotResizeViewport
+            && toolbarTextFits
+            && topmostVisualMatched
+            && activationZoneClearsResizeBorder
+            && pointerReveal
             && topmostEnabled
             && topmostRestored
             && normalResizable
@@ -91,7 +114,13 @@ public partial class BoardWindow
             {
                 DefaultHidden = hidden,
                 IntentRevealVisible = shown,
-                KeyboardRevealFocused = keyboardReveal,
+                PointerEntryRevealVisible = pointerReveal,
+                KeyboardRevealTransient = keyboardReveal,
+                ToolbarTextFits = toolbarTextFits,
+                ToolbarTextButtonCount = toolbarButtons.Length,
+                TopmostVisualMatched = topmostVisualMatched,
+                ActivationZoneHeightDip = TopEdgeActivationZone.ActualHeight,
+                ActivationZoneClearsResizeBorder = activationZoneClearsResizeBorder,
                 ViewportBefore = new { viewportBefore.Width, viewportBefore.Height },
                 ViewportDuring = new { viewportDuring.Width, viewportDuring.Height },
                 OverlayDidNotResizeViewport = overlayDidNotResizeViewport,
@@ -120,5 +149,32 @@ public partial class BoardWindow
         Directory.CreateDirectory(Path.GetDirectoryName(reportPath)!);
         await File.WriteAllTextAsync(reportPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
         SetStatus(passed ? "M8-04 隔离窗口烟测通过" : "M8-04 隔离窗口烟测失败");
+    }
+
+    private static bool ToolbarTextFits(ButtonBase button, double pixelsPerDip)
+    {
+        if (button.Content is not string text || string.IsNullOrEmpty(text)) return true;
+        var formatted = new FormattedText(
+            text,
+            CultureInfo.CurrentUICulture,
+            System.Windows.FlowDirection.LeftToRight,
+            new Typeface(button.FontFamily, button.FontStyle, button.FontWeight, button.FontStretch),
+            button.FontSize,
+            Brushes.White,
+            pixelsPerDip);
+        var available = button.ActualWidth
+            - button.Padding.Left - button.Padding.Right
+            - button.BorderThickness.Left - button.BorderThickness.Right;
+        return available + 0.5 >= formatted.WidthIncludingTrailingWhitespace;
+    }
+
+    private static IEnumerable<T> FindVisualChildren<T>(DependencyObject root) where T : DependencyObject
+    {
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)
+        {
+            var child = VisualTreeHelper.GetChild(root, index);
+            if (child is T match) yield return match;
+            foreach (var descendant in FindVisualChildren<T>(child)) yield return descendant;
+        }
     }
 }

@@ -76,6 +76,18 @@ public partial class BoardWindow
 
         var jitterRejected = !BoardInteractionEngine.ExceedsDragThreshold(0, 0, 3, 3)
             && BoardInteractionEngine.ExceedsDragThreshold(0, 0, 5, 0);
+        var plainRightPanPolicy = BoardInteractionEngine.ShouldPanCanvasWithRightDrag(
+                controlPressed: false,
+                windowMaximized: false)
+            && BoardInteractionEngine.ShouldPanCanvasWithRightDrag(
+                controlPressed: false,
+                windowMaximized: true)
+            && !BoardInteractionEngine.ShouldPanCanvasWithRightDrag(
+                controlPressed: true,
+                windowMaximized: false)
+            && !BoardInteractionEngine.ShouldPanCanvasWithRightDrag(
+                controlPressed: true,
+                windowMaximized: true);
         var dpi = VisualTreeHelper.GetDpi(this);
         var process = Process.GetCurrentProcess();
         var passed = groupSelectedAtomically
@@ -83,7 +95,8 @@ public partial class BoardWindow
             && marqueeVisible
             && sharedPanPathMoved
             && textEditingProtected
-            && jitterRejected;
+            && jitterRejected
+            && plainRightPanPolicy;
         var report = new
         {
             Milestone = "M8-02-input-selection-ui-smoke",
@@ -108,6 +121,7 @@ public partial class BoardWindow
                 SharedPanPathMoved = sharedPanPathMoved,
                 TextEditingProtected = textEditingProtected,
                 DragJitterRejected = jitterRejected,
+                PlainRightPanPolicy = plainRightPanPolicy,
                 DragThresholdDip = BoardInteractionEngine.DefaultDragThreshold
             },
             Process = new

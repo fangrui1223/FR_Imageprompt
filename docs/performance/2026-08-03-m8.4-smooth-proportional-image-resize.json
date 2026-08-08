@@ -1,0 +1,69 @@
+{
+  "milestone": "M8.4-smooth-proportional-image-resize",
+  "date": "2026-08-03",
+  "status": "implemented-packaged-awaiting-user-experience",
+  "environment": {
+    "physicalWidth": 3840,
+    "physicalHeight": 2560,
+    "dpi": 144,
+    "dpiScale": 1.5,
+    "boardZoom": 1.15,
+    "dataKind": "synthetic"
+  },
+  "resize": {
+    "samples": 120,
+    "inputMode": "absolute-pointer-from-fixed-start",
+    "monotonic": true,
+    "aspectRatioPreserved": true,
+    "beforeWidth": 353.3243985770275,
+    "beforeHeight": 1413.29759430811,
+    "afterWidth": 603.556270614941,
+    "afterHeight": 2414.225082459764,
+    "updateP50Ms": 0.005,
+    "updateP95Ms": 0.006,
+    "updateP99Ms": 0.03,
+    "updateMaximumMs": 2.6286,
+    "visualRebuildsDuringGesture": 0,
+    "bitmapRebuildsDuringGesture": 0,
+    "visualRebuildsOnCompletion": 0,
+    "bitmapRebuildsOnCompletion": 0,
+    "databaseWritesDuringGesture": 0,
+    "undoRecords": 1
+  },
+  "verification": {
+    "debugBuildWarnings": 0,
+    "debugBuildErrors": 0,
+    "testsPassed": 313,
+    "testsFailed": 0,
+    "m8_2Passed": true,
+    "m8_3Passed": true,
+    "m8_4Passed": true,
+    "additionalPerformanceGatesRun": false,
+    "finalPackageLaunchSmokeRun": false,
+    "stopReason": "User requested packaging without further testing."
+  },
+  "scope": {
+    "notesChanged": false,
+    "cropFieldsChanged": false,
+    "databaseSchemaChanged": false,
+    "galleryPerformanceLayerTouched": false
+  },
+  "dataSafety": {
+    "syntheticFixtureOnly": true,
+    "captureListeningEnabled": false,
+    "captureQuickEditEnabled": false,
+    "onlineAiEnabled": false,
+    "realLibraryOpened": false,
+    "clipboardUsed": false,
+    "networkUsed": false,
+    "apiKeyUsed": false
+  },
+  "package": {
+    "relativePath": "publish/FR_Imageprompt-M8.4-smooth-proportional-resize-final-win-x64.zip",
+    "fileCount": 1,
+    "exeBytes": 238330118,
+    "exeSha256": "85c2d9309f1b4e5e4194bdbce1a66f58e34dd2f9cc97660f784878aac783782d",
+    "zipBytes": 92514035,
+    "zipSha256": "d02823b89e4cc02aefc5dffc684d0175c4f3ec91ff777ddff4cff904b68e3868"
+  }
+}

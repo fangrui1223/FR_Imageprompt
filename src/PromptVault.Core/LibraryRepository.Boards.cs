@@ -631,6 +631,54 @@ public sealed partial class LibraryRepository
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task ReplaceBoardNotesAsync(
+        long boardId,
+        IReadOnlyList<BoardNoteRecord> notes,
+        CancellationToken cancellationToken = default)
+    {
+        if (notes.Any(note => note.BoardId != boardId))
+            throw new InvalidOperationException("画板快照包含其他画板的便签。");
+        foreach (var note in notes) ValidateNoteUpdate(new BoardNoteUpdate(
+            note.Id, NormalizeNoteText(note.Text), note.X, note.Y, note.Width, note.Height,
+            note.ZIndex, NormalizeNoteColor(note.ColorStyle)));
+        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction =
+            (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        await EnsureBoardExistsAsync(connection, transaction, boardId, cancellationToken).ConfigureAwait(false);
+        var delete = connection.CreateCommand();
+        delete.Transaction = transaction;
+        delete.CommandText = "DELETE FROM board_notes WHERE board_id = $board;";
+        delete.Parameters.AddWithValue("$board", boardId);
+        await delete.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        foreach (var note in notes)
+        {
+            var insert = connection.CreateCommand();
+            insert.Transaction = transaction;
+            insert.CommandText = """
+                INSERT INTO board_notes(
+                    id, board_id, text, x, y, width, height, z_index, color_style,
+                    created_at, updated_at)
+                VALUES(
+                    $id, $board, $text, $x, $y, $width, $height, $z, $color,
+                    $created, $updated);
+                """;
+            insert.Parameters.AddWithValue("$id", note.Id);
+            insert.Parameters.AddWithValue("$board", boardId);
+            insert.Parameters.AddWithValue("$text", NormalizeNoteText(note.Text));
+            insert.Parameters.AddWithValue("$x", note.X);
+            insert.Parameters.AddWithValue("$y", note.Y);
+            insert.Parameters.AddWithValue("$width", note.Width);
+            insert.Parameters.AddWithValue("$height", note.Height);
+            insert.Parameters.AddWithValue("$z", note.ZIndex);
+            insert.Parameters.AddWithValue("$color", NormalizeNoteColor(note.ColorStyle));
+            insert.Parameters.AddWithValue("$created", note.CreatedAt.ToString("O"));
+            insert.Parameters.AddWithValue("$updated", note.UpdatedAt.ToString("O"));
+            await insert.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+        await TouchBoardAsync(connection, transaction, boardId, cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task DeleteBoardNotesAsync(
         long boardId,
         IReadOnlyCollection<long> noteIds,

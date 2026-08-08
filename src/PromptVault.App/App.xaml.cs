@@ -31,6 +31,10 @@ public partial class App : System.Windows.Application
         string? boardTransformSmokeReport = null;
         string? boardImageSmokeReport = null;
         string? boardM8GateReport = null;
+        string? boardM82SmokeReport = null;
+        string? boardM83SmokeReport = null;
+        string? boardM84SmokeReport = null;
+        string? galleryPartialCardSmokeReport = null;
         try
         {
             boardCameraSmokeReport = GetOptionValue(e.Args, "--board-camera-smoke");
@@ -41,6 +45,10 @@ public partial class App : System.Windows.Application
             boardTransformSmokeReport = GetOptionValue(e.Args, "--board-transform-smoke");
             boardImageSmokeReport = GetOptionValue(e.Args, "--board-image-smoke");
             boardM8GateReport = GetOptionValue(e.Args, "--board-m8-gate");
+            boardM82SmokeReport = GetOptionValue(e.Args, "--board-m82-smoke");
+            boardM83SmokeReport = GetOptionValue(e.Args, "--board-m83-smoke");
+            boardM84SmokeReport = GetOptionValue(e.Args, "--board-m84-smoke");
+            galleryPartialCardSmokeReport = GetOptionValue(e.Args, "--gallery-partial-card-smoke");
             if (isAiWorker)
             {
                 var libraryRoot = GetOptionValue(e.Args, "--library")
@@ -130,7 +138,36 @@ public partial class App : System.Windows.Application
             MainWindow = window;
             _tray = new TrayService(window, () => Shutdown());
             window.Show();
-            if (openBoardForDiagnostics || boardCameraSmokeReport is not null || boardInputSmokeReport is not null || boardCommandSmokeReport is not null || boardChromeSmokeReport is not null || boardInspectorSmokeReport is not null || boardTransformSmokeReport is not null || boardImageSmokeReport is not null || boardM8GateReport is not null)
+            if (galleryPartialCardSmokeReport is not null)
+            {
+                var passed = false;
+                try
+                {
+                    passed = await window.RunPartialCardInputSmokeAsync(
+                        galleryPartialCardSmokeReport,
+                        _settings);
+                }
+                catch (Exception diagnosticException)
+                {
+                    var reportPath = Path.GetFullPath(galleryPartialCardSmokeReport);
+                    Directory.CreateDirectory(Path.GetDirectoryName(reportPath)!);
+                    await File.WriteAllTextAsync(
+                        reportPath,
+                        System.Text.Json.JsonSerializer.Serialize(
+                            new
+                            {
+                                Milestone = "M7.2.2-partial-card-first-click",
+                                GeneratedAt = DateTimeOffset.Now,
+                                DataKind = "synthetic",
+                                Passed = false,
+                                Error = diagnosticException.ToString()
+                            },
+                            new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+                }
+                Shutdown(passed ? 0 : 2);
+                return;
+            }
+            if (openBoardForDiagnostics || boardCameraSmokeReport is not null || boardInputSmokeReport is not null || boardCommandSmokeReport is not null || boardChromeSmokeReport is not null || boardInspectorSmokeReport is not null || boardTransformSmokeReport is not null || boardImageSmokeReport is not null || boardM8GateReport is not null || boardM82SmokeReport is not null || boardM83SmokeReport is not null || boardM84SmokeReport is not null)
             {
                 var boardWindow = await _boardWorkspace.OpenAsync(window);
                 if (boardCameraSmokeReport is not null)
@@ -164,6 +201,18 @@ public partial class App : System.Windows.Application
                 if (boardM8GateReport is not null)
                 {
                     await boardWindow.RunM8GateSmokeAsync(boardM8GateReport, _settings);
+                }
+                if (boardM82SmokeReport is not null)
+                {
+                    await boardWindow.RunM82SmokeAsync(boardM82SmokeReport, _settings);
+                }
+                if (boardM83SmokeReport is not null)
+                {
+                    await boardWindow.RunM83SmokeAsync(boardM83SmokeReport, _settings);
+                }
+                if (boardM84SmokeReport is not null)
+                {
+                    await boardWindow.RunM84SmokeAsync(boardM84SmokeReport, _settings);
                 }
             }
             DevelopmentPerformanceTrace.Event("main-window-shown");

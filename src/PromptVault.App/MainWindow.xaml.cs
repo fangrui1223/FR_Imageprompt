@@ -1523,6 +1523,14 @@ public partial class MainWindow : Window
         _dragStart = e.GetPosition(this);
     }
 
+    private void CardRequestBringIntoView(object sender, RequestBringIntoViewEventArgs e)
+    {
+        if (!GalleryViewportPolicy.ShouldBringIntoView(GalleryBringIntoViewIntent.PointerCardInteraction))
+        {
+            e.Handled = true;
+        }
+    }
+
     private void CardMouseMove(object sender, MouseEventArgs e)
     {
         if (_dragCandidate is null || e.LeftButton != MouseButtonState.Pressed) return;

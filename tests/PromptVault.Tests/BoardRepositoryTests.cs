@@ -304,6 +304,39 @@ public sealed class BoardRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task ReplaceBoardNotesRestoresAddedDeletedAndResizedNotes()
+    {
+        var board = await _repository.CreateBoardAsync("note snapshot restore");
+        var first = await _repository.AddBoardNoteAsync(
+            board.Id, "first", 10, 20, 240, 160, 2, "yellow");
+        var second = await _repository.AddBoardNoteAsync(
+            board.Id, "second", 300, 40, 280, 180, 3, "blue");
+        var snapshot = await _repository.GetBoardNotesAsync(board.Id);
+
+        await _repository.UpdateBoardNoteAsync(
+            board.Id,
+            new BoardNoteUpdate(first.Id, "resized", 80, 90, 640, 480, 8, "rose"));
+        await _repository.DeleteBoardNotesAsync(board.Id, [second.Id]);
+        var transient = await _repository.AddBoardNoteAsync(
+            board.Id, "transient", -200, -100, 320, 200, 9, "slate");
+
+        await _repository.ReplaceBoardNotesAsync(board.Id, snapshot);
+        var restarted = new LibraryRepository(new LibraryPaths(_root));
+        await restarted.InitializeAsync();
+        var restored = (await restarted.GetBoardNotesAsync(board.Id)).OrderBy(note => note.Id).ToArray();
+
+        Assert.Equal(2, restored.Length);
+        Assert.Equal([first.Id, second.Id], restored.Select(note => note.Id));
+        Assert.DoesNotContain(restored, note => note.Text == transient.Text);
+        Assert.Equal((10d, 20d, 240d, 160d),
+            (restored[0].X, restored[0].Y, restored[0].Width, restored[0].Height));
+        Assert.Equal("first", restored[0].Text);
+        Assert.Equal((300d, 40d, 280d, 180d),
+            (restored[1].X, restored[1].Y, restored[1].Width, restored[1].Height));
+        Assert.Equal("second", restored[1].Text);
+    }
+
+    [Fact]
     public async Task DeletingBoardCascadesNotesOnly()
     {
         var saved = await SaveItemAsync("board-note-safe", createFiles: true);

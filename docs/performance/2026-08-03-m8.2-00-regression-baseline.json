@@ -1,0 +1,37 @@
+{
+  "milestone": "M8.2-00-regression-baseline",
+  "date": "2026-08-03",
+  "dataKind": "synthetic-and-user-reported-ui-evidence",
+  "baseline": {
+    "imageHandleCount": 8,
+    "imageHandlesReliableForUser": false,
+    "noteHandlesReliableForUser": false,
+    "ctrlRightDragMovedCanvasInsteadOfWindow": true,
+    "legacyCropModeUsableForUser": false,
+    "selectedImageDragWorkedWithActualPointer": true,
+    "selectedNoteResizeWorkedWithActualPointer": true
+  },
+  "rootCauses": [
+    "Transform hit targets were smaller and mixed corner and edge semantics.",
+    "Selection geometry and rotated local deltas were not consistently aligned.",
+    "Note operations did not share the complete item history snapshot.",
+    "Ctrl-right-drag was explicitly routed to camera pan.",
+    "Legacy crop changed item geometry instead of maintaining a fixed frame viewport."
+  ],
+  "automationLimitations": [
+    "The available pointer drag interface cannot keep Shift or Alt held throughout a drag.",
+    "Modifier paths therefore require routed WPF diagnostics plus pure geometry tests in addition to actual pointer checks."
+  ],
+  "dataSafety": {
+    "explicitSyntheticSettings": true,
+    "captureListeningEnabled": false,
+    "captureQuickEditEnabled": false,
+    "onlineAiEnabled": false,
+    "realLibraryOpened": false,
+    "realLibraryModified": false,
+    "clipboardUsed": false,
+    "networkUsed": false,
+    "apiKeysUsed": false,
+    "absolutePathsSerialized": false
+  }
+}

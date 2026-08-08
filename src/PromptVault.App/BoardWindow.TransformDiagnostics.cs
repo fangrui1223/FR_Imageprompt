@@ -24,6 +24,14 @@ public partial class BoardWindow
         WindowState = WindowState.Maximized;
         await WaitForLayoutAsync();
 
+        var firstNote = _notes.First();
+        _selectedIds.Clear();
+        _selectedNoteId = firstNote.Id;
+        RenderVisibleItems();
+        var noteResizeHandlesVisible = _realizedNotes.TryGetValue(firstNote.Id, out var noteVisual)
+            && noteVisual.ResizeHandles.Count == 4
+            && noteVisual.ResizeHandles.All(handle => handle.Visibility == Visibility.Visible);
+
         var first = _items[1];
         var second = _items[2];
         _selectedIds.Clear();
@@ -31,7 +39,12 @@ public partial class BoardWindow
         _selectedNoteId = null;
         RenderVisibleItems();
         var overlayConstant = SelectionBoundsOverlay.Visibility == Visibility.Visible
-            && TopLeftHandle.Width == 20 && TopLeftHandle.Height == 20;
+            && TopLeftHandle.Width == 28 && TopLeftHandle.Height == 28
+            && SelectionBoundsOverlay.Background is null;
+        var eightHandlesVisible = new[]
+        {
+            TopLeftHandle, TopRightHandle, BottomRightHandle, BottomLeftHandle
+        }.All(handle => handle.Visibility == Visibility.Visible);
 
         var singleBounds = new BoardWorldRect(first.X, first.Y, first.Width, first.Height);
         var proportional = BoardTransformEngine.ResizeBounds(
@@ -42,6 +55,16 @@ public partial class BoardWindow
         var free = BoardTransformEngine.ResizeBounds(
             singleBounds, BoardResizeHandle.BottomRight, 90, 20, false, false);
         var freeAxes = !NearlyEqual(free.Width / free.Height, singleBounds.Width / singleBounds.Height);
+        var edge = BoardTransformEngine.ResizeBounds(
+            singleBounds, BoardResizeHandle.Right, 90, 80, false, false);
+        var edgeFreeAxis = NearlyEqual(edge.Height, singleBounds.Height)
+            && NearlyEqual(edge.Width, singleBounds.Width + 90);
+        var reset = BoardTransformEngine.ResetSize(first);
+        var resetPreservesAspect = NearlyEqual(
+                reset.Width / reset.Height,
+                first.NaturalWidth / (double)first.NaturalHeight)
+            && NearlyEqual(reset.X + reset.Width / 2, first.X + first.Width / 2)
+            && NearlyEqual(reset.Y + reset.Height / 2, first.Y + first.Height / 2);
         var centered = BoardTransformEngine.ResizeBounds(
             singleBounds, BoardResizeHandle.BottomRight, 90, 20, true, true);
         var centerPreserved = NearlyEqual(centered.X + centered.Width / 2, first.X + first.Width / 2)
@@ -91,7 +114,8 @@ public partial class BoardWindow
             .Any(item => item.Id == first.Id || item.Id == second.Id);
         var process = Process.GetCurrentProcess();
         var dpi = VisualTreeHelper.GetDpi(this);
-        var passed = overlayConstant && ratioPreserved && freeAxes && centerPreserved
+        var passed = overlayConstant && eightHandlesVisible && noteResizeHandlesVisible
+            && ratioPreserved && freeAxes && edgeFreeAxis && resetPreservesAspect && centerPreserved
             && snapped && noWritesDuringGesture && oneUndoRecord && persistedComplete && visibleAfterRotation;
         var report = new
         {
@@ -108,8 +132,12 @@ public partial class BoardWindow
             Transform = new
             {
                 ScreenConstantSelectionOverlay = overlayConstant,
+                EightResizeHandlesVisible = eightHandlesVisible,
+                FourNoteResizeHandlesVisible = noteResizeHandlesVisible,
                 DefaultAspectRatioPreserved = ratioPreserved,
                 ShiftFreeAxes = freeAxes,
+                EdgeHandleFreeAxis = edgeFreeAxis,
+                ResetSizePreservesNaturalAspect = resetPreservesAspect,
                 AltCenterPreserved = centerPreserved,
                 MultiSelectionScaled = true,
                 CtrlShiftSnappedTo15Degrees = snapped,

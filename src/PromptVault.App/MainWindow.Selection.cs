@@ -284,6 +284,7 @@ public partial class MainWindow
 
     private void ScrollSelectionIntoView(long itemId)
     {
+        if (!GalleryViewportPolicy.ShouldBringIntoView(GalleryBringIntoViewIntent.ExplicitSelectionNavigation)) return;
         var row = Rows.FirstOrDefault(candidate => candidate.LayoutItems.Any(item => item.Item.Id == itemId));
         if (row is null) return;
         RowsList.ScrollIntoView(row);

@@ -4,6 +4,38 @@ namespace PromptVault.Tests;
 
 public sealed class BoardInteractionEngineTests
 {
+    [Theory]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, true)]
+    public void PlainRightDragAlwaysPansCanvasRegardlessOfWindowState(bool control, bool maximized, bool expected)
+    {
+        Assert.Equal(expected, BoardInteractionEngine.ShouldPanCanvasWithRightDrag(control, maximized));
+    }
+
+    [Theory]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, true)]
+    [InlineData(false, false, false)]
+    [InlineData(false, true, false)]
+    public void OnlyCtrlRightDragMovesWindowRegardlessOfWindowState(
+        bool control, bool maximized, bool expected) =>
+        Assert.Equal(expected, BoardInteractionEngine.ShouldMoveWindowWithRightDrag(control, maximized));
+
+    [Theory]
+    [InlineData(true, true, false)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, true)]
+    [InlineData(false, false, false)]
+    public void TransformThumbNeverStartsBlankCanvasGesture(
+        bool pointerOriginatesFromThumb,
+        bool pointerIsOverBlankCanvas,
+        bool expected) =>
+        Assert.Equal(expected, BoardInteractionEngine.ShouldBeginBlankCanvasGesture(
+            pointerOriginatesFromThumb,
+            pointerIsOverBlankCanvas));
+
     [Fact]
     public void ResolvePriorityUsesTheDocumentedInputLadder()
     {
