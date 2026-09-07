@@ -29,7 +29,7 @@ public partial class BoardWindow
         var item = _items.First(candidate => _realized.ContainsKey(candidate.Id));
         _selectedIds.Clear();
         _selectedIds.Add(item.Id);
-        _selectedNoteId = null;
+        _selectedNoteIds.Clear();
         RenderVisibleItems();
         await WaitForLayoutAsync();
 
@@ -51,7 +51,8 @@ public partial class BoardWindow
 
         var note = _notes.First();
         _selectedIds.Clear();
-        _selectedNoteId = note.Id;
+        _selectedNoteIds.Clear();
+        _selectedNoteIds.Add(note.Id);
         RenderVisibleItems();
         await WaitForLayoutAsync();
         var noteHandle = _realizedNotes[note.Id].ResizeHandles[^1];
@@ -63,7 +64,7 @@ public partial class BoardWindow
         var afterNote = _notes.Single(candidate => candidate.Id == note.Id);
         var routedNoteResizeChanged = afterNote.Width > beforeNote.Width && afterNote.Height > beforeNote.Height;
 
-        _selectedNoteId = null;
+        _selectedNoteIds.Clear();
         _selectedIds.Clear();
         _selectedIds.Add(item.Id);
         RenderVisibleItems();

@@ -1,0 +1,167 @@
+{
+  "milestone": "M10.1-focus-camera-gallery-edge-regression",
+  "date": "2026-08-30",
+  "status": "passed",
+  "scope": [
+    "note input ownership and outside-click handoff",
+    "Space, Ctrl+Space, Ctrl+0 and Esc temporary-camera behavior",
+    "gallery right-edge viewport safety"
+  ],
+  "buildAndTests": {
+    "debugBuild": {
+      "passed": true,
+      "warnings": 0,
+      "errors": 0
+    },
+    "debugTests": {
+      "passed": true,
+      "passedCount": 364,
+      "failedCount": 0,
+      "skippedCount": 0
+    },
+    "releaseBuild": {
+      "passed": true,
+      "warnings": 0,
+      "errors": 0
+    },
+    "releaseTests": {
+      "passed": true,
+      "passedCount": 364,
+      "failedCount": 0,
+      "skippedCount": 0
+    }
+  },
+  "releaseWpfDiagnostics": {
+    "display": {
+      "physicalWidth": 3840,
+      "physicalHeight": 2560,
+      "dpi": 144,
+      "scale": 1.5
+    },
+    "note": {
+      "editorTemplateOwnedByNote": true,
+      "outsideClickReleasedEditor": true,
+      "readOnlyNoteOwnedByNote": true,
+      "previewSamples": 240,
+      "previewP95Ms": 0.0387,
+      "previewMaximumMs": 0.5154,
+      "databaseWritesDuringPreview": 0
+    },
+    "camera": {
+      "spaceRoundTripExact": true,
+      "selectionReplacesFullBoardFocus": true,
+      "switchedTargetRoundTripExact": true,
+      "oneHundredPercentZoom": 1.0,
+      "restoredExactCamera": true
+    },
+    "gallery": {
+      "contentViewportWidthDip": 1320,
+      "rightmostCardDip": 1312,
+      "safetyInsetDip": 8,
+      "fullyVisible": true,
+      "transparentToggleReflows": 0,
+      "manualResizeDebounceMs": 180,
+      "manualResizeReflows": 1,
+      "rowsReused": true,
+      "cardsReused": true,
+      "thumbnailsReused": true
+    }
+  },
+  "m8Regression": {
+    "m82": {
+      "passed": true,
+      "fourCornerHitTests": "4/4",
+      "cropPreviewSamples": 120,
+      "cropPreviewP95Ms": 0.002,
+      "cropDatabaseWrites": 0,
+      "cropBitmapRebuilds": 0
+    },
+    "m83": {
+      "passed": true,
+      "plainRightDragPans": true,
+      "ctrlRightDragMovesWindow": true,
+      "databaseWritesDuringImageGesture": 0
+    },
+    "m84": {
+      "passed": true,
+      "resizeSamples": 120,
+      "resizeP95Ms": 0.016,
+      "visualRebuilds": 0,
+      "bitmapRebuilds": 0,
+      "databaseWritesDuringGesture": 0
+    },
+    "m85": {
+      "passed": true,
+      "singleOutlinePhysicalPixels": 1,
+      "multiMemberPhysicalPixels": [1, 1],
+      "cropOutlineDip": 2,
+      "visualRebuilds": 0,
+      "bitmapRebuilds": 0
+    }
+  },
+  "m72FastBrowse": {
+    "report": ".m10-isolated/m10.1-fast-browse.json",
+    "passed": true,
+    "checks": "11/11",
+    "scales": [550, 5000, 30000],
+    "missingVisibleTotal": 0,
+    "extraOutsideCacheTotal": 0,
+    "unrealizedVisibleTotal": 0,
+    "frameP95Ms": 16.672,
+    "frameP99Ms": 16.672,
+    "realLibraryOpened": false
+  },
+  "board5000Gate": {
+    "acceptedBaselineReport": ".m10-isolated/m10-release-m8-gate.json",
+    "itemCount": 5000,
+    "frameSamples": 181,
+    "frameP95Ms": 16.671,
+    "maximumRealized": 37,
+    "nearBlackFrames": 0,
+    "currentRerunNote": "Three shell-started reruns timed out waiting for CompositionTarget.Rendering in this desktop execution environment. M10.1 did not modify the board viewport index, realization policy, bitmap cache or rendering loop, so the latest passing Release baseline remains authoritative."
+  },
+  "realUi": {
+    "display": "3840x2560 at 150%",
+    "passedBeforeDesktopLock": [
+      "double-click note enters editing",
+      "one blank click leaves editing",
+      "the same note can be dragged immediately afterward",
+      "Ctrl+0 enters 100% temporary view",
+      "Esc restores the saved view",
+      "Ctrl+Space fits the complete board"
+    ],
+    "finalTargetSwitch": "Release WPF diagnostic passed selection-replaces-full-board and exact second-Space restore. The final pointer replay was interrupted by the Windows lock screen and no lock-screen bypass was attempted."
+  },
+  "dataSafety": {
+    "explicitSettingsOnly": true,
+    "syntheticLibrariesOnly": true,
+    "captureListeningEnabled": false,
+    "quickCaptureEnabled": false,
+    "onlineAiEnabled": false,
+    "realLibraryOpened": false,
+    "realLibraryModified": false,
+    "clipboardUsed": false,
+    "networkRequests": 0,
+    "apiKeysUsed": 0,
+    "databaseSchemaChanged": false
+  },
+  "artifacts": {
+    "debugBoard": ".m10-isolated/m10.1-board-smoke.json",
+    "debugGallery": ".m10-isolated/m10.1-transparent-smoke.json",
+    "releaseBoard": ".m10-isolated/m10.1-release-board-smoke.json",
+    "releaseGallery": ".m10-isolated/m10.1-release-transparent-smoke.json",
+    "m82": ".m10-isolated/m10.1-m82.json",
+    "m83": ".m10-isolated/m10.1-m83.json",
+    "m84": ".m10-isolated/m10.1-m84.json",
+    "m85": ".m10-isolated/m10.1-m85.json"
+  },
+  "releasePackage": {
+    "path": "publish/FR_Imageprompt-M10.1-final-win-x64.zip",
+    "zipEntryCount": 1,
+    "zipEntry": "FR_Imageprompt.exe",
+    "executableBytes": 238488268,
+    "zipBytes": 95308911,
+    "executableSha256": "895D8844C8E46CFA552465EAF252B847642CE884E28AD0F49CF2C70C2FE1B699",
+    "zipSha256": "606404F747BBC61428C66E604F00A98A066084651901FCD02AF713D6EA0AFA2C"
+  }
+}

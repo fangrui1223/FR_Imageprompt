@@ -30,14 +30,16 @@ public partial class MainWindow
                 return;
             }
         }
-        if (System.Windows.Application.Current is App app) app.SwitchMainWindow(!_transparentMode, CreateSnapshot());
+        if (System.Windows.Application.Current is App app)
+            await app.SwitchMainWindowAsync(!_transparentMode, CreateSnapshot());
     }
 
-    private void ApplyTransparentMode()
+    private void ApplyTransparentMode(bool applyVisualModeResources = true)
     {
+        _transparentModeApplyCount++;
         var transparent = _transparentMode;
-        if (transparent && _inspectorVisible) SetInspectorVisibility(false);
-        VisualModeService.Apply(transparent, _settings.ReducedMotionEnabled);
+        if (applyVisualModeResources)
+            VisualModeService.Apply(transparent, _settings.ReducedMotionEnabled);
         WindowSurface.Background = VisualModeService.ResourceBrush("WindowSurfaceBrush");
         WindowSurface.BorderBrush = VisualModeService.ResourceBrush("WindowBorderBrush");
         TopPanel.Background = VisualModeService.ResourceBrush("TopPanelBrush");
@@ -47,11 +49,19 @@ public partial class MainWindow
         LeftPanel.BorderBrush = transparent ? Brushes.Transparent : VisualModeService.ResourceBrush("HairlineBrush");
         LeftPanel.Effect = VisualModeService.ResourceEffect("SidePanelShadow");
         ImmersiveViewer.Background = VisualModeService.ResourceBrush("ImmersiveBackdropBrush");
-        GalleryHeader.Visibility = transparent ? Visibility.Collapsed : Visibility.Visible;
-        StatusText.Visibility = transparent ? Visibility.Collapsed : Visibility.Visible;
-        GalleryLayer.Margin = transparent
-            ? new Thickness(0)
-            : (Thickness)FindResource("SpacingWindow");
+        GalleryHeader.Visibility = Visibility.Visible;
+        GalleryHeader.Opacity = transparent ? 0 : 1;
+        GalleryHeader.IsHitTestVisible = !transparent;
+        StatusText.Visibility = Visibility.Visible;
+        StatusText.Opacity = transparent ? 0 : 1;
+        GalleryLayer.Margin = (Thickness)FindResource("SpacingWindow");
+        if (_inspectorVisible)
+        {
+            InspectorPanel.Visibility = transparent ? Visibility.Hidden : Visibility.Visible;
+            InspectorPanel.IsHitTestVisible = !transparent;
+            InspectorPanel.Opacity = transparent ? 0 : 1;
+            InspectorSplitter.Visibility = transparent ? Visibility.Hidden : Visibility.Visible;
+        }
 
         ApplyTextBoxChrome(SearchBox, transparent);
         ApplyTextBoxChrome(TagBox, transparent);

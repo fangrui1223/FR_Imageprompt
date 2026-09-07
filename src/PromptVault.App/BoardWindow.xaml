@@ -85,7 +85,7 @@
  <Grid x:Name="BoardRoot">
   <Border x:Name="BoardBackground" ClipToBounds="True" Background="#0A0E14"
           AutomationProperties.AutomationId="BoardBackground">
-   <Grid x:Name="BoardViewport" Background="Transparent"
+   <Grid x:Name="BoardViewport" Background="Transparent" Focusable="True" FocusVisualStyle="{x:Null}"
          AutomationProperties.AutomationId="BoardViewport" AutomationProperties.Name="画板视口"
          SizeChanged="BoardViewportSizeChanged" PreviewMouseWheel="BoardViewportMouseWheel"
          PreviewMouseLeftButtonDown="BoardViewportMouseLeftButtonDown"
@@ -150,7 +150,7 @@
    </Grid>
   </Border>
 
-  <Border x:Name="TopEdgeActivationZone" Height="28" VerticalAlignment="Top" Background="Transparent"
+  <Border x:Name="TopEdgeActivationZone" Height="8" VerticalAlignment="Top" Background="Transparent"
           MouseEnter="TopEdgeMouseEnter" MouseLeave="TopEdgeMouseLeave"/>
 
   <Border x:Name="BoardTopBar" Height="62" Margin="10,6,10,0" Padding="10,10"
@@ -213,6 +213,67 @@
      <TextBlock x:Name="SelectionSummaryText" Margin="0,0,0,14" Foreground="{DynamicResource SecondaryTextBrush}" Text="未选择图片"/>
      <TextBlock x:Name="InspectorDetailsText" Margin="0,0,0,14" TextWrapping="Wrap"
                 Foreground="{DynamicResource PrimaryTextBrush}" Text="当前画板"/>
+     <StackPanel x:Name="NotePropertiesPanel" Visibility="Collapsed">
+      <UniformGrid Columns="2" Margin="0,0,0,10">
+       <Button Margin="0,0,4,0" Height="34" Content="编辑文字" Click="EditNoteClick"/>
+       <Button Margin="4,0,0,0" Height="34" Content="适合文字" Click="FitNoteContentClick"/>
+      </UniformGrid>
+      <TextBlock x:Name="NoteFontSizeLabel" Text="字号 28" Foreground="{DynamicResource SecondaryTextBrush}"/>
+      <Slider x:Name="NoteFontSizeSlider" Minimum="8" Maximum="300" TickFrequency="1" IsSnapToTickEnabled="True"
+              Margin="0,4,0,9" ValueChanged="NotePropertySliderChanged"
+              PreviewMouseLeftButtonDown="NotePropertySliderPointerDown" PreviewMouseLeftButtonUp="NotePropertySliderPointerUp"
+              PreviewKeyUp="NotePropertySliderKeyUp"/>
+      <TextBlock x:Name="NoteLineSpacingLabel" Text="行距 1.2" Foreground="{DynamicResource SecondaryTextBrush}"/>
+      <Slider x:Name="NoteLineSpacingSlider" Minimum="1" Maximum="10" TickFrequency="0.1" IsSnapToTickEnabled="True"
+              Margin="0,4,0,9" ValueChanged="NotePropertySliderChanged"
+              PreviewMouseLeftButtonDown="NotePropertySliderPointerDown" PreviewMouseLeftButtonUp="NotePropertySliderPointerUp"
+              PreviewKeyUp="NotePropertySliderKeyUp"/>
+      <TextBlock Text="对齐" Foreground="{DynamicResource SecondaryTextBrush}"/>
+      <ComboBox x:Name="NoteAlignmentSelector" Height="34" Margin="0,4,0,9" SelectedValuePath="Tag"
+                SelectionChanged="NoteAlignmentSelectionChanged">
+       <ComboBoxItem Tag="Left" Content="左对齐"/><ComboBoxItem Tag="Center" Content="居中"/><ComboBoxItem Tag="Right" Content="右对齐"/>
+      </ComboBox>
+      <CheckBox x:Name="NoteBackgroundEnabledCheckBox" Margin="0,0,0,9" Content="显示背景"
+                Checked="NoteBackgroundEnabledChanged" Unchecked="NoteBackgroundEnabledChanged"/>
+      <UniformGrid Columns="2" Margin="0,0,0,9">
+       <Button x:Name="NoteTextColorButton" Margin="0,0,4,0" Height="34" Click="NoteTextColorClick">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+         <Border x:Name="NoteTextColorSwatch" Width="16" Height="16" Margin="0,0,7,0" CornerRadius="3" BorderBrush="#8052677F" BorderThickness="1"/>
+         <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextBrush}" Text="文字颜色"/>
+        </StackPanel>
+       </Button>
+       <Button x:Name="NoteBackgroundColorButton" Margin="4,0,0,0" Height="34" Click="NoteBackgroundColorClick">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+         <Border x:Name="NoteBackgroundColorSwatch" Width="16" Height="16" Margin="0,0,7,0" CornerRadius="3" BorderBrush="#8052677F" BorderThickness="1"/>
+         <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextBrush}" Text="背景颜色"/>
+        </StackPanel>
+       </Button>
+      </UniformGrid>
+      <TextBlock x:Name="NoteBackgroundOpacityLabel" Text="背景透明度 92%" Foreground="{DynamicResource SecondaryTextBrush}"/>
+      <Slider x:Name="NoteBackgroundOpacitySlider" Minimum="0" Maximum="1" TickFrequency="0.01" IsSnapToTickEnabled="True"
+              Margin="0,4,0,9" ValueChanged="NotePropertySliderChanged"
+              PreviewMouseLeftButtonDown="NotePropertySliderPointerDown" PreviewMouseLeftButtonUp="NotePropertySliderPointerUp"
+              PreviewKeyUp="NotePropertySliderKeyUp"/>
+      <TextBlock x:Name="NoteCornerRadiusLabel" Text="圆角 12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+      <Slider x:Name="NoteCornerRadiusSlider" Minimum="0" Maximum="200" TickFrequency="1" IsSnapToTickEnabled="True"
+              Margin="0,4,0,9" ValueChanged="NotePropertySliderChanged"
+              PreviewMouseLeftButtonDown="NotePropertySliderPointerDown" PreviewMouseLeftButtonUp="NotePropertySliderPointerUp"
+              PreviewKeyUp="NotePropertySliderKeyUp"/>
+      <TextBlock x:Name="NoteVerticalPaddingLabel" Text="垂直边距 12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+      <Slider x:Name="NoteVerticalPaddingSlider" Minimum="0" Maximum="200" TickFrequency="1" IsSnapToTickEnabled="True"
+              Margin="0,4,0,10" ValueChanged="NotePropertySliderChanged"
+              PreviewMouseLeftButtonDown="NotePropertySliderPointerDown" PreviewMouseLeftButtonUp="NotePropertySliderPointerUp"
+              PreviewKeyUp="NotePropertySliderKeyUp"/>
+      <TextBlock Text="样式预设（左键应用 · 右键保存）" Margin="0,0,0,6" Foreground="{DynamicResource SecondaryTextBrush}"/>
+      <UniformGrid Columns="5" Margin="0,0,0,12">
+       <Button Height="32" Margin="0,0,3,0" Content="1" Tag="0" Click="NotePresetClick" PreviewMouseRightButtonDown="NotePresetRightButtonDown"/>
+       <Button Height="32" Margin="1,0,2,0" Content="2" Tag="1" Click="NotePresetClick" PreviewMouseRightButtonDown="NotePresetRightButtonDown"/>
+       <Button Height="32" Margin="1,0,2,0" Content="3" Tag="2" Click="NotePresetClick" PreviewMouseRightButtonDown="NotePresetRightButtonDown"/>
+       <Button Height="32" Margin="1,0,2,0" Content="4" Tag="3" Click="NotePresetClick" PreviewMouseRightButtonDown="NotePresetRightButtonDown"/>
+       <Button Height="32" Margin="1,0,0,0" Content="5" Tag="4" Click="NotePresetClick" PreviewMouseRightButtonDown="NotePresetRightButtonDown"/>
+      </UniformGrid>
+     </StackPanel>
+     <StackPanel x:Name="InspectorGeneralPanel">
      <TextBlock Foreground="{DynamicResource MutedTextBrush}" Text="画板背景"/>
      <ComboBox x:Name="BackgroundSelector" Height="34" Margin="0,6,0,7" SelectedValuePath="Tag" SelectionChanged="BackgroundSelectorChanged">
       <ComboBoxItem Tag="neutral" Content="中性深色"/><ComboBoxItem Tag="warm" Content="暖调暗色"/>
@@ -220,7 +281,7 @@
      </ComboBox>
      <UniformGrid Columns="2" Margin="0,0,0,12">
       <Button Margin="0,0,4,0" Height="34" Content="＋ 新建便签" Click="AddNoteClick"/>
-      <Button Margin="4,0,0,0" Height="34" Content="切换便签颜色" Click="CycleNoteColorClick"/>
+      <Button Margin="4,0,0,0" Height="34" Content="显示/隐藏便签背景" Click="CycleNoteColorClick"/>
      </UniformGrid>
       <UniformGrid Columns="2" Margin="0,0,0,8">
        <Button Margin="0,0,4,4" Height="34" Content="前移一层" Click="LayerForwardClick"/>
@@ -248,9 +309,43 @@
      <TextBlock Foreground="{DynamicResource MutedTextBrush}" Text="源文件"/>
      <TextBlock x:Name="SourceStateText" Margin="0,7,0,8" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" Text="选择一张图片查看状态"/>
      <Button Height="34" Content="重新定位缺失原图" Click="RelinkSourceClick"/>
+     </StackPanel>
     </StackPanel>
    </ScrollViewer>
   </Border>
+
+  <Popup x:Name="NoteColorPopup" Placement="Bottom" AllowsTransparency="True" StaysOpen="False"
+         Closed="NoteColorPopupClosed">
+   <Border Width="300" Padding="14" Margin="4" CornerRadius="10"
+           Background="#FC17202B" BorderBrush="#8052677F" BorderThickness="1">
+    <StackPanel>
+     <TextBlock x:Name="NoteColorPopupTitle" Margin="0,0,0,10" FontSize="15" FontWeight="SemiBold"
+                Foreground="{DynamicResource PrimaryTextBrush}" Text="文字颜色"/>
+     <UniformGrid Columns="6" Margin="0,0,0,10">
+      <Button Tag="#F4F7FB" Height="30" Margin="2" Background="#F4F7FB" Click="NoteColorPresetClick" ToolTip="#F4F7FB"/>
+      <Button Tag="#1B2430" Height="30" Margin="2" Background="#1B2430" Click="NoteColorPresetClick" ToolTip="#1B2430"/>
+      <Button Tag="#63D7F7" Height="30" Margin="2" Background="#63D7F7" Click="NoteColorPresetClick" ToolTip="#63D7F7"/>
+      <Button Tag="#FFB04C" Height="30" Margin="2" Background="#FFB04C" Click="NoteColorPresetClick" ToolTip="#FFB04C"/>
+      <Button Tag="#FF6B81" Height="30" Margin="2" Background="#FF6B81" Click="NoteColorPresetClick" ToolTip="#FF6B81"/>
+      <Button Tag="#78D68B" Height="30" Margin="2" Background="#78D68B" Click="NoteColorPresetClick" ToolTip="#78D68B"/>
+      <Button Tag="#253445" Height="30" Margin="2" Background="#253445" Click="NoteColorPresetClick" ToolTip="#253445"/>
+      <Button Tag="#111720" Height="30" Margin="2" Background="#111720" Click="NoteColorPresetClick" ToolTip="#111720"/>
+      <Button Tag="#F5E099" Height="30" Margin="2" Background="#F5E099" Click="NoteColorPresetClick" ToolTip="#F5E099"/>
+      <Button Tag="#F7C4CD" Height="30" Margin="2" Background="#F7C4CD" Click="NoteColorPresetClick" ToolTip="#F7C4CD"/>
+      <Button Tag="#B7DAEB" Height="30" Margin="2" Background="#B7DAEB" Click="NoteColorPresetClick" ToolTip="#B7DAEB"/>
+      <Button Tag="#C8CFD5" Height="30" Margin="2" Background="#C8CFD5" Click="NoteColorPresetClick" ToolTip="#C8CFD5"/>
+     </UniformGrid>
+     <DockPanel>
+      <Border x:Name="NoteColorPreviewSwatch" DockPanel.Dock="Right" Width="34" Height="34" Margin="8,0,0,0"
+              CornerRadius="5" BorderBrush="#8052677F" BorderThickness="1"/>
+      <TextBox x:Name="NoteColorHexBox" Height="34" Padding="9,5" MaxLength="7"
+               TextChanged="NoteColorHexTextChanged" PreviewKeyDown="NoteColorHexPreviewKeyDown"/>
+     </DockPanel>
+     <TextBlock Margin="0,7,0,0" Foreground="{DynamicResource MutedTextBrush}"
+                Text="输入 #RRGGBB；Enter 保存，Esc 取消"/>
+    </StackPanel>
+   </Border>
+  </Popup>
 
   <Border x:Name="BoardStatusOverlay" Margin="16,0,16,14" Padding="12,7" HorizontalAlignment="Left" VerticalAlignment="Bottom"
           CornerRadius="8" Background="#CC17202B" IsHitTestVisible="False">

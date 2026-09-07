@@ -1,0 +1,59 @@
+<Window x:Class="PromptVault.App.LicenseActivationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="FR_Imageprompt · 需要许可证"
+        Width="760" Height="560" MinWidth="680" MinHeight="520"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResize"
+        Background="{DynamicResource BackgroundBrush}">
+  <Grid Margin="32">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <StackPanel>
+      <TextBlock Text="需要许可证" FontSize="30" FontWeight="SemiBold"
+                 Foreground="{DynamicResource PrimaryTextBrush}" />
+      <TextBlock Margin="0,8,0,0" TextWrapping="Wrap" FontSize="14"
+                 Foreground="{DynamicResource SecondaryTextBrush}"
+                 Text="FR_Imageprompt 采用离线一机一证授权。复制下面的设备请求码发给授权人，收到许可证文件后在这里导入。" />
+    </StackPanel>
+
+    <Border Grid.Row="1" Margin="0,26,0,0" Padding="20" CornerRadius="12"
+            Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="1">
+      <StackPanel>
+        <TextBlock Text="本机设备请求码" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" />
+        <Grid Margin="0,10,0,0">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBox x:Name="DeviceCodeBox" IsReadOnly="True" MinHeight="48"
+                   FontFamily="Consolas" FontSize="17" VerticalContentAlignment="Center" />
+          <Button Grid.Column="1" Margin="12,0,0,0" MinWidth="104" Content="复制请求码"
+                  Click="CopyDeviceCodeClick" />
+        </Grid>
+      </StackPanel>
+    </Border>
+
+    <TextBlock Grid.Row="2" Margin="0,18,0,0" TextWrapping="Wrap" FontSize="12"
+               Foreground="{DynamicResource MutedTextBrush}"
+               Text="请求码由本机标识的单向摘要生成，不包含图片、提示词、图库路径、账号、用户名或网络信息。授权和后续使用都不需要联网。" />
+
+    <Border Grid.Row="3" Margin="0,22,0,0" Padding="16,14" CornerRadius="10"
+            Background="{DynamicResource CardSurfaceBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
+      <TextBlock x:Name="StatusText" TextWrapping="Wrap" FontSize="14"
+                 Foreground="{DynamicResource PrimaryTextBrush}" />
+    </Border>
+
+    <StackPanel Grid.Row="5" Margin="0,26,0,0" Orientation="Horizontal" HorizontalAlignment="Right">
+      <Button MinWidth="112" Margin="0,0,12,0" Content="退出" IsCancel="True" Click="ExitClick" />
+      <Button MinWidth="150" Content="导入许可证…" Click="ImportLicenseClick" />
+    </StackPanel>
+  </Grid>
+</Window>

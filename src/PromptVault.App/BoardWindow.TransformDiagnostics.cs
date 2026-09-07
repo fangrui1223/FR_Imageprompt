@@ -26,17 +26,18 @@ public partial class BoardWindow
 
         var firstNote = _notes.First();
         _selectedIds.Clear();
-        _selectedNoteId = firstNote.Id;
+        _selectedNoteIds.Clear();
+        _selectedNoteIds.Add(firstNote.Id);
         RenderVisibleItems();
         var noteResizeHandlesVisible = _realizedNotes.TryGetValue(firstNote.Id, out var noteVisual)
-            && noteVisual.ResizeHandles.Count == 4
-            && noteVisual.ResizeHandles.All(handle => handle.Visibility == Visibility.Visible);
+            && noteVisual.ResizeHandles.Count == 1
+            && noteVisual.ResizeHandles[0].Visibility == Visibility.Visible;
 
         var first = _items[1];
         var second = _items[2];
         _selectedIds.Clear();
         _selectedIds.Add(first.Id);
-        _selectedNoteId = null;
+        _selectedNoteIds.Clear();
         RenderVisibleItems();
         var overlayConstant = SelectionBoundsOverlay.Visibility == Visibility.Visible
             && TopLeftHandle.Width == 28 && TopLeftHandle.Height == 28
@@ -72,7 +73,7 @@ public partial class BoardWindow
 
         _selectedIds.Add(second.Id);
         var original = SnapshotItems();
-        var common = BoardCameraEngine.SelectionBounds(_items, _selectedIds, [], null)!.Bounds;
+        var common = BoardCameraEngine.SelectionBounds(_items, _selectedIds, [], (long?)null)!.Bounds;
         var target = BoardTransformEngine.ResizeBounds(
             common, BoardResizeHandle.BottomRight, 200, 140, true, false);
         var scaled = BoardTransformEngine.ScaleSelection(original, _selectedIds, common, target);
@@ -133,7 +134,7 @@ public partial class BoardWindow
             {
                 ScreenConstantSelectionOverlay = overlayConstant,
                 EightResizeHandlesVisible = eightHandlesVisible,
-                FourNoteResizeHandlesVisible = noteResizeHandlesVisible,
+                SingleNoteResizeHandleVisible = noteResizeHandlesVisible,
                 DefaultAspectRatioPreserved = ratioPreserved,
                 ShiftFreeAxes = freeAxes,
                 EdgeHandleFreeAxis = edgeFreeAxis,

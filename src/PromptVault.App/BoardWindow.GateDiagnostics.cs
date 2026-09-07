@@ -34,7 +34,7 @@ public partial class BoardWindow
         var selected = BoardViewportEngine.QueryVisible(_items, _viewport).Take(2).Select(item => item.Id).ToHashSet();
         _selectedIds.Clear();
         _selectedIds.UnionWith(selected);
-        var selectionBounds = BoardCameraEngine.SelectionBounds(_items, _selectedIds, [], null)!.Bounds;
+        var selectionBounds = BoardCameraEngine.SelectionBounds(_items, _selectedIds, [], (long?)null)!.Bounds;
         var frameTimes = new List<double>(targetFrames);
         var callbackTimes = new List<double>(targetFrames);
         var maximumRealized = 0;

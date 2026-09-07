@@ -25,7 +25,18 @@ public enum BoardCommandId
     UngroupSelection,
     RenameGroup,
     AddNote,
-    CycleNoteColor,
+    EditNote,
+    FitNoteContent,
+    ToggleNoteBackground,
+    AlignNoteLeft,
+    AlignNoteCenter,
+    AlignNoteRight,
+    ApplyNotePreset1,
+    ApplyNotePreset2,
+    ApplyNotePreset3,
+    ApplyNotePreset4,
+    ApplyNotePreset5,
+    DuplicateNote,
     RelinkSource,
     OpenOriginal,
     Copy,
@@ -66,12 +77,15 @@ public sealed record BoardCommandDefinition(
 public readonly record struct BoardCommandState(
     BoardCommandContextKind Context,
     int SelectedItemCount,
-    bool HasSelectedNote,
+    int SelectedNoteCount,
     bool CanUndo,
     bool CanRedo,
     bool HasManagedPaste,
     int BoardCount,
-    bool SingleSourceMissing);
+    bool SingleSourceMissing)
+{
+    public bool HasSelectedNote => SelectedNoteCount > 0;
+}
 
 public static class BoardCommandPolicy
 {
@@ -81,11 +95,18 @@ public static class BoardCommandPolicy
         BoardCommandId.Redo => state.CanRedo,
         BoardCommandId.FocusSelection => state.SelectedItemCount > 0 || state.HasSelectedNote,
         BoardCommandId.RemoveSelection => state.SelectedItemCount > 0,
-        BoardCommandId.DeleteNote or BoardCommandId.CycleNoteColor => state.HasSelectedNote,
+        BoardCommandId.DeleteNote or BoardCommandId.ToggleNoteBackground
+            or BoardCommandId.AlignNoteLeft or BoardCommandId.AlignNoteCenter
+            or BoardCommandId.AlignNoteRight or BoardCommandId.ApplyNotePreset1
+            or BoardCommandId.ApplyNotePreset2 or BoardCommandId.ApplyNotePreset3
+            or BoardCommandId.ApplyNotePreset4 or BoardCommandId.ApplyNotePreset5
+            or BoardCommandId.DuplicateNote => state.HasSelectedNote,
+        BoardCommandId.EditNote or BoardCommandId.FitNoteContent => state.SelectedNoteCount == 1,
         BoardCommandId.ResetSize => state.SelectedItemCount > 0 || state.HasSelectedNote,
         BoardCommandId.LayerFront or BoardCommandId.LayerForward
-            or BoardCommandId.LayerBackward or BoardCommandId.LayerBack
-            or BoardCommandId.RotateLeft or BoardCommandId.RotateRight
+            or BoardCommandId.LayerBackward or BoardCommandId.LayerBack =>
+            state.SelectedItemCount > 0 || state.HasSelectedNote,
+        BoardCommandId.RotateLeft or BoardCommandId.RotateRight
             or BoardCommandId.ResetRotation or BoardCommandId.ResetCrop
             or BoardCommandId.Copy => state.SelectedItemCount > 0,
         BoardCommandId.CompleteCrop or BoardCommandId.CancelCrop => state.SelectedItemCount == 1,

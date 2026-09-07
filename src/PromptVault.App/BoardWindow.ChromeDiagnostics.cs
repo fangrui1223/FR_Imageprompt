@@ -47,11 +47,12 @@ public partial class BoardWindow
             TopmostButton.Style,
             FindResource("BoardToolbarToggleStyle"));
         var chrome = System.Windows.Shell.WindowChrome.GetWindowChrome(this);
-        var activationZoneClearsResizeBorder = TopEdgeActivationZone.ActualHeight >= 28
-            && TopEdgeActivationZone.ActualHeight >= (chrome?.ResizeBorderThickness.Top ?? 0) + 16;
+        var activationZoneClearsResizeBorder = NearlyEqual(TopEdgeActivationZone.ActualHeight, 8)
+            && TopEdgeActivationZone.ActualHeight >= (chrome?.ResizeBorderThickness.Top ?? 0);
 
         HideBoardTopBar();
         TopEdgeMouseEnter(TopEdgeActivationZone, new MouseEventArgs(Mouse.PrimaryDevice, 0));
+        await Task.Delay(300);
         await WaitForLayoutAsync();
         var pointerReveal = BoardTopBar.IsHitTestVisible && BoardTopBar.Opacity >= 0.999;
 
@@ -80,9 +81,13 @@ public partial class BoardWindow
         ToggleMaximized();
         await WaitForLayoutAsync();
         var restored = WindowState == WindowState.Normal;
+        HideBoardTopBar();
         ShowTopBarFromKeyboard();
         await WaitForLayoutAsync();
         var keyboardReveal = BoardTopBar.IsHitTestVisible && !BoardSelector.IsKeyboardFocusWithin;
+        ShowTopBarFromKeyboard();
+        await WaitForLayoutAsync();
+        var keyboardHide = !BoardTopBar.IsHitTestVisible;
 
         var process = Process.GetCurrentProcess();
         var passed = hidden
@@ -97,7 +102,8 @@ public partial class BoardWindow
             && normalResizable
             && maximized
             && restored
-            && keyboardReveal;
+            && keyboardReveal
+            && keyboardHide;
         var report = new
         {
             Milestone = "M8-04-immersive-window-chrome-ui-smoke",
@@ -116,6 +122,7 @@ public partial class BoardWindow
                 IntentRevealVisible = shown,
                 PointerEntryRevealVisible = pointerReveal,
                 KeyboardRevealTransient = keyboardReveal,
+                KeyboardToggleHide = keyboardHide,
                 ToolbarTextFits = toolbarTextFits,
                 ToolbarTextButtonCount = toolbarButtons.Length,
                 TopmostVisualMatched = topmostVisualMatched,

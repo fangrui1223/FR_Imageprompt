@@ -17,6 +17,7 @@ public partial class BoardWindow
     private double _transformDeltaY;
     private bool _transformChanged;
     private bool _imageTransformGestureActive;
+    private Dictionary<long, BitmapScalingMode>? _transformBitmapScalingModes;
     private bool _rotationGestureActive;
     private IReadOnlyList<BoardItemRecord>? _rotationOriginalItems;
     private BoardWorldRect _rotationBounds;
@@ -26,12 +27,12 @@ public partial class BoardWindow
     private void UpdateSelectionOverlay()
     {
         UpdateRealizedImageSelectionBorders();
-        if (_selectedIds.Count == 0 || _selectedNoteId is not null)
+        if (_selectedIds.Count == 0 || _selectedNoteIds.Count > 0)
         {
             SelectionBoundsOverlay.Visibility = Visibility.Collapsed;
             return;
         }
-        var bounds = BoardCameraEngine.SelectionBounds(_items, _selectedIds, [], null);
+        var bounds = BoardCameraEngine.SelectionBounds(_items, _selectedIds, [], (long?)null);
         if (!bounds.HasValue)
         {
             SelectionBoundsOverlay.Visibility = Visibility.Collapsed;
@@ -76,7 +77,7 @@ public partial class BoardWindow
             || !Enum.TryParse(handle, out BoardResizeHandle parsed)
             || _selectedIds.Count == 0) return;
         if (_cropModeActive) return;
-        var bounds = BoardCameraEngine.SelectionBounds(_items, _selectedIds, [], null);
+        var bounds = BoardCameraEngine.SelectionBounds(_items, _selectedIds, [], (long?)null);
         if (!bounds.HasValue) return;
         var initialBounds = _selectedIds.Count == 1
             ? _items.Where(item => _selectedIds.Contains(item.Id))
@@ -95,6 +96,14 @@ public partial class BoardWindow
         _transformDeltaY = 0;
         _transformChanged = false;
         _imageTransformGestureActive = true;
+        _transformBitmapScalingModes = new Dictionary<long, BitmapScalingMode>();
+        foreach (var id in _transformSelectionIds)
+        {
+            if (!_realized.TryGetValue(id, out var element)
+                || FindItemImage(element) is not { } image) continue;
+            _transformBitmapScalingModes[id] = RenderOptions.GetBitmapScalingMode(image);
+            RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.LowQuality);
+        }
         if (sender is Thumb thumb) thumb.CaptureMouse();
         Mouse.OverrideCursor = ((Thumb)sender).Cursor;
     }
@@ -186,31 +195,36 @@ public partial class BoardWindow
             ClearImageTransformGesture();
             return;
         }
+        var affectedIds = _transformSelectionIds?.ToArray() ?? [];
         var changed = _transformChanged;
         RestoreTransformSelection();
         _transformOriginalItems = null;
         _resizeGesture = null;
-        ClearImageTransformGesture();
         if (e.Canceled)
         {
             ReplaceItems(before);
-            RenderVisibleItems();
+            UpdateRealizedTransformItems(affectedIds);
+            ClearImageTransformGesture();
+            UpdateSelectionOverlay();
             return;
         }
         if (!changed)
         {
+            ClearImageTransformGesture();
             UpdateSelectionOverlay();
             return;
         }
         CommitHistorySnapshot(before);
         await SaveSelectedItemsAsync();
-        RenderVisibleItems();
+        ClearImageTransformGesture();
+        UpdateRealizedTransformItems(affectedIds);
+        UpdateSelectionOverlay();
         SetStatus("变换已保存");
     }
 
     private void BeginRotationGesture(Point pointerWorld)
     {
-        var bounds = BoardCameraEngine.SelectionBounds(_items, _selectedIds, [], null);
+        var bounds = BoardCameraEngine.SelectionBounds(_items, _selectedIds, [], (long?)null);
         if (!bounds.HasValue) return;
         _rotationBounds = bounds.Bounds;
         _rotationOriginalItems = SnapshotItems();
@@ -267,22 +281,32 @@ public partial class BoardWindow
         }
         if (_transformOriginalItems is { } before)
         {
+            var affectedIds = _transformSelectionIds?.ToArray() ?? [];
             RestoreTransformSelection();
             _transformOriginalItems = null;
             _resizeGesture = null;
             if (Mouse.Captured is Thumb capturedThumb) capturedThumb.ReleaseMouseCapture();
             Mouse.OverrideCursor = null;
-            ClearImageTransformGesture();
             ReplaceItems(before);
-            RenderVisibleItems();
+            UpdateRealizedTransformItems(affectedIds);
+            ClearImageTransformGesture();
+            UpdateSelectionOverlay();
             return true;
         }
         if (_noteResizeOrigin is { } noteBefore)
         {
             _noteResizeOrigin = null;
-            _noteGestureSnapshot = null;
             if (Mouse.Captured is Thumb noteThumb) noteThumb.ReleaseMouseCapture();
-            ReplaceNote(noteBefore);
+            if (_noteGestureSnapshot is { } snapshot)
+            {
+                foreach (var note in snapshot.Notes.Where(candidate => _selectedNoteIds.Contains(candidate.Id)))
+                    ReplaceNote(note);
+            }
+            else
+            {
+                ReplaceNote(noteBefore);
+            }
+            _noteGestureSnapshot = null;
             RenderVisibleItems();
             return true;
         }
@@ -306,11 +330,21 @@ public partial class BoardWindow
         if (_transformSelectionIds is null) return;
         _selectedIds.Clear();
         _selectedIds.UnionWith(_transformSelectionIds);
-        _selectedNoteId = null;
+        _selectedNoteIds.Clear();
     }
 
     private void ClearImageTransformGesture()
     {
+        if (_transformBitmapScalingModes is not null)
+        {
+            foreach (var (id, mode) in _transformBitmapScalingModes)
+            {
+                if (_realized.TryGetValue(id, out var element)
+                    && FindItemImage(element) is { } image)
+                    RenderOptions.SetBitmapScalingMode(image, mode);
+            }
+        }
+        _transformBitmapScalingModes = null;
         _transformSelectionIds = null;
         _transformItemIndexes = null;
         _transformPointerStartScreen = default;
@@ -318,5 +352,18 @@ public partial class BoardWindow
         _transformChanged = false;
         _transformDeltaX = 0;
         _transformDeltaY = 0;
+    }
+
+    private void UpdateRealizedTransformItems(IEnumerable<long> ids)
+    {
+        foreach (var id in ids)
+        {
+            var index = _transformItemIndexes is not null
+                && _transformItemIndexes.TryGetValue(id, out var mappedIndex)
+                    ? mappedIndex
+                    : _items.FindIndex(item => item.Id == id);
+            if (index < 0 || index >= _items.Count || !_realized.TryGetValue(id, out var element)) continue;
+            UpdateItemElement(element, _items[index]);
+        }
     }
 }

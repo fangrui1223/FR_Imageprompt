@@ -1,0 +1,60 @@
+<Window x:Class="FR_Imageprompt.LicenseManager.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="FR_Imageprompt 许可证签发器"
+        Width="820" Height="690" MinWidth="740" MinHeight="640"
+        WindowStartupLocation="CenterScreen" Background="{StaticResource BackgroundBrush}">
+  <Grid Margin="32">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <StackPanel>
+      <TextBlock Text="许可证签发器" FontSize="28" FontWeight="SemiBold" Foreground="{StaticResource PrimaryTextBrush}" />
+      <TextBlock Margin="0,7,0,0" TextWrapping="Wrap" Foreground="{StaticResource SecondaryTextBrush}"
+                 Text="仅授权人保留。本工具不进入用户体验包；没有 Windows 凭据管理器中的 V2 私钥时无法签发。" />
+    </StackPanel>
+
+    <Border Grid.Row="1" Margin="0,22,0,0" Padding="16" CornerRadius="10"
+            Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1">
+      <TextBlock x:Name="AuthorityStatusText" TextWrapping="Wrap" Foreground="{StaticResource PrimaryTextBrush}" />
+    </Border>
+
+    <Grid Grid.Row="2" Margin="0,22,0,0">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="170" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+      <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+      <TextBlock Text="使用人名称" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
+      <TextBox x:Name="LicenseeBox" Grid.Column="1" />
+      <TextBlock Grid.Row="1" Margin="0,16,0,0" Text="设备请求码" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
+      <TextBox x:Name="DeviceCodeBox" Grid.Row="1" Grid.Column="1" Margin="0,16,0,0" FontFamily="Consolas" />
+    </Grid>
+
+    <Grid Grid.Row="3" Margin="0,16,0,0">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="170" /><ColumnDefinition Width="240" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+      <TextBlock Text="许可证期限" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
+      <ComboBox x:Name="DurationBox" Grid.Column="1" SelectedIndex="0">
+        <ComboBoxItem Content="永久（默认）" Tag="Permanent" />
+        <ComboBoxItem Content="一年" Tag="OneYear" />
+      </ComboBox>
+    </Grid>
+
+    <StackPanel Grid.Row="4" Margin="0,24,0,0" Orientation="Horizontal">
+      <Button MinWidth="160" Content="生成许可证…" Click="GenerateClick" />
+      <Button Margin="12,0,0,0" MinWidth="150" Content="备份签发密钥…" Click="BackupClick" />
+      <Button Margin="12,0,0,0" MinWidth="150" Content="恢复签发密钥…" Click="RestoreClick" />
+    </StackPanel>
+
+    <Border Grid.Row="5" Margin="0,24,0,0" Padding="18" CornerRadius="10" Background="#0C1118">
+      <TextBlock x:Name="ResultText" TextWrapping="Wrap" Foreground="{StaticResource SecondaryTextBrush}" />
+    </Border>
+
+    <TextBlock Grid.Row="6" Margin="0,18,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource SecondaryTextBrush}"
+               Text="永久离线许可证无法远程撤销。换机或 Windows 重装导致设备请求码变化时，需要重新签发。请把加密私钥备份与备份口令分开保管。" />
+  </Grid>
+</Window>

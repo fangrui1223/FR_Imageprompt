@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using PromptVault.Core;
 
 namespace PromptVault.App.Services;
 
@@ -24,6 +25,7 @@ public sealed class AppSettings
     public List<ExternalFolderSetting> ExternalFolders { get; set; } = [];
     public Dictionary<string, GalleryLayoutPreference> GalleryLayouts { get; set; } = [];
     public GalleryAppearancePreference GalleryAppearance { get; set; } = new();
+    public List<BoardNoteStyle> BoardNotePresets { get; set; } = BoardNotePresetDefaults.Create().ToList();
     [JsonIgnore] public string? RecoveryNotice { get; private set; }
     [JsonIgnore] public string? RecoveryBackupPath { get; private set; }
     [JsonIgnore] public string StorageFilePath => StoragePath ?? SettingsPath;
@@ -68,6 +70,7 @@ public sealed class AppSettings
             }
             settings.GalleryAppearance ??= new GalleryAppearancePreference();
             settings.GalleryAppearance.Normalize();
+            settings.BoardNotePresets = BoardNotePresetDefaults.Normalize(settings.BoardNotePresets);
             settings.EdgeMenuSensitivity = EdgeIntentProfile.NormalizeSensitivity(settings.EdgeMenuSensitivity);
             settings.ModelBackupRetentionCount = Math.Clamp(settings.ModelBackupRetentionCount, 0, 10);
             settings.InspectorWidth = NormalizeInspectorWidth(settings.InspectorWidth);

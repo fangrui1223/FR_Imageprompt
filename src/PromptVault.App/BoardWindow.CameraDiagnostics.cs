@@ -50,8 +50,12 @@ public partial class BoardWindow
         var initialCenter = ViewportWorldCenter(initial);
 
         _selectedIds.Clear();
-        _selectedNoteId = null;
+        _selectedNoteIds.Clear();
         RequireCameraKey(Key.Space, ModifierKeys.None);
+        await WaitForCameraSettledAsync();
+        var noSelectionSpace = _viewport;
+
+        RequireCameraKey(Key.Space, ModifierKeys.Control);
         await WaitForCameraSettledAsync();
         var fullFocus = _viewport;
         var fullBounds = BoardCameraEngine.ContentBounds(_items, _notes);
@@ -68,7 +72,7 @@ public partial class BoardWindow
             .First();
         _selectedIds.Clear();
         _selectedIds.Add(rotatedItem.Id);
-        _selectedNoteId = null;
+        _selectedNoteIds.Clear();
         RenderVisibleItems();
         FocusItemFromDoubleClick(rotatedItem.Id);
         await WaitForCameraSettledAsync();
@@ -95,6 +99,7 @@ public partial class BoardWindow
         RequireCameraKey(Key.Space, ModifierKeys.Control);
         await WaitForCameraSettledAsync();
         var forcedFull = _viewport;
+        _selectedIds.Clear();
         RequireCameraKey(Key.Space, ModifierKeys.None);
         await WaitForCameraSettledAsync();
         var restoredAfterNavigation = _viewport;
@@ -109,15 +114,31 @@ public partial class BoardWindow
         await WaitForLayoutAsync();
         var resizedFocus = _viewport;
         var resizedVisible = BoundsAreVisible(rotatedBounds, resizedFocus);
+        _selectedIds.Clear();
         RequireCameraKey(Key.Space, ModifierKeys.None);
         await WaitForCameraSettledAsync();
         var restoredAfterResize = _viewport;
         var restoredCenter = ViewportWorldCenter(restoredAfterResize);
 
+        _selectedIds.Add(rotatedItem.Id);
+        ResetViewToOneHundredPercent();
+        await WaitForCameraSettledAsync();
+        var oneHundred = _viewport;
+        var oneHundredCenter = ViewportWorldCenter(oneHundred);
+        var rotatedCenterX = rotatedBounds.Bounds.X + rotatedBounds.Bounds.Width / 2;
+        var rotatedCenterY = rotatedBounds.Bounds.Y + rotatedBounds.Bounds.Height / 2;
+        var oneHundredCenteredSelection = NearlyEqual(oneHundred.Zoom, 1)
+            && NearlyEqual(oneHundredCenter.X, rotatedCenterX)
+            && NearlyEqual(oneHundredCenter.Y, rotatedCenterY);
+        RestoreWorkingView();
+        await WaitForCameraSettledAsync();
+        var restoredAfterOneHundred = _viewport;
+
         var dpi = VisualTreeHelper.GetDpi(this);
         var process = Process.GetCurrentProcess();
         var passed =
-            fullVisible
+            SameCamera(initial, noSelectionSpace)
+            && fullVisible
             && rotatedVisible
             && resizedVisible
             && adjacentChanged
@@ -126,7 +147,9 @@ public partial class BoardWindow
             && SameCamera(initial, restoredAfterNavigation)
             && NearlyEqual(initial.Zoom, restoredAfterResize.Zoom)
             && NearlyEqual(initialCenter.X, restoredCenter.X)
-            && NearlyEqual(initialCenter.Y, restoredCenter.Y);
+            && NearlyEqual(initialCenter.Y, restoredCenter.Y)
+            && oneHundredCenteredSelection
+            && NearlyEqual(initial.Zoom, restoredAfterOneHundred.Zoom);
         var report = new
         {
             Milestone = "M8-01-board-camera-ui-smoke",
@@ -140,6 +163,11 @@ public partial class BoardWindow
                 DpiScale = dpi.DpiScaleX
             },
             Initial = CameraMetrics(initial),
+            EmptySelectionSpace = new
+            {
+                Camera = CameraMetrics(noSelectionSpace),
+                NoOpWithoutSnapshot = SameCamera(initial, noSelectionSpace)
+            },
             FullFocus = new
             {
                 Camera = CameraMetrics(fullFocus),
@@ -180,6 +208,12 @@ public partial class BoardWindow
                 RestoredOriginalWorldCenter = NearlyEqual(initialCenter.X, restoredCenter.X)
                     && NearlyEqual(initialCenter.Y, restoredCenter.Y),
                 RestoredOriginalZoom = NearlyEqual(initial.Zoom, restoredAfterResize.Zoom)
+            },
+            OneHundredPercent = new
+            {
+                Camera = CameraMetrics(oneHundred),
+                CenteredSelection = oneHundredCenteredSelection,
+                EscapeRestoredOriginalZoom = NearlyEqual(initial.Zoom, restoredAfterOneHundred.Zoom)
             },
             Process = new
             {

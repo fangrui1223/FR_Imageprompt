@@ -46,7 +46,7 @@ public partial class BoardWindow
         var firstBitmap = FindItemImage(firstElement)?.Source;
 
         _selectedIds.Clear();
-        _selectedNoteId = null;
+        _selectedNoteIds.Clear();
         RenderVisibleItems();
         await WaitForLayoutAsync();
         var unselectedBordersZero = _realized.Values

@@ -36,7 +36,7 @@ public partial class BoardWindow
         var first = visible[0];
         _selectedIds.Clear();
         _selectedIds.Add(first.Id);
-        _selectedNoteId = null;
+        _selectedNoteIds.Clear();
         RenderVisibleItems();
         await WaitForLayoutAsync();
 
@@ -80,7 +80,7 @@ public partial class BoardWindow
         _selectedIds.Clear();
         _selectedIds.Add(first.Id);
         _selectedIds.Add(second.Id);
-        _selectedNoteId = null;
+        _selectedNoteIds.Clear();
         RenderVisibleItems();
         await WaitForLayoutAsync();
         var multiBefore = _items.Where(item => _selectedIds.Contains(item.Id)).ToArray();
@@ -152,6 +152,8 @@ public partial class BoardWindow
                 SingleGestureLocked = singleGestureLocked,
                 SingleSelectionPersisted = singleSelectionPersisted,
                 SingleScaled = singleScaled,
+                SingleBefore = new { singleBefore.X, singleBefore.Y, singleBefore.Width, singleBefore.Height },
+                SingleAfter = new { singleAfter.X, singleAfter.Y, singleAfter.Width, singleAfter.Height },
                 SingleGestureCleared = singleGestureCleared,
                 MultiSelectionPersisted = multiSelectionPersisted,
                 MultiScaled = multiScaled,

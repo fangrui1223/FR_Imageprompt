@@ -6,6 +6,44 @@ namespace PromptVault.Tests;
 public sealed class GalleryVirtualizationTests
 {
     [Theory]
+    [InlineData(1800, 1900, 17, 1792)]
+    [InlineData(1200, 1300, 24, 1192)]
+    public void GalleryWidthUsesTheRealScrollViewportAndKeepsARightSafetyInset(
+        double viewportWidth,
+        double hostWidth,
+        double scrollbarWidth,
+        double expected)
+    {
+        Assert.Equal(
+            expected,
+            GalleryViewportWidthPolicy.Calculate(viewportWidth, hostWidth, scrollbarWidth));
+    }
+
+    [Fact]
+    public void GalleryWidthFallbackReservesScrollbarBeforeFirstLayout()
+    {
+        var width = GalleryViewportWidthPolicy.Calculate(
+            double.NaN,
+            hostWidth: 1800,
+            verticalScrollbarWidth: 18);
+
+        Assert.Equal(1774, width);
+    }
+
+    [Theory]
+    [InlineData(0, 0, 17)]
+    [InlineData(double.NaN, 250, 17)]
+    public void GalleryWidthNeverFallsBelowTheSupportedMinimum(
+        double viewportWidth,
+        double hostWidth,
+        double scrollbarWidth)
+    {
+        Assert.Equal(
+            GalleryViewportWidthPolicy.MinimumWidth,
+            GalleryViewportWidthPolicy.Calculate(viewportWidth, hostWidth, scrollbarWidth));
+    }
+
+    [Theory]
     [InlineData(1000, 1500, "2:3  ·  0.667  ·  竖图")]
     [InlineData(1920, 1080, "16:9  ·  1.778  ·  横图")]
     [InlineData(1024, 1024, "1:1  ·  1  ·  方图")]

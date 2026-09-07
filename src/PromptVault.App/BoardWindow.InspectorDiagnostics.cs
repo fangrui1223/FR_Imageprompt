@@ -27,7 +27,7 @@ public partial class BoardWindow
         var item = _items.First(candidate => File.Exists(ResolveItemOriginalPath(candidate)));
         _selectedIds.Clear();
         _selectedIds.Add(item.Id);
-        _selectedNoteId = null;
+        _selectedNoteIds.Clear();
         ToggleInspector();
         await WaitForLayoutAsync();
         var singleContent = InspectorDetailsText.Text;
@@ -43,12 +43,14 @@ public partial class BoardWindow
             && InspectorDetailsText.Text.Contains("共同分组", StringComparison.Ordinal);
 
         _selectedIds.Clear();
-        _selectedNoteId = _notes.First().Id;
+        _selectedNoteIds.Clear();
+        _selectedNoteIds.Add(_notes.First().Id);
         UpdateInspectorContent();
         var noteComplete = SelectionSummaryText.Text == "便签属性"
-            && InspectorDetailsText.Text.Contains("颜色", StringComparison.Ordinal);
+            && NotePropertiesPanel.Visibility == Visibility.Visible
+            && NoteFontSizeSlider.Value is >= 8 and <= 300;
 
-        _selectedNoteId = null;
+        _selectedNoteIds.Clear();
         UpdateInspectorContent();
         var canvasComplete = SelectionSummaryText.Text == "画板属性"
             && InspectorDetailsText.Text.Contains("背景", StringComparison.Ordinal);

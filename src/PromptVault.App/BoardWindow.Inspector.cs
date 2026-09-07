@@ -56,14 +56,24 @@ public partial class BoardWindow
     private void UpdateInspectorContent()
     {
         var currentBoard = _boards.FirstOrDefault(board => board.Id == CurrentBoardId);
-        if (_selectedNoteId is { } noteId)
+        if (SingleSelectedNoteId is { } noteId)
         {
             var note = _notes.SingleOrDefault(candidate => candidate.Id == noteId);
             SelectionSummaryText.Text = note is null ? "未选择内容" : "便签属性";
             InspectorDetailsText.Text = note is null
                 ? "便签已不存在"
-                : $"尺寸 {note.Width:N0} × {note.Height:N0} DIP\n颜色 {NoteColorName(note.ColorStyle)}\n层级 {note.ZIndex}";
-            SourceStateText.Text = "便签只保存在当前画板；文本请直接在便签本体编辑。";
+                : $"尺寸 {note.Width:N0} × {note.Height:N0} DIP\n层级 {note.ZIndex}";
+            SourceStateText.Text = "便签只保存在当前画板；双击便签可直接编辑文字。";
+            UpdateNotePropertiesPanel();
+            return;
+        }
+
+        if (_selectedNoteIds.Count > 1)
+        {
+            SelectionSummaryText.Text = $"已选择 {_selectedNoteIds.Count} 个便签";
+            InspectorDetailsText.Text = "可共同移动、缩放、删除、调整层级，并从右键菜单批量应用预设。";
+            SourceStateText.Text = "属性面板只编辑单个便签；取消多选后可继续编辑具体样式。";
+            UpdateNotePropertiesPanel();
             return;
         }
 
@@ -109,6 +119,7 @@ public partial class BoardWindow
         InspectorDetailsText.Text =
             $"{currentBoard?.Name ?? "当前画板"}\n图片 {_items.Count:N0} · 便签 {_notes.Count:N0}\n背景 {BackgroundName(currentBoard?.BackgroundStyle)}";
         SourceStateText.Text = "未选择对象。可在这里切换背景或新建便签。";
+        UpdateNotePropertiesPanel();
     }
 
     private static string SimplifiedRatio(int width, int height)
@@ -123,14 +134,6 @@ public partial class BoardWindow
         while (right != 0) (left, right) = (right, left % right);
         return Math.Max(1, Math.Abs(left));
     }
-
-    private static string NoteColorName(string style) => style switch
-    {
-        "rose" => "玫瑰",
-        "blue" => "蓝色",
-        "slate" => "灰蓝",
-        _ => "黄色"
-    };
 
     private static string BackgroundName(string? style) => style switch
     {

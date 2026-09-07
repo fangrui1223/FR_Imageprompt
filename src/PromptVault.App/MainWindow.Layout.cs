@@ -81,6 +81,7 @@ public partial class MainWindow
 
     private void ReflowGalleryForLayoutPreference(GalleryLayoutVisualAnchor? anchor)
     {
+        _galleryReflowCount++;
         var stopwatch = Stopwatch.StartNew();
         var width = GetGalleryAvailableWidth();
         var rows = GalleryLayoutEngine.CreateRows(

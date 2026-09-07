@@ -148,7 +148,7 @@ public partial class BoardWindow
 
     private bool TryUpdateCropPointerGesture(Border border, MouseEventArgs e)
     {
-        if (!_cropModeActive || _cropItemId != (long?)border.Tag
+        if (!_cropModeActive || border.Tag is not BoardItemVisualTag tag || _cropItemId != tag.ItemId
             || _cropPanStart is not { } start || e.LeftButton != MouseButtonState.Pressed) return false;
         var point = e.GetPosition(border);
         _cropViewport = BoardCropEngine.Pan(
@@ -165,7 +165,7 @@ public partial class BoardWindow
 
     private bool TryEndCropPointerGesture(Border border, MouseButtonEventArgs e)
     {
-        if (!_cropModeActive || _cropItemId != (long?)border.Tag || _cropPanStart is null) return false;
+        if (!_cropModeActive || border.Tag is not BoardItemVisualTag tag || _cropItemId != tag.ItemId || _cropPanStart is null) return false;
         _cropPanStart = null;
         if (border.IsMouseCaptured) border.ReleaseMouseCapture();
         Mouse.OverrideCursor = Cursors.Hand;

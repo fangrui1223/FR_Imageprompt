@@ -4,6 +4,76 @@ namespace PromptVault.Tests;
 
 public sealed class BoardTransformEngineTests
 {
+    [Theory]
+    [InlineData(BoardResizeHandle.TopLeft, -1, -1)]
+    [InlineData(BoardResizeHandle.TopRight, 1, -1)]
+    [InlineData(BoardResizeHandle.BottomLeft, -1, 1)]
+    [InlineData(BoardResizeHandle.BottomRight, 1, 1)]
+    public void ProportionalCornerResizeUsesContinuousDiagonalProjection(
+        BoardResizeHandle handle,
+        double directionX,
+        double directionY)
+    {
+        var original = new BoardWorldRect(40, 60, 360, 640);
+        var previous = original.Width;
+        for (var step = 1; step <= 240; step++)
+        {
+            var distance = step * 1.25;
+            var noise = Math.Sin(step * 0.37) * 0.45;
+            var result = BoardTransformEngine.ResizeBounds(
+                original,
+                handle,
+                directionX * (distance + noise),
+                directionY * (distance - noise),
+                preserveAspect: true,
+                fromCenter: false);
+
+            Assert.True(result.Width >= previous - 0.000001, $"step {step} regressed");
+            Assert.Equal(original.Width / original.Height, result.Width / result.Height, 10);
+            previous = result.Width;
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ProportionalProjectionDoesNotJumpAtFormerDominantAxisBoundary(bool fromCenter)
+    {
+        var original = new BoardWorldRect(0, 0, 320, 560);
+        var before = BoardTransformEngine.ResizeBounds(
+            original,
+            BoardResizeHandle.BottomRight,
+            79.999,
+            139.998,
+            preserveAspect: true,
+            fromCenter: fromCenter);
+        var after = BoardTransformEngine.ResizeBounds(
+            original,
+            BoardResizeHandle.BottomRight,
+            80.001,
+            140.002,
+            preserveAspect: true,
+            fromCenter: fromCenter);
+
+        Assert.InRange(Math.Abs(after.Width - before.Width), 0, 0.02);
+        Assert.InRange(Math.Abs(after.Height - before.Height), 0, 0.04);
+    }
+
+    [Fact]
+    public void FreeResizeRetainsIndependentAxisBehavior()
+    {
+        var original = new BoardWorldRect(10, 20, 300, 500);
+        var result = BoardTransformEngine.ResizeBounds(
+            original,
+            BoardResizeHandle.BottomRight,
+            120,
+            15,
+            preserveAspect: false,
+            fromCenter: false);
+
+        Assert.Equal(420, result.Width, 6);
+        Assert.Equal(515, result.Height, 6);
+    }
     [Fact]
     public void DefaultCornerResizePreservesAspectAndOppositeAnchor()
     {
@@ -11,8 +81,8 @@ public sealed class BoardTransformEngineTests
             new BoardWorldRect(10, 20, 200, 100), BoardResizeHandle.BottomRight, 100, 5, true, false);
         Assert.Equal(10, result.X, 6);
         Assert.Equal(20, result.Y, 6);
-        Assert.Equal(300, result.Width, 6);
-        Assert.Equal(150, result.Height, 6);
+        Assert.Equal(282, result.Width, 6);
+        Assert.Equal(141, result.Height, 6);
     }
 
     [Fact]
@@ -55,8 +125,8 @@ public sealed class BoardTransformEngineTests
             100);
         var proportional = gesture.Calculate(150, 120, preserveAspect: true, fromCenter: false);
         var free = gesture.Calculate(150, 120, preserveAspect: false, fromCenter: false);
-        Assert.Equal(250, proportional.Width, 6);
-        Assert.Equal(125, proportional.Height, 6);
+        Assert.Equal(248, proportional.Width, 6);
+        Assert.Equal(124, proportional.Height, 6);
         Assert.Equal(250, free.Width, 6);
         Assert.Equal(120, free.Height, 6);
     }

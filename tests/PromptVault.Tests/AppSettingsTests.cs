@@ -1,5 +1,6 @@
 using PromptVault.App;
 using PromptVault.App.Services;
+using PromptVault.Core;
 
 namespace PromptVault.Tests;
 
@@ -258,5 +259,77 @@ public sealed class AppSettingsTests
         Assert.Equal(expected, actual.TopRight);
         Assert.Equal(expected, actual.BottomRight);
         Assert.Equal(expected, actual.BottomLeft);
+    }
+
+    [Fact]
+    public void BoardNotePresetsRoundTripAsFiveGlobalStyleOnlySlots()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "PromptVaultSettingsTests", Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(root, "settings.json");
+        try
+        {
+            var settings = AppSettings.Load(path);
+            settings.BoardNotePresets[2] = settings.BoardNotePresets[2] with
+            {
+                FontSize = 83,
+                Alignment = BoardNoteTextAlignment.Right,
+                BackgroundEnabled = false
+            };
+            settings.Save();
+
+            var reloaded = AppSettings.Load(path);
+
+            Assert.Equal(5, reloaded.BoardNotePresets.Count);
+            Assert.Equal(83, reloaded.BoardNotePresets[2].FontSize);
+            Assert.Equal(BoardNoteTextAlignment.Right, reloaded.BoardNotePresets[2].Alignment);
+            Assert.False(reloaded.BoardNotePresets[2].BackgroundEnabled);
+        }
+        finally
+        {
+            try { if (Directory.Exists(root)) Directory.Delete(root, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void MissingAndDamagedPresetSlotsRecoverIndividually()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "PromptVaultSettingsTests", Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(root, "settings.json");
+        try
+        {
+            Directory.CreateDirectory(root);
+            File.WriteAllText(
+                path,
+                """
+                {
+                  "LibraryRoot": "",
+                  "BoardNotePresets": [
+                    {
+                      "FontSize": 999,
+                      "LineSpacing": -5,
+                      "Alignment": 0,
+                      "TextColor": "bad",
+                      "BackgroundEnabled": true,
+                      "BackgroundColor": "bad",
+                      "BackgroundOpacity": 9,
+                      "CornerRadius": -1,
+                      "VerticalPadding": 999
+                    }
+                  ]
+                }
+                """);
+
+            var settings = AppSettings.Load(path);
+
+            Assert.Equal(5, settings.BoardNotePresets.Count);
+            Assert.Equal(300, settings.BoardNotePresets[0].FontSize);
+            Assert.Equal(1, settings.BoardNotePresets[0].LineSpacing);
+            Assert.Equal(BoardNoteStyle.Default.TextColor, settings.BoardNotePresets[0].TextColor);
+            Assert.Equal(BoardNotePresetDefaults.Create()[1], settings.BoardNotePresets[1]);
+        }
+        finally
+        {
+            try { if (Directory.Exists(root)) Directory.Delete(root, true); } catch { }
+        }
     }
 }

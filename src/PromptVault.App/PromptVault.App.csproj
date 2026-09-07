@@ -19,6 +19,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\PromptVault.Core\PromptVault.Core.csproj" />
+    <ProjectReference Include="..\PromptVault.Licensing\PromptVault.Licensing.csproj" />
     <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.22.0" />
   </ItemGroup>
   <Target Name="CleanUserPublishArtifacts"

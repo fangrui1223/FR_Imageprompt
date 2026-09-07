@@ -41,7 +41,18 @@ public partial class BoardWindow
             Command(BoardCommandId.UngroupSelection, "取消分组"),
             Command(BoardCommandId.RenameGroup, "重命名分组"),
             Command(BoardCommandId.AddNote, "新建便签", "Ctrl+N"),
-            Command(BoardCommandId.CycleNoteColor, "切换便签颜色"),
+            Command(BoardCommandId.EditNote, "编辑文字", "Enter"),
+            Command(BoardCommandId.FitNoteContent, "适合文字内容"),
+            Command(BoardCommandId.ToggleNoteBackground, "显示/隐藏背景"),
+            Command(BoardCommandId.AlignNoteLeft, "左对齐"),
+            Command(BoardCommandId.AlignNoteCenter, "居中"),
+            Command(BoardCommandId.AlignNoteRight, "右对齐"),
+            Command(BoardCommandId.ApplyNotePreset1, "预设 1"),
+            Command(BoardCommandId.ApplyNotePreset2, "预设 2"),
+            Command(BoardCommandId.ApplyNotePreset3, "预设 3"),
+            Command(BoardCommandId.ApplyNotePreset4, "预设 4"),
+            Command(BoardCommandId.ApplyNotePreset5, "预设 5"),
+            Command(BoardCommandId.DuplicateNote, "复制便签", "Ctrl+D"),
             Command(BoardCommandId.RelinkSource, "重新定位缺失原图"),
             Command(BoardCommandId.OpenOriginal, "打开原图"),
             Command(BoardCommandId.Copy, "复制", "Ctrl+C"),
@@ -52,7 +63,7 @@ public partial class BoardWindow
             Command(BoardCommandId.ChangeBackground, "画板背景"),
             Command(BoardCommandId.ShowInspector, "属性", "I"),
             Command(BoardCommandId.ToggleTopmost, "保持置顶", "Ctrl+Shift+A"),
-            Command(BoardCommandId.ShowTopBar, "显示顶部栏", "Alt / F10"),
+            Command(BoardCommandId.ShowTopBar, "显示/隐藏顶部栏", "Alt+Q"),
             Command(BoardCommandId.ShowSettings, "设置"),
             Command(BoardCommandId.ShowShortcuts, "快捷键说明")
         }.ToDictionary(command => command.Id);
@@ -60,7 +71,7 @@ public partial class BoardWindow
     private BoardCommandState CurrentCommandState(BoardCommandContextKind context) => new(
         context,
         _selectedIds.Count,
-        _selectedNoteId is not null,
+        _selectedNoteIds.Count,
         _undo.Count > 0,
         _redo.Count > 0,
         Clipboard.ContainsData(BoardItemIdsDragFormat),
@@ -76,6 +87,7 @@ public partial class BoardWindow
         _rightPointerStartScreen = point;
         _rightGesture = new BoardRightGestureClassifier(point.X, point.Y);
         _rightWindowDragStarted = false;
+        _rightCanvasPanStarted = false;
         _rightControlPressed = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
         _rightPointerStartPhysical = PointToScreen(point);
         _rightWindowStartLeft = Left;
@@ -93,10 +105,14 @@ public partial class BoardWindow
         var point = e.GetPosition(BoardViewport);
         if (_rightGesture.Move(point.X, point.Y) != BoardRightGestureKind.Drag) return;
         if (BoardInteractionEngine.ShouldPanCanvasWithRightDrag(
-                _rightControlPressed,
-                WindowState == WindowState.Maximized))
+            _rightControlPressed,
+            WindowState == WindowState.Maximized))
         {
-            InterruptCameraAnimation();
+            if (!_rightCanvasPanStarted)
+            {
+                BeginManualCameraGesture();
+                _rightCanvasPanStarted = true;
+            }
             _viewport = _panStartViewport with
             {
                 OffsetX = _panStartViewport.OffsetX + point.X - _rightPointerStartScreen.X,
@@ -154,10 +170,12 @@ public partial class BoardWindow
                      _rightControlPressed,
                      WindowState == WindowState.Maximized))
         {
+            if (_rightCanvasPanStarted) _manualCameraHistory.Record(_panStartViewport, _viewport);
             QueuePersistView();
         }
         _rightTargetId = null;
         _rightWindowDragStarted = false;
+        _rightCanvasPanStarted = false;
         _rightControlPressed = false;
         e.Handled = true;
     }
@@ -167,11 +185,10 @@ public partial class BoardWindow
         var tagged = FindParent<FrameworkElement>(source);
         while (tagged is not null)
         {
-            if (tagged.Tag is long id)
-            {
-                if (_realized.ContainsKey(id)) return (BoardCommandContextKind.Item, id);
-                if (_realizedNotes.ContainsKey(id)) return (BoardCommandContextKind.Note, id);
-            }
+            if (tagged.Tag is BoardItemVisualTag itemTag)
+                return (BoardCommandContextKind.Item, itemTag.ItemId);
+            if (tagged.Tag is BoardNoteVisualTag noteTag)
+                return (BoardCommandContextKind.Note, noteTag.NoteId);
             tagged = VisualTreeHelper.GetParent(tagged) as FrameworkElement;
         }
         return (BoardCommandContextKind.Canvas, null);
@@ -185,14 +202,18 @@ public partial class BoardWindow
             var selection = BoardInteractionEngine.SelectItem(_items, _selectedIds, id.Value, additive: false);
             _selectedIds.Clear();
             _selectedIds.UnionWith(selection);
-            _selectedNoteId = null;
+            _selectedNoteIds.Clear();
             _rightContext = _selectedIds.Count > 1 ? BoardCommandContextKind.MultiSelection : BoardCommandContextKind.Item;
             RenderVisibleItems();
         }
         else if (context == BoardCommandContextKind.Note)
         {
             _selectedIds.Clear();
-            _selectedNoteId = id;
+            if (!_selectedNoteIds.Contains(id.Value))
+            {
+                _selectedNoteIds.Clear();
+                _selectedNoteIds.Add(id.Value);
+            }
             RenderVisibleItems();
         }
     }
@@ -213,10 +234,22 @@ public partial class BoardWindow
             case BoardCommandId.ResetView: ResetViewToOneHundredPercent(); break;
             case BoardCommandId.RemoveSelection: await DeleteSelectionAsync(); break;
             case BoardCommandId.DeleteNote: await DeleteSelectedNoteAsync(); break;
-            case BoardCommandId.LayerFront: await MoveSelectionToFrontAsync(); break;
-            case BoardCommandId.LayerForward: await MoveSelectionOneLayerAsync(1); break;
-            case BoardCommandId.LayerBackward: await MoveSelectionOneLayerAsync(-1); break;
-            case BoardCommandId.LayerBack: await MoveSelectionToBackAsync(); break;
+            case BoardCommandId.LayerFront:
+                if (_selectedNoteIds.Count > 0) await MoveSelectedNotesLayerAsync(1, extreme: true);
+                else await MoveSelectionToFrontAsync();
+                break;
+            case BoardCommandId.LayerForward:
+                if (_selectedNoteIds.Count > 0) await MoveSelectedNotesLayerAsync(1);
+                else await MoveSelectionOneLayerAsync(1);
+                break;
+            case BoardCommandId.LayerBackward:
+                if (_selectedNoteIds.Count > 0) await MoveSelectedNotesLayerAsync(-1);
+                else await MoveSelectionOneLayerAsync(-1);
+                break;
+            case BoardCommandId.LayerBack:
+                if (_selectedNoteIds.Count > 0) await MoveSelectedNotesLayerAsync(-1, extreme: true);
+                else await MoveSelectionToBackAsync();
+                break;
             case BoardCommandId.RotateLeft: await MutateSelectionAsync(item => item with { Rotation = item.Rotation - 5 }); break;
             case BoardCommandId.RotateRight: await MutateSelectionAsync(item => item with { Rotation = item.Rotation + 5 }); break;
             case BoardCommandId.ResetRotation: await MutateSelectionAsync(item => item with { Rotation = 0 }); break;
@@ -229,7 +262,20 @@ public partial class BoardWindow
             case BoardCommandId.UngroupSelection: await UngroupSelectionAsync(); break;
             case BoardCommandId.RenameGroup: await RenameSelectedGroupAsync(); break;
             case BoardCommandId.AddNote: await AddNoteAsync(); break;
-            case BoardCommandId.CycleNoteColor: await CycleSelectedNoteColorAsync(); break;
+            case BoardCommandId.EditNote:
+                if (SingleSelectedNoteId is { } editId) BeginNoteEditing(editId);
+                break;
+            case BoardCommandId.FitNoteContent: await FitSelectedNoteToContentAsync(); break;
+            case BoardCommandId.ToggleNoteBackground: await ToggleSelectedNoteBackgroundAsync(); break;
+            case BoardCommandId.AlignNoteLeft: await AlignSelectedNotesAsync(BoardNoteTextAlignment.Left); break;
+            case BoardCommandId.AlignNoteCenter: await AlignSelectedNotesAsync(BoardNoteTextAlignment.Center); break;
+            case BoardCommandId.AlignNoteRight: await AlignSelectedNotesAsync(BoardNoteTextAlignment.Right); break;
+            case BoardCommandId.ApplyNotePreset1: await ApplyNotePresetAsync(0); break;
+            case BoardCommandId.ApplyNotePreset2: await ApplyNotePresetAsync(1); break;
+            case BoardCommandId.ApplyNotePreset3: await ApplyNotePresetAsync(2); break;
+            case BoardCommandId.ApplyNotePreset4: await ApplyNotePresetAsync(3); break;
+            case BoardCommandId.ApplyNotePreset5: await ApplyNotePresetAsync(4); break;
+            case BoardCommandId.DuplicateNote: await DuplicateSelectedNotesAsync(); break;
             case BoardCommandId.RelinkSource: await RelinkSelectedSourceAsync(); break;
             case BoardCommandId.OpenOriginal: OpenSelectedOriginal(); break;
             case BoardCommandId.Copy: CopySelection(); break;
@@ -257,20 +303,6 @@ public partial class BoardWindow
         RefreshOpenContextMenuState();
     }
 
-    private void ResetViewToOneHundredPercent()
-    {
-        InterruptCameraAnimation();
-        _viewport = BoardViewportEngine.ZoomAt(
-            CurrentViewportSize(),
-            Math.Max(1, BoardViewport.ActualWidth) / 2,
-            Math.Max(1, BoardViewport.ActualHeight) / 2,
-            1);
-        ApplyViewportMatrix();
-        RenderVisibleItems();
-        QueuePersistView();
-        SetStatus("已恢复 100% 缩放");
-    }
-
     private async Task MoveSelectionToFrontAsync()
     {
         var top = _items.Count == 0 ? 0 : _items.Max(item => item.ZIndex);
@@ -292,24 +324,24 @@ public partial class BoardWindow
 
     private async Task ResetSelectedSizeAsync()
     {
-        if (_selectedNoteId is { } noteId)
+        if (_selectedNoteIds.Count > 0)
         {
-            var note = _notes.SingleOrDefault(candidate => candidate.Id == noteId);
-            if (note is null) return;
             var noteBefore = SnapshotScene();
-            var centerX = note.X + note.Width / 2;
-            var centerY = note.Y + note.Height / 2;
-            note = note with
+            foreach (var note in noteBefore.Notes.Where(candidate => _selectedNoteIds.Contains(candidate.Id)))
             {
-                X = centerX - 150,
-                Y = centerY - 110,
-                Width = 300,
-                Height = 220
-            };
-            ReplaceNote(note);
+                var centerX = note.X + note.Width / 2;
+                var centerY = note.Y + note.Height / 2;
+                ReplaceNote(note with
+                {
+                    X = centerX - 150,
+                    Y = centerY - 110,
+                    Width = 300,
+                    Height = 220
+                });
+            }
             RenderVisibleItems();
             CommitSceneHistorySnapshot(noteBefore);
-            await SaveNoteAsync(note, "便签尺寸已重置");
+            await SaveSelectedNotesAsync("便签尺寸已重置");
             return;
         }
 
@@ -365,7 +397,7 @@ public partial class BoardWindow
     }
 
     private BoardCommandContextKind CurrentBoardCommandContext() =>
-        _selectedNoteId is not null ? BoardCommandContextKind.Note
+        _selectedNoteIds.Count > 0 ? BoardCommandContextKind.Note
         : _selectedIds.Count > 1 ? BoardCommandContextKind.MultiSelection
         : _selectedIds.Count == 1 ? BoardCommandContextKind.Item
         : BoardCommandContextKind.Canvas;
@@ -395,7 +427,12 @@ public partial class BoardWindow
         }
         else if (context == BoardCommandContextKind.Note)
         {
-            AddCommands(menu, context, BoardCommandId.ShowInspector, BoardCommandId.ResetSize, BoardCommandId.CycleNoteColor, BoardCommandId.DeleteNote);
+            AddCommands(menu, context, BoardCommandId.EditNote, BoardCommandId.FitNoteContent, BoardCommandId.ToggleNoteBackground);
+            menu.Items.Add(Submenu("对齐", context, BoardCommandId.AlignNoteLeft, BoardCommandId.AlignNoteCenter, BoardCommandId.AlignNoteRight));
+            menu.Items.Add(Submenu("应用预设", context, BoardCommandId.ApplyNotePreset1, BoardCommandId.ApplyNotePreset2, BoardCommandId.ApplyNotePreset3, BoardCommandId.ApplyNotePreset4, BoardCommandId.ApplyNotePreset5));
+            menu.Items.Add(Submenu("层级", context, BoardCommandId.LayerFront, BoardCommandId.LayerForward, BoardCommandId.LayerBackward, BoardCommandId.LayerBack));
+            menu.Items.Add(new Separator());
+            AddCommands(menu, context, BoardCommandId.DuplicateNote, BoardCommandId.ShowInspector, BoardCommandId.DeleteNote);
         }
         else
         {

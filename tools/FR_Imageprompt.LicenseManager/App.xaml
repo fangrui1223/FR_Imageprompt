@@ -1,0 +1,35 @@
+<Application x:Class="FR_Imageprompt.LicenseManager.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             ShutdownMode="OnExplicitShutdown">
+  <Application.Resources>
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#080B10" />
+    <SolidColorBrush x:Key="PanelBrush" Color="#111720" />
+    <SolidColorBrush x:Key="PrimaryTextBrush" Color="#F1F5F9" />
+    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#93A1B2" />
+    <SolidColorBrush x:Key="AccentBrush" Color="#59D8FF" />
+    <SolidColorBrush x:Key="HairlineBrush" Color="#344253" />
+    <Style TargetType="Button">
+      <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+      <Setter Property="Background" Value="#1A232F" />
+      <Setter Property="BorderBrush" Value="#354455" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="14,8" />
+      <Setter Property="MinHeight" Value="40" />
+    </Style>
+    <Style TargetType="TextBox">
+      <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+      <Setter Property="Background" Value="#0C1118" />
+      <Setter Property="BorderBrush" Value="#3D4C5E" />
+      <Setter Property="CaretBrush" Value="{StaticResource AccentBrush}" />
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="MinHeight" Value="42" />
+    </Style>
+    <Style TargetType="ComboBox">
+      <Setter Property="Foreground" Value="#101820" />
+      <Setter Property="Background" Value="#F1F5F9" />
+      <Setter Property="Padding" Value="10,7" />
+      <Setter Property="MinHeight" Value="42" />
+    </Style>
+  </Application.Resources>
+</Application>

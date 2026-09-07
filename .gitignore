@@ -24,6 +24,8 @@ PromptVaultLibrary/
 .m6-isolated/
 .m7-isolated/
 .m8-isolated/
+.m9-isolated/
+.m10-isolated/
 *.db
 *.db-shm
 *.db-wal
@@ -48,6 +50,8 @@ tools/model-pack/local-models/
 *.tmp
 *.temp
 *.bak
+*.frlicense
+*.frauthority
 
 # Windows metadata
 Thumbs.db

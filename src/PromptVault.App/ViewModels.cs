@@ -824,6 +824,26 @@ public sealed record GalleryLayoutOptions(
         Math.Clamp(TargetSize, GalleryLayoutEngine.MinimumTargetSize, GalleryLayoutEngine.MaximumTargetSize));
 }
 
+public static class GalleryViewportWidthPolicy
+{
+    public const double MinimumWidth = 300;
+    public const double RightVisualSafetyInset = 8;
+
+    public static double Calculate(
+        double viewportWidth,
+        double hostWidth,
+        double verticalScrollbarWidth)
+    {
+        var contentWidth = IsUsable(viewportWidth)
+            ? viewportWidth
+            : Math.Max(0, hostWidth - Math.Max(0, verticalScrollbarWidth));
+        return Math.Max(MinimumWidth, contentWidth - RightVisualSafetyInset);
+    }
+
+    private static bool IsUsable(double value) =>
+        double.IsFinite(value) && value >= MinimumWidth;
+}
+
 public static class GalleryLayoutEngine
 {
     public const double DefaultSpacing = 14;

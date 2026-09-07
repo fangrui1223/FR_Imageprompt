@@ -85,7 +85,7 @@ public sealed class BoardCameraEngineTests
             [],
             new HashSet<long>(),
             [],
-            null).HasValue);
+            (long?)null).HasValue);
     }
 
     [Fact]
@@ -335,6 +335,66 @@ public sealed class BoardCameraEngineTests
         Assert.Equal(working, controller.WorkingViewport(restore.Start));
         controller.CompleteTransition(restore.Generation);
         Assert.Equal(restore.End, controller.WorkingViewport(restore.End));
+    }
+
+    [Fact]
+    public void OneHundredPercentCentersPreferredBoundsOrCanvasOrigin()
+    {
+        var bounds = BoardBoundsResult.From(new BoardWorldRect(200, 100, 400, 300));
+
+        var centered = BoardCameraEngine.AtOneHundredPercent(bounds, 1600, 900);
+        var center = BoardViewportEngine.ScreenToWorld(centered, 800, 450);
+        var empty = BoardCameraEngine.AtOneHundredPercent(BoardBoundsResult.Empty, 1600, 900);
+        var emptyCenter = BoardViewportEngine.ScreenToWorld(empty, 800, 450);
+
+        Assert.Equal(1, centered.Zoom);
+        Assert.Equal(400, center.X, 10);
+        Assert.Equal(250, center.Y, 10);
+        Assert.Equal(0, emptyCenter.X, 10);
+        Assert.Equal(0, emptyCenter.Y, 10);
+    }
+
+    [Fact]
+    public void MixedTemporaryCommandsPreserveFirstSnapshotUntilExplicitRestore()
+    {
+        var controller = new BoardFocusController();
+        var working = new BoardViewport(-120, 75, 0.85, 1600, 900);
+        var item = controller.ForceFocus(
+            working,
+            BoardFocusTarget.SingleItem(10),
+            BoardBoundsResult.From(new BoardWorldRect(100, 200, 200, 300)));
+        var all = controller.ForceFocus(
+            item.End,
+            BoardFocusTarget.FullBoard(),
+            BoardBoundsResult.From(new BoardWorldRect(-500, -400, 3000, 1800)));
+        var selection = BoardFocusTarget.Selection([20], [31, 32]);
+        var oneHundred = BoardCameraEngine.AtOneHundredPercent(
+            BoardBoundsResult.From(new BoardWorldRect(600, 500, 500, 250)),
+            1600,
+            900);
+        var reset = controller.ForceViewport(all.End, selection, oneHundred);
+
+        var restore = controller.RestoreIfAvailable(reset.End);
+
+        Assert.NotNull(restore);
+        Assert.True(restore.Value.IsRestore);
+        Assert.Equal(working.Zoom, restore.Value.End.Zoom, 12);
+        Assert.Equal(working.OffsetX, restore.Value.End.OffsetX, 12);
+        Assert.Equal(working.OffsetY, restore.Value.End.OffsetY, 12);
+        Assert.Equal(working.Width, restore.Value.End.Width, 12);
+        Assert.Equal(working.Height, restore.Value.End.Height, 12);
+        Assert.Equal([31L, 32L], selection.NoteIds);
+    }
+
+    [Fact]
+    public void RestoreWithoutTemporarySnapshotIsNoOpSignal()
+    {
+        var controller = new BoardFocusController();
+        var working = new BoardViewport(10, 20, 1, 1200, 800);
+
+        Assert.Null(controller.RestoreIfAvailable(working));
+        Assert.False(controller.IsActive);
+        Assert.Equal(working, controller.WorkingViewport(working));
     }
 
     private static BoardItemRecord Item(

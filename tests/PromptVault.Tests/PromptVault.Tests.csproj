@@ -22,6 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\PromptVault.App\PromptVault.App.csproj" />
     <ProjectReference Include="..\..\src\PromptVault.Core\PromptVault.Core.csproj" />
+    <ProjectReference Include="..\..\src\PromptVault.Licensing\PromptVault.Licensing.csproj" />
   </ItemGroup>
 
 </Project>

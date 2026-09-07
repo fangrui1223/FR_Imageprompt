@@ -631,6 +631,40 @@ public sealed partial class LibraryRepository
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task UpdateBoardNotesAsync(
+        long boardId,
+        IReadOnlyList<BoardNoteUpdate> updates,
+        CancellationToken cancellationToken = default)
+    {
+        if (updates.Count == 0) return;
+        var normalized = updates.Select(update => update with
+        {
+            Text = NormalizeNoteText(update.Text),
+            ColorStyle = NormalizeNoteColor(update.ColorStyle)
+        }).ToArray();
+        foreach (var update in normalized) ValidateNoteUpdate(update);
+        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction =
+            (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        var now = DateTimeOffset.UtcNow.ToString("O");
+        foreach (var update in normalized)
+        {
+            var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = """
+                UPDATE board_notes
+                SET text = $text, x = $x, y = $y, width = $width, height = $height,
+                    z_index = $z, color_style = $color, updated_at = $now
+                WHERE id = $id AND board_id = $board;
+                """;
+            AddNoteParameters(command, boardId, update, now, includeId: true);
+            if (await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) == 0)
+                throw new KeyNotFoundException($"画板便签 {update.Id} 不存在。");
+        }
+        await TouchBoardAsync(connection, transaction, boardId, cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task ReplaceBoardNotesAsync(
         long boardId,
         IReadOnlyList<BoardNoteRecord> notes,
@@ -852,12 +886,7 @@ public sealed partial class LibraryRepository
 
     private static string NormalizeNoteColor(string colorStyle)
     {
-        colorStyle = string.IsNullOrWhiteSpace(colorStyle)
-            ? "yellow"
-            : colorStyle.Trim().ToLowerInvariant();
-        return colorStyle is "yellow" or "rose" or "blue" or "slate"
-            ? colorStyle
-            : throw new ArgumentException("不支持的画板便签颜色。", nameof(colorStyle));
+        return BoardNoteStyleCodec.NormalizeStorage(colorStyle);
     }
 
     private static void ValidatePlacement(BoardItemPlacementInput placement)
@@ -888,7 +917,7 @@ public sealed partial class LibraryRepository
     {
         if (!double.IsFinite(update.X) || !double.IsFinite(update.Y)
             || !double.IsFinite(update.Width) || !double.IsFinite(update.Height)
-            || update.Width < 120 || update.Height < 100)
+            || update.Width < 32 || update.Height < 24)
             throw new ArgumentOutOfRangeException(nameof(update));
     }
 

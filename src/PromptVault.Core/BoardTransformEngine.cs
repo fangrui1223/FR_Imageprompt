@@ -116,13 +116,22 @@ public static class BoardTransformEngine
             : Math.Max(resolvedMinimumHeight, original.Height + sy * deltaY * (fromCenter ? 2 : 1));
         if (preserveAspect && sx != 0 && sy != 0)
         {
-            var widthScale = width / Math.Max(0.000001, original.Width);
-            var heightScale = height / Math.Max(0.000001, original.Height);
-            var scale = Math.Abs(widthScale - 1) >= Math.Abs(heightScale - 1) ? widthScale : heightScale;
+            // Project the pointer displacement onto the original corner diagonal. The old
+            // dominant-axis choice changed branches when width/height deltas crossed and made
+            // the same continuous drag jump between two different sizes.
+            var anchorFactor = fromCenter ? 0.5 : 1d;
+            var diagonalX = sx * original.Width * anchorFactor;
+            var diagonalY = sy * original.Height * anchorFactor;
+            var diagonalLengthSquared = diagonalX * diagonalX + diagonalY * diagonalY;
+            var safeDeltaX = double.IsFinite(deltaX) ? deltaX : 0;
+            var safeDeltaY = double.IsFinite(deltaY) ? deltaY : 0;
+            var scale = diagonalLengthSquared <= 0.000001
+                ? 1d
+                : 1d + (safeDeltaX * diagonalX + safeDeltaY * diagonalY) / diagonalLengthSquared;
             var minimumScale = Math.Max(
                 minimumWidth / Math.Max(0.000001, original.Width),
                 resolvedMinimumHeight / Math.Max(0.000001, original.Height));
-            scale = Math.Max(minimumScale, scale);
+            scale = Math.Max(minimumScale, double.IsFinite(scale) ? scale : 1d);
             width = Math.Max(minimumWidth, original.Width * scale);
             height = Math.Max(resolvedMinimumHeight, original.Height * scale);
         }

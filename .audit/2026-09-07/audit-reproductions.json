@@ -1,0 +1,75 @@
+{
+  "runRoot": "D:\\FR_AI\\AI image prompt\\.audit\\2026-09-07\\synthetic-8c352aa297324d428fd1436b2133be20",
+  "results": [
+    {
+      "name": "upgrade-rollback-expired-files",
+      "observation": {
+        "failureInjected": true,
+        "databaseRowRestored": true,
+        "remainingFiles": 0,
+        "missingFiles": [
+          "originals/expired.png",
+          "thumbnails/medium/expired.jpg",
+          "thumbnails/small/expired.jpg"
+        ],
+        "recoveryReported": true,
+        "bugReproduced": true
+      }
+    },
+    {
+      "name": "uri-capture-file-lock",
+      "observation": {
+        "exceptionType": "CapturePreparationException",
+        "rootCause": "The process cannot access the file \u0027D:\\FR_AI\\AI image prompt\\.audit\\2026-09-07\\synthetic-8c352aa297324d428fd1436b2133be20\\uri-capture-file-lock\\.staging\\e90072c7bac4451693d0e79d2cb5a46e.png\u0027 because it is being used by another process.",
+        "hresult": -2147024864,
+        "sourceStillDecodes": true,
+        "failedSessions": 1,
+        "bugReproduced": true
+      }
+    },
+    {
+      "name": "url-model-install-file-lock",
+      "observation": {
+        "bugReproduced": true,
+        "exceptionType": "IOException",
+        "hresult": -2147024864,
+        "modelInstalled": false,
+        "externalRequests": 0
+      }
+    },
+    {
+      "name": "stale-duplicate-after-permanent-delete",
+      "observation": {
+        "cachedExisting": true,
+        "stagedBeforeSave": true,
+        "reportedSaveSuccess": true,
+        "reportedDuplicate": false,
+        "savedRowExists": true,
+        "stagedAfterSave": false,
+        "missingFiles": [
+          "originals\\d3\\d317c1185577a108789d3fd3fd7b8e745ae5efc0ec0b31e7a168242842f1757d.png",
+          "thumbnails\\medium\\d3\\d317c1185577a108789d3fd3fd7b8e745ae5efc0ec0b31e7a168242842f1757d.jpg",
+          "thumbnails\\small\\d3\\d317c1185577a108789d3fd3fd7b8e745ae5efc0ec0b31e7a168242842f1757d.jpg"
+        ],
+        "bugReproduced": true
+      }
+    },
+    {
+      "name": "capture-undo-overwrites-newer-edit",
+      "observation": {
+        "beforePrompt": "newer manual prompt",
+        "afterPrompt": "original prompt",
+        "beforeNotes": "newer manual notes",
+        "afterNotes": "original notes",
+        "bugReproduced": true
+      }
+    },
+    {
+      "name": "settings-null-layout",
+      "observation": {
+        "bugReproduced": true,
+        "exceptionType": "NullReferenceException"
+      }
+    }
+  ]
+}

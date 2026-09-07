@@ -43,6 +43,15 @@ public partial class MainWindow : Window
     private double _layoutWidth;
     private readonly bool _trueTransparentWindow;
     private readonly MainWindowSnapshot? _initialSnapshot;
+    private readonly bool _transitionStaging;
+    private readonly TaskCompletionSource _transitionReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private int _transitionPreparedRenderFrames;
+    private bool _stagedHandoffCommitted;
+    private bool _galleryRowsTransferredOut;
+    private bool _restoredGallerySession;
+    private int _galleryReflowCount;
+    private int _transparentModeApplyCount;
+    private int _transferredSessionRestoreCount;
     private string? _externalFolderId;
     private GalleryCardViewModel? _dragCandidate;
     private Point _dragStart;
@@ -75,11 +84,13 @@ public partial class MainWindow : Window
         ExternalFolderIndexService externalIndex,
         BoardWorkspaceService boardWorkspace,
         bool transparentWindow = false,
-        MainWindowSnapshot? initialSnapshot = null)
+        MainWindowSnapshot? initialSnapshot = null,
+        bool transitionStaging = false)
     {
         _trueTransparentWindow = transparentWindow;
         _transparentMode = transparentWindow;
         _initialSnapshot = initialSnapshot;
+        _transitionStaging = transitionStaging;
         if (transparentWindow)
         {
             WindowStyle = WindowStyle.None;
@@ -94,7 +105,7 @@ public partial class MainWindow : Window
         _boardWorkspace = boardWorkspace;
         _externalIndex.IndexChanged += ExternalFolderIndexChanged;
         DataContext = this;
-        VisualModeService.Apply(transparentWindow, settings.ReducedMotionEnabled);
+        if (!transitionStaging) VisualModeService.Apply(transparentWindow, settings.ReducedMotionEnabled);
         InitializeComponent();
         UpdateAppearanceResources();
         UpdateInspectorPinVisual();
@@ -124,48 +135,62 @@ public partial class MainWindow : Window
             () => _settings.CaptureQuickEditEnabled,
             SaveCaptureAsync,
             RefreshAfterCaptureChangeAsync);
-        _clipboard.SetEnabled(_settings.CaptureListeningEnabled);
+        _clipboard.SetEnabled(!transitionStaging && _settings.CaptureListeningEnabled);
         UpdateCaptureToggleVisual();
         UpdateQuickCaptureModeVisual();
         UpdateSelectionVisual();
         Loaded += async (_, _) =>
         {
-            using var startupMeasurement = DevelopmentPerformanceTrace.Measure("gallery-first-content-ready");
             try
             {
-                await LoadCategoriesAsync();
-                await LoadExternalFoldersAsync();
-                ApplyInitialSnapshot();
-                UpdateLayoutControlVisuals();
-                ApplyTransparentMode();
-                await RefreshAsync(RefreshAnimationKind.None);
-                RestoreViewerFromSnapshot();
-            }
-            finally
-            {
-                _startupRefreshPending = false;
-                _searchTimer.Stop();
-                _resizeTimer.Stop();
-                RegroupIfNeeded();
-                if (DevelopmentPerformanceTrace.AutoRunScrollProbeCount > 0)
+                using var startupMeasurement = DevelopmentPerformanceTrace.Measure("gallery-first-content-ready");
+                try
                 {
-                    _ = Dispatcher.BeginInvoke(
-                        DispatcherPriority.ApplicationIdle,
-                        new Action(async () =>
-                        {
-                            await Task.Delay(1500);
-                            for (var probe = 0;
-                                 probe < DevelopmentPerformanceTrace.AutoRunScrollProbeCount;
-                                 probe++)
-                            {
-                                StartDevelopmentScrollProbe();
-                                if (probe + 1 < DevelopmentPerformanceTrace.AutoRunScrollProbeCount)
-                                {
-                                    await Task.Delay(5000);
-                                }
-                            }
-                        }));
+                    await LoadCategoriesAsync();
+                    await LoadExternalFoldersAsync();
+                    ApplyInitialSnapshot();
+                    UpdateLayoutControlVisuals();
+                    ApplyTransparentMode(applyVisualModeResources: !transitionStaging);
+                    _restoredGallerySession = RestoreTransferredGallerySession();
+                    if (!_restoredGallerySession)
+                    {
+                        await RefreshAsync(RefreshAnimationKind.None);
+                    }
+                    RestoreViewerFromSnapshot();
                 }
+                finally
+                {
+                    _startupRefreshPending = false;
+                    _searchTimer.Stop();
+                    _resizeTimer.Stop();
+                    if (!_restoredGallerySession) RegroupIfNeeded();
+                    if (DevelopmentPerformanceTrace.AutoRunScrollProbeCount > 0)
+                    {
+                        _ = Dispatcher.BeginInvoke(
+                            DispatcherPriority.ApplicationIdle,
+                            new Action(async () =>
+                            {
+                                await Task.Delay(1500);
+                                for (var probe = 0;
+                                     probe < DevelopmentPerformanceTrace.AutoRunScrollProbeCount;
+                                     probe++)
+                                {
+                                    StartDevelopmentScrollProbe();
+                                    if (probe + 1 < DevelopmentPerformanceTrace.AutoRunScrollProbeCount)
+                                    {
+                                        await Task.Delay(5000);
+                                    }
+                                }
+                            }));
+                    }
+                }
+                if (transitionStaging) await PrepareTransitionHandoffAsync();
+                _transitionReady.TrySetResult();
+            }
+            catch (Exception ex)
+            {
+                _transitionReady.TrySetException(ex);
+                if (!transitionStaging) throw;
             }
         };
         SizeChanged += (_, _) =>
@@ -183,6 +208,19 @@ public partial class MainWindow : Window
     {
         var categoryId = (CategoryList.SelectedItem as CategoryChoice)?.Id;
         long? viewerItemId = _viewerIndex >= 0 && _viewerIndex < _items.Count ? _items[_viewerIndex].Id : null;
+        _rowsScrollViewer ??= FindDescendant<ScrollViewer>(RowsList);
+        var session = new GallerySessionSnapshot(
+            _items.ToArray(),
+            Rows.ToArray(),
+            _layoutWidth,
+            _totalCount,
+            _hasMoreItems,
+            _activeSearch,
+            _nextPageCursor,
+            _nextExternalPageCursor,
+            _isFastBrowseIndexing,
+            _rowsScrollViewer?.VerticalOffset ?? 0);
+        _galleryRowsTransferredOut = true;
         return new MainWindowSnapshot(
             Left,
             Top,
@@ -199,7 +237,10 @@ public partial class MainWindow : Window
             _oldestFirst,
             _multiSelectMode,
             _selectedItemIds.ToArray(),
-            viewerItemId);
+            viewerItemId,
+            _inspectorVisible,
+            InspectorColumn.ActualWidth > 0 ? InspectorColumn.ActualWidth : _settings.InspectorWidth,
+            session);
     }
 
     private void ApplyInitialSnapshot()
@@ -220,6 +261,7 @@ public partial class MainWindow : Window
         _externalFolderId = snapshot.ExternalFolderId;
         _selectedItemIds.Clear();
         foreach (var id in snapshot.SelectedItemIds) _selectedItemIds.Add(id);
+        RestoreInspectorGeometry(snapshot);
 
         if (_externalFolderId is not null && ExternalFolderList.ItemsSource is IEnumerable<ExternalFolderChoice> externalChoices)
         {
@@ -274,12 +316,44 @@ public partial class MainWindow : Window
         _loadCancellation?.Dispose();
         _loadCancellation = null;
         _fastBrowseGenerations.Dispose();
+        _searchTimer.Stop();
+        _resizeTimer.Stop();
+        _subtleStatusTimer.Stop();
         _thumbnailIdleTimer.Stop();
+        _edgeIntentTimer.Stop();
+        _topHideTimer.Stop();
+        _leftHideTimer.Stop();
+        _appearanceReflowTimer?.Stop();
+        _inspectorResizeTimer?.Stop();
+        _inspectorSavedTimer.Stop();
+        _inspectorSavedTimer.Tick -= InspectorSavedTimerTick;
+        _transparentSelectionFadeTimer?.Stop();
+        _transparentSelectionAnimationTimer?.Stop();
+        _transparentSelectionAnimationTimer?.Tick -= TransparentSelectionAnimationTick;
+        if (_developmentScrollProbeRendering is not null)
+        {
+            CompositionTarget.Rendering -= _developmentScrollProbeRendering;
+            _developmentScrollProbeRendering = null;
+        }
         StopFastBrowseBackground();
-        foreach (var row in Rows) ReleaseRow(row);
+        if (!_galleryRowsTransferredOut)
+        {
+            foreach (var row in Rows) ReleaseRow(row);
+        }
+        // A handoff reuses the row view-models in the replacement window. Detach
+        // the retired ItemsControls before dropping our collections so their
+        // collection views cannot keep the closed visual tree alive.
+        RowsList.ItemsSource = null;
+        CategoryList.ItemsSource = null;
+        ExternalFolderList.ItemsSource = null;
+        _realizedRowElements.Clear();
+        Rows.Clear();
+        _items.Clear();
         _frameSampler.Dispose();
         _clipboard.Dispose();
         _externalIndex.IndexChanged -= ExternalFolderIndexChanged;
+        DataContext = null;
+        Content = null;
         base.OnClosed(e);
     }
 
@@ -320,6 +394,58 @@ public partial class MainWindow : Window
             ExternalFolderList.SelectedItem = choices.FirstOrDefault(x => x.Id == _externalFolderId);
         }
         _suppressExternalRefresh = false;
+    }
+
+    internal Task TransitionReady => _transitionReady.Task;
+
+    internal int TransitionPreparedRenderFrames => _transitionPreparedRenderFrames;
+
+    internal void CommitStagedVisualMode()
+    {
+        ApplyTransparentMode();
+        _clipboard.SetEnabled(_settings.CaptureListeningEnabled);
+        UpdateCaptureToggleVisual();
+        _stagedHandoffCommitted = true;
+    }
+
+    internal void CancelSnapshotTransfer() => _galleryRowsTransferredOut = false;
+
+    internal void AbandonStagedWindow()
+    {
+        if (_restoredGallerySession) _galleryRowsTransferredOut = true;
+    }
+
+    private async Task PrepareTransitionHandoffAsync()
+    {
+        var expectedOffset = _initialSnapshot?.GallerySession?.VerticalOffset;
+        for (var frame = 0; frame < 2; frame++)
+        {
+            await WaitForRenderFrameAsync();
+            _transitionPreparedRenderFrames++;
+            if (expectedOffset is { } offset)
+            {
+                _rowsScrollViewer ??= FindDescendant<ScrollViewer>(RowsList);
+                if (_rowsScrollViewer is not null
+                    && Math.Abs(_rowsScrollViewer.VerticalOffset - offset) > 0.5)
+                {
+                    _rowsScrollViewer.ScrollToVerticalOffset(offset);
+                    UpdateLayout();
+                }
+            }
+        }
+    }
+
+    private Task WaitForRenderFrameAsync()
+    {
+        var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        EventHandler? handler = null;
+        handler = (_, _) =>
+        {
+            CompositionTarget.Rendering -= handler;
+            ready.TrySetResult();
+        };
+        CompositionTarget.Rendering += handler;
+        return ready.Task;
     }
 
     private static string FormatExternalFolderStatus(ExternalFolderIndexState? state)
@@ -937,9 +1063,17 @@ public partial class MainWindow : Window
 
     private double GetGalleryAvailableWidth()
     {
-        if (RowsList.ActualWidth >= 300) return RowsList.ActualWidth;
-        if (GalleryColumn.ActualWidth >= 300) return Math.Max(300, GalleryColumn.ActualWidth - 56);
-        return Math.Max(300, ActualWidth - 56);
+        _rowsScrollViewer ??= FindDescendant<ScrollViewer>(RowsList);
+        var viewportWidth = _rowsScrollViewer?.ViewportWidth ?? double.NaN;
+        var hostWidth = RowsList.ActualWidth >= GalleryViewportWidthPolicy.MinimumWidth
+            ? RowsList.ActualWidth
+            : GalleryColumn.ActualWidth >= GalleryViewportWidthPolicy.MinimumWidth
+                ? GalleryColumn.ActualWidth - 40
+                : ActualWidth - 56;
+        return GalleryViewportWidthPolicy.Calculate(
+            viewportWidth,
+            hostWidth,
+            SystemParameters.VerticalScrollBarWidth);
     }
 
     private void InvalidateMasonryLayoutIndex()
@@ -967,6 +1101,7 @@ public partial class MainWindow : Window
     {
         var width = GetGalleryAvailableWidth();
         if (Math.Abs(width - _layoutWidth) < 32) return;
+        _galleryReflowCount++;
         var rows = GalleryLayoutEngine.CreateRows(
             _items,
             width,
@@ -1252,6 +1387,81 @@ public partial class MainWindow : Window
         UpdateSelectionVisual();
     }
 
+    private void RestoreInspectorGeometry(MainWindowSnapshot snapshot)
+    {
+        _inspectorVisible = snapshot.InspectorVisible;
+        if (!_inspectorVisible)
+        {
+            InspectorPanel.Visibility = Visibility.Collapsed;
+            InspectorPanel.IsHitTestVisible = false;
+            InspectorSplitter.Visibility = Visibility.Collapsed;
+            InspectorSplitterColumn.Width = new GridLength(0);
+            InspectorColumn.Width = new GridLength(0);
+            return;
+        }
+
+        var width = ResponsiveInspectorWidth(snapshot.InspectorWidth);
+        InspectorColumn.Width = new GridLength(width, GridUnitType.Pixel);
+        InspectorSplitterColumn.Width = new GridLength(6, GridUnitType.Pixel);
+        InspectorPanel.Visibility = _transparentMode ? Visibility.Hidden : Visibility.Visible;
+        InspectorPanel.IsHitTestVisible = !_transparentMode;
+        InspectorPanel.Opacity = _transparentMode ? 0 : 1;
+        InspectorSplitter.Visibility = _transparentMode ? Visibility.Hidden : Visibility.Visible;
+    }
+
+    private bool RestoreTransferredGallerySession()
+    {
+        if (_initialSnapshot?.GallerySession is not { } session) return false;
+        _transferredSessionRestoreCount++;
+        _items.Clear();
+        _items.AddRange(session.Items);
+        Rows.ReplaceAll(session.Rows);
+        _layoutWidth = session.LayoutWidth;
+        _totalCount = session.TotalCount;
+        _hasMoreItems = session.HasMoreItems;
+        _activeSearch = session.ActiveSearch;
+        _nextPageCursor = session.NextPageCursor;
+        _nextExternalPageCursor = session.NextExternalCursor;
+        _isLoadingNextPage = false;
+        _fastBrowsePlan = AdaptiveFastBrowsePolicy.Create(
+            session.TotalCount,
+            GC.GetGCMemoryInfo().TotalAvailableMemoryBytes);
+        _loadCancellation?.Cancel();
+        _loadCancellation?.Dispose();
+        _loadCancellation = new CancellationTokenSource();
+        _fastBrowseLease = _fastBrowseGenerations.Begin(_loadCancellation.Token);
+        InvalidateMasonryLayoutIndex();
+        EmptyGalleryState.Visibility = _items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        UpdateCountText();
+        UpdateBaseStatus();
+        UpdateTrashVisual();
+        ApplySelectionState();
+        _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+        {
+            _rowsScrollViewer ??= FindDescendant<ScrollViewer>(RowsList);
+            _rowsScrollViewer?.ScrollToVerticalOffset(session.VerticalOffset);
+            QueueThumbnailPriorityRefresh();
+        }));
+        if (session.FastBrowseIndexing && session.ActiveSearch is not null)
+        {
+            StartFastBrowseBackground(session.ActiveSearch, _fastBrowseLease);
+        }
+        else
+        {
+            QueueNextPageIfNeeded();
+        }
+        DevelopmentPerformanceTrace.Event("transparent-gallery-session-restored", new
+        {
+            transparent = _transparentMode,
+            items = session.Items.Length,
+            rows = session.Rows.Length,
+            session.LayoutWidth,
+            session.VerticalOffset,
+            reusedRealizedCards = session.Rows.Sum(row => row.Items.Count)
+        });
+        return true;
+    }
+
     private async void DeleteSelectedClick(object sender, RoutedEventArgs e)
     {
         if (IsExternalMode)
@@ -1349,6 +1559,7 @@ public partial class MainWindow : Window
 
     private void GalleryRowUnloaded(object sender, RoutedEventArgs e)
     {
+        if (_galleryRowsTransferredOut) return;
         if (sender is not FrameworkElement element
             || element.DataContext is not GalleryRow row)
         {
@@ -1373,7 +1584,7 @@ public partial class MainWindow : Window
 
     private void GalleryRowDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        if (e.OldValue is GalleryRow oldRow) ReleaseRow(oldRow);
+        if (!_galleryRowsTransferredOut && e.OldValue is GalleryRow oldRow) ReleaseRow(oldRow);
         if (sender is FrameworkElement { IsLoaded: true } element && e.NewValue is GalleryRow newRow)
         {
             RealizeRow(newRow, element);

@@ -7,7 +7,7 @@ public sealed class BoardCommandSystemTests
     [Fact]
     public void CommandPolicyKeepsUnsafeAndInapplicableActionsDisabled()
     {
-        var empty = new BoardCommandState(BoardCommandContextKind.Canvas, 0, false, false, false, false, 1, false);
+        var empty = new BoardCommandState(BoardCommandContextKind.Canvas, 0, 0, false, false, false, 1, false);
         Assert.False(BoardCommandPolicy.CanExecute(BoardCommandId.RemoveSelection, empty));
         Assert.False(BoardCommandPolicy.CanExecute(BoardCommandId.DeleteBoard, empty));
         Assert.False(BoardCommandPolicy.CanExecute(BoardCommandId.Paste, empty));
@@ -19,8 +19,15 @@ public sealed class BoardCommandSystemTests
         Assert.True(BoardCommandPolicy.CanExecute(BoardCommandId.ResetSize, selected));
         Assert.True(BoardCommandPolicy.CanExecute(BoardCommandId.DeleteBoard, selected));
 
-        var note = empty with { HasSelectedNote = true };
+        var note = empty with { SelectedNoteCount = 1 };
         Assert.True(BoardCommandPolicy.CanExecute(BoardCommandId.ResetSize, note));
+        Assert.True(BoardCommandPolicy.CanExecute(BoardCommandId.EditNote, note));
+        Assert.True(BoardCommandPolicy.CanExecute(BoardCommandId.FitNoteContent, note));
+        Assert.True(BoardCommandPolicy.CanExecute(BoardCommandId.ApplyNotePreset1, note));
+
+        var notes = empty with { SelectedNoteCount = 3 };
+        Assert.False(BoardCommandPolicy.CanExecute(BoardCommandId.EditNote, notes));
+        Assert.True(BoardCommandPolicy.CanExecute(BoardCommandId.ApplyNotePreset5, notes));
     }
 
     [Fact]

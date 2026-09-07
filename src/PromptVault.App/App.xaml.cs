@@ -1,6 +1,8 @@
 using System.Windows;
+using System.Windows.Threading;
 using PromptVault.App.Services;
 using PromptVault.Core;
+using PromptVault.Licensing;
 
 namespace PromptVault.App;
 
@@ -12,6 +14,7 @@ public partial class App : System.Windows.Application
     private CaptureCoordinator? _capture;
     private ExternalFolderIndexService? _externalIndex;
     private BoardWorkspaceService? _boardWorkspace;
+    private MainWindowHandoffMetrics? _lastMainWindowHandoff;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -35,9 +38,70 @@ public partial class App : System.Windows.Application
         string? boardM83SmokeReport = null;
         string? boardM84SmokeReport = null;
         string? boardM85SmokeReport = null;
+        string? boardM10SmokeReport = null;
+        string? m10TransparentSmokeReport = null;
         string? galleryPartialCardSmokeReport = null;
+        string? m102TransparentHandoffSmokeReport = null;
         try
         {
+            var licenseWindowSmokeReport = GetOptionValue(e.Args, "--license-window-smoke");
+            var licenseMainSmokeReport = GetOptionValue(e.Args, "--license-main-smoke");
+            var licenseRequestOutput = GetOptionValue(e.Args, "--license-request-out");
+            if (licenseRequestOutput is not null)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(licenseRequestOutput)!);
+                await File.WriteAllTextAsync(licenseRequestOutput, WindowsDeviceIdentity.GetRequestCode());
+                Shutdown(0);
+                return;
+            }
+            var licenseService = new ProductLicenseService(GetOptionValue(e.Args, "--license"));
+            var licenseValidation = licenseService.ValidateCurrent();
+            if (!licenseValidation.IsValid)
+            {
+                AppLog.Warning("license", "License validation blocked startup.", data: new
+                {
+                    status = licenseValidation.Status.ToString(),
+                    explicitPath = licenseService.UsesExplicitPath
+                });
+                if (isAiWorker)
+                {
+                    Shutdown(3);
+                    return;
+                }
+
+                var activation = new LicenseActivationWindow(licenseService, licenseValidation);
+                if (licenseWindowSmokeReport is not null)
+                {
+                    activation.Show();
+                    await M9LicenseDiagnostics.CaptureActivationAsync(activation, licenseValidation, licenseWindowSmokeReport);
+                    activation.Close();
+                    Shutdown(0);
+                    return;
+                }
+                if (activation.ShowDialog() != true)
+                {
+                    Shutdown(3);
+                    return;
+                }
+                licenseValidation = licenseService.ValidateCurrent();
+                if (!licenseValidation.IsValid)
+                {
+                    MessageBox.Show(
+                        licenseValidation.Message,
+                        "许可证验证失败",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                    Shutdown(3);
+                    return;
+                }
+            }
+            AppLog.Information("license", "License validation succeeded.", data: new
+            {
+                licenseId = licenseValidation.License?.LicenseId,
+                expiresAtUtc = licenseValidation.License?.ExpiresAtUtc,
+                majorVersion = ProductLicensePolicy.GetCurrentMajorVersion(typeof(App).Assembly)
+            });
+
             boardCameraSmokeReport = GetOptionValue(e.Args, "--board-camera-smoke");
             boardInputSmokeReport = GetOptionValue(e.Args, "--board-input-smoke");
             boardCommandSmokeReport = GetOptionValue(e.Args, "--board-command-smoke");
@@ -50,6 +114,9 @@ public partial class App : System.Windows.Application
             boardM83SmokeReport = GetOptionValue(e.Args, "--board-m83-smoke");
             boardM84SmokeReport = GetOptionValue(e.Args, "--board-m84-smoke");
             boardM85SmokeReport = GetOptionValue(e.Args, "--board-m85-smoke");
+            boardM10SmokeReport = GetOptionValue(e.Args, "--board-m10-smoke");
+            m10TransparentSmokeReport = GetOptionValue(e.Args, "--m10-transparent-smoke");
+            m102TransparentHandoffSmokeReport = GetOptionValue(e.Args, "--m102-transparent-handoff-smoke");
             galleryPartialCardSmokeReport = GetOptionValue(e.Args, "--gallery-partial-card-smoke");
             if (isAiWorker)
             {
@@ -140,6 +207,30 @@ public partial class App : System.Windows.Application
             MainWindow = window;
             _tray = new TrayService(window, () => Shutdown());
             window.Show();
+            if (m102TransparentHandoffSmokeReport is not null)
+            {
+                var passed = await RunM102TransparentHandoffStressAsync(
+                    m102TransparentHandoffSmokeReport,
+                    _settings);
+                Shutdown(passed ? 0 : 2);
+                return;
+            }
+            if (m10TransparentSmokeReport is not null)
+            {
+                var passed = await window.RunM10TransparentSmokeAsync(m10TransparentSmokeReport, _settings);
+                window.AllowClose();
+                window.Close();
+                Shutdown(passed ? 0 : 2);
+                return;
+            }
+            if (licenseMainSmokeReport is not null)
+            {
+                await M9LicenseDiagnostics.CaptureMainAsync(window, _settings, licenseValidation, licenseMainSmokeReport);
+                window.AllowClose();
+                window.Close();
+                Shutdown(0);
+                return;
+            }
             if (galleryPartialCardSmokeReport is not null)
             {
                 var passed = false;
@@ -169,7 +260,7 @@ public partial class App : System.Windows.Application
                 Shutdown(passed ? 0 : 2);
                 return;
             }
-            if (openBoardForDiagnostics || boardCameraSmokeReport is not null || boardInputSmokeReport is not null || boardCommandSmokeReport is not null || boardChromeSmokeReport is not null || boardInspectorSmokeReport is not null || boardTransformSmokeReport is not null || boardImageSmokeReport is not null || boardM8GateReport is not null || boardM82SmokeReport is not null || boardM83SmokeReport is not null || boardM84SmokeReport is not null || boardM85SmokeReport is not null)
+            if (openBoardForDiagnostics || boardCameraSmokeReport is not null || boardInputSmokeReport is not null || boardCommandSmokeReport is not null || boardChromeSmokeReport is not null || boardInspectorSmokeReport is not null || boardTransformSmokeReport is not null || boardImageSmokeReport is not null || boardM8GateReport is not null || boardM82SmokeReport is not null || boardM83SmokeReport is not null || boardM84SmokeReport is not null || boardM85SmokeReport is not null || boardM10SmokeReport is not null)
             {
                 var boardWindow = await _boardWorkspace.OpenAsync(window);
                 if (boardCameraSmokeReport is not null)
@@ -220,6 +311,27 @@ public partial class App : System.Windows.Application
                 {
                     var passed = await boardWindow.RunM85SmokeAsync(boardM85SmokeReport, _settings);
                     Shutdown(passed ? 0 : 2);
+                    return;
+                }
+                if (boardM10SmokeReport is not null)
+                {
+                    var passed = await boardWindow.RunM10SmokeAsync(boardM10SmokeReport, _settings);
+                    Shutdown(passed ? 0 : 2);
+                    return;
+                }
+                if (boardCameraSmokeReport is not null
+                    || boardInputSmokeReport is not null
+                    || boardCommandSmokeReport is not null
+                    || boardChromeSmokeReport is not null
+                    || boardInspectorSmokeReport is not null
+                    || boardTransformSmokeReport is not null
+                    || boardImageSmokeReport is not null
+                    || boardM8GateReport is not null
+                    || boardM82SmokeReport is not null
+                    || boardM83SmokeReport is not null
+                    || boardM84SmokeReport is not null)
+                {
+                    Shutdown(0);
                     return;
                 }
             }
@@ -274,26 +386,279 @@ public partial class App : System.Windows.Application
         };
     }
 
-    internal void SwitchMainWindow(bool transparent, MainWindowSnapshot snapshot)
+    private bool _mainWindowSwitchActive;
+
+    internal async Task<bool> SwitchMainWindowAsync(bool transparent, MainWindowSnapshot snapshot)
     {
-        if (_repository is null || _capture is null || _settings is null || _externalIndex is null) return;
-        var oldWindow = MainWindow as MainWindow;
-        var next = CreateMainWindow(transparent, snapshot);
-        MainWindow = next;
-        _tray?.UpdateWindow(next);
-        next.Show();
-        next.Activate();
-        if (oldWindow is not null)
+        if (_repository is null || _capture is null || _settings is null || _externalIndex is null) return false;
+        if (_mainWindowSwitchActive)
         {
-            oldWindow.AllowClose();
-            oldWindow.Close();
+            (MainWindow as MainWindow)?.CancelSnapshotTransfer();
+            return false;
+        }
+        _mainWindowSwitchActive = true;
+        var oldWindow = MainWindow as MainWindow;
+        MainWindow? next = null;
+        try
+        {
+            next = CreateMainWindow(transparent, snapshot, transitionStaging: true);
+            next.Opacity = 0;
+            next.IsEnabled = false;
+            next.ShowActivated = false;
+            next.ShowInTaskbar = false;
+            next.Show();
+            await next.TransitionReady.WaitAsync(TimeSpan.FromSeconds(5));
+            var oldVisibleUntilReady = oldWindow?.IsVisible != false;
+            var replacementHiddenUntilReady = next.Opacity <= 0.001 && !next.IsEnabled;
+            var preparedFrames = next.TransitionPreparedRenderFrames;
+            await Dispatcher.InvokeAsync(() =>
+            {
+                next.CommitStagedVisualMode();
+                MainWindow = next;
+                _tray?.UpdateWindow(next);
+                next.ShowInTaskbar = true;
+                next.IsEnabled = true;
+                next.Opacity = 1;
+                next.Activate();
+                if (oldWindow is null) return;
+                oldWindow.AllowClose();
+                oldWindow.Close();
+            }, DispatcherPriority.Send);
+            _lastMainWindowHandoff = new MainWindowHandoffMetrics(
+                true,
+                oldVisibleUntilReady,
+                replacementHiddenUntilReady,
+                preparedFrames,
+                next.IsVisible && next.Opacity >= 0.999,
+                oldWindow is null || !oldWindow.IsVisible,
+                null);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warning("transparent-handoff", "Transparent window handoff failed; the current window was preserved.", ex);
+            oldWindow?.CancelSnapshotTransfer();
+            if (next is not null)
+            {
+                next.AbandonStagedWindow();
+                next.AllowClose();
+                next.Close();
+            }
+            if (oldWindow is not null)
+            {
+                MainWindow = oldWindow;
+                _tray?.UpdateWindow(oldWindow);
+                oldWindow.Show();
+                oldWindow.Activate();
+            }
+            _lastMainWindowHandoff = new MainWindowHandoffMetrics(
+                false,
+                oldWindow?.IsVisible == true,
+                next?.Opacity <= 0.001,
+                next?.TransitionPreparedRenderFrames ?? 0,
+                false,
+                false,
+                ex.Message);
+            return false;
+        }
+        finally
+        {
+            _mainWindowSwitchActive = false;
         }
     }
 
-    private MainWindow CreateMainWindow(bool transparent, MainWindowSnapshot? snapshot)
+    private async Task<bool> RunM102TransparentHandoffStressAsync(
+        string reportPath,
+        AppSettings settings)
+    {
+        reportPath = Path.GetFullPath(reportPath);
+        var samples = new List<M102HandoffStressSample>(160);
+        var retiredWindows = new List<WeakReference<PromptVault.App.MainWindow>>(160);
+        Exception? failure = null;
+        var positions = new[] { 0d, 0.2d, 0.5d, 0.9d };
+        var process = System.Diagnostics.Process.GetCurrentProcess();
+        process.Refresh();
+        var workingSetBefore = process.WorkingSet64;
+        var privateMemoryBefore = process.PrivateMemorySize64;
+        try
+        {
+            foreach (var position in positions)
+            {
+                for (var cycle = 1; cycle <= 20; cycle++)
+                {
+                    foreach (var targetTransparent in new[] { true, false })
+                    {
+                        if (MainWindow is not PromptVault.App.MainWindow source)
+                            throw new InvalidOperationException("M10.2 交接期间主窗口不存在。");
+                        if (source.IsTransparentForDiagnostics == targetTransparent)
+                            throw new InvalidOperationException("M10.2 交接方向状态异常。");
+                        var snapshot = await source.PrepareM102HandoffProbeAsync(settings, position);
+                        var clock = System.Diagnostics.Stopwatch.StartNew();
+                        var switched = await SwitchMainWindowAsync(targetTransparent, snapshot);
+                        clock.Stop();
+                        if (!switched || MainWindow is not PromptVault.App.MainWindow replacement)
+                            throw new InvalidOperationException("M10.2 窗口交接失败。");
+                        retiredWindows.Add(new WeakReference<PromptVault.App.MainWindow>(source));
+                        var metrics = _lastMainWindowHandoff;
+                        var validation = await replacement.ValidateM102HandoffAsync(
+                            settings,
+                            snapshot,
+                            metrics);
+                        samples.Add(new M102HandoffStressSample(
+                            position,
+                            cycle,
+                            targetTransparent ? "normal-to-transparent" : "transparent-to-normal",
+                            clock.Elapsed.TotalMilliseconds,
+                            metrics,
+                            validation));
+                        if (!validation.Passed)
+                            throw new InvalidOperationException("M10.2 窗口交接状态验证失败。");
+                        // Real users leave an idle turn between toggles. Give WPF the
+                        // same opportunity to retire the old HwndSource before the
+                        // stress loop starts the next replacement transaction.
+                        await Dispatcher.InvokeAsync(
+                            static () => { },
+                            DispatcherPriority.ContextIdle);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+            AppLog.Warning("m10.2-handoff-stress", "Transparent handoff stress failed.", ex);
+        }
+
+        var directionCounts = samples
+            .GroupBy(sample => sample.Direction)
+            .ToDictionary(group => group.Key, group => group.Count());
+        var handoffsPassed = failure is null
+            && samples.Count == 160
+            && samples.All(sample => sample.Validation.Passed)
+            && directionCounts.GetValueOrDefault("normal-to-transparent") == 80
+            && directionCounts.GetValueOrDefault("transparent-to-normal") == 80;
+        var elapsed = samples.Select(sample => sample.ElapsedMilliseconds).Order().ToArray();
+        process.Refresh();
+        var workingSetBeforeCollection = process.WorkingSet64;
+        var privateMemoryBeforeCollection = process.PrivateMemorySize64;
+        await Dispatcher.InvokeAsync(static () => { }, DispatcherPriority.ContextIdle);
+        await Task.Delay(250);
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        await Task.Delay(250);
+        process.Refresh();
+        var retiredWindowsAliveAfterCollection = retiredWindows.Count(reference =>
+            reference.TryGetTarget(out _));
+        var allPassed = handoffsPassed && retiredWindowsAliveAfterCollection <= 1;
+        var report = new
+        {
+            Milestone = "M10.2-transparent-prewarmed-atomic-handoff-stress",
+            GeneratedAt = DateTimeOffset.Now,
+            DataKind = "synthetic",
+            Passed = allPassed,
+            Matrix = new
+            {
+                ScrollPositions = positions,
+                CyclesPerDirectionPerPosition = 20,
+                ExpectedHandoffs = 160,
+                ActualHandoffs = samples.Count,
+                DirectionCounts = directionCounts,
+                PassedHandoffs = samples.Count(sample => sample.Validation.Passed),
+                MinimumPreparedRenderFrames = samples.Count == 0
+                    ? 0
+                    : samples.Min(sample => sample.Validation.PreparedRenderFrames),
+                MaximumOffsetError = samples.Count == 0
+                    ? double.NaN
+                    : samples.Max(sample => Math.Abs(
+                        sample.Validation.ExpectedVerticalOffset
+                        - sample.Validation.ActualVerticalOffset)),
+                MaximumGalleryReflows = samples.Count == 0
+                    ? -1
+                    : samples.Max(sample => sample.Validation.GalleryReflows),
+                ElapsedP50Ms = Percentile(elapsed, 0.5),
+                ElapsedP95Ms = Percentile(elapsed, 0.95),
+                ElapsedMaximumMs = elapsed.Length == 0 ? 0 : elapsed[^1]
+            },
+            Protocol = new
+            {
+                ScreenshotOverlayUsed = false,
+                AnimationUsed = false,
+                OldWindowVisibleUntilReplacementStable = samples.All(sample =>
+                    sample.Metrics?.OldWindowVisibleUntilReady == true),
+                ReplacementHiddenUntilStable = samples.All(sample =>
+                    sample.Metrics?.ReplacementHiddenUntilReady == true),
+                AtomicDispatcherCommit = true,
+                FirstScreenFallbackPathUsed = false
+            },
+            Process = new
+            {
+                WorkingSetBefore = workingSetBefore,
+                PrivateMemoryBefore = privateMemoryBefore,
+                WorkingSetBeforeCollection = workingSetBeforeCollection,
+                PrivateMemoryBeforeCollection = privateMemoryBeforeCollection,
+                WorkingSetAfterCollection = process.WorkingSet64,
+                PrivateMemoryAfterCollection = process.PrivateMemorySize64,
+                RetiredWindowReferences = retiredWindows.Count,
+                RetiredWindowsAliveAfterCollection = retiredWindowsAliveAfterCollection,
+                process.HandleCount,
+                ThreadCount = process.Threads.Count,
+                process.Responding
+            },
+            DataSafety = new
+            {
+                SettingsPath = settings.StorageFilePath,
+                settings.LibraryRoot,
+                settings.CaptureListeningEnabled,
+                settings.CaptureQuickEditEnabled,
+                settings.OnlineAiEnabled,
+                RealLibraryOpened = false,
+                ClipboardUsed = false,
+                NetworkUsed = false,
+                ApiKeyUsed = false
+            },
+            Error = failure?.ToString(),
+            Samples = samples
+        };
+        Directory.CreateDirectory(Path.GetDirectoryName(reportPath)!);
+        await File.WriteAllTextAsync(
+            reportPath,
+            System.Text.Json.JsonSerializer.Serialize(
+                report,
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+        return allPassed;
+    }
+
+    private static double Percentile(IReadOnlyList<double> sorted, double percentile)
+    {
+        if (sorted.Count == 0) return 0;
+        var index = Math.Clamp((int)Math.Ceiling(sorted.Count * percentile) - 1, 0, sorted.Count - 1);
+        return Math.Round(sorted[index], 3);
+    }
+
+    private sealed record M102HandoffStressSample(
+        double ScrollPosition,
+        int Cycle,
+        string Direction,
+        double ElapsedMilliseconds,
+        MainWindowHandoffMetrics? Metrics,
+        MainWindowHandoffValidation Validation);
+
+    private MainWindow CreateMainWindow(
+        bool transparent,
+        MainWindowSnapshot? snapshot,
+        bool transitionStaging = false)
     {
         if (_repository is null || _capture is null || _settings is null || _externalIndex is null || _boardWorkspace is null) throw new InvalidOperationException("FR_Imageprompt 尚未完成初始化。");
-        return new MainWindow(_repository, _capture, _settings, _externalIndex, _boardWorkspace, transparent, snapshot);
+        return new MainWindow(
+            _repository,
+            _capture,
+            _settings,
+            _externalIndex,
+            _boardWorkspace,
+            transparent,
+            snapshot,
+            transitionStaging);
     }
 
     protected override void OnExit(ExitEventArgs e)

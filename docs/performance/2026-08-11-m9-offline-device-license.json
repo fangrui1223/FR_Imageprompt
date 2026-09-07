@@ -1,0 +1,92 @@
+{
+  "milestone": "M9-offline-device-license",
+  "date": "2026-08-11",
+  "branch": "codex/m1-foundation",
+  "baselineCommit": "a283d16",
+  "productVersion": "2.0.0",
+  "licensePolicy": {
+    "devicesPerLicense": 1,
+    "defaultDuration": "permanent",
+    "optionalDuration": "one-year",
+    "hardGateWithoutLicense": true,
+    "allowedMajorVersions": [2],
+    "offline": true,
+    "remoteRevocation": false,
+    "signature": "ECDSA P-256 / SHA-256"
+  },
+  "build": {
+    "configuration": "Release",
+    "solutionWarnings": 0,
+    "solutionErrors": 0,
+    "testsPassed": 346,
+    "testsFailed": 0,
+    "testsSkipped": 0,
+    "licenseTests": 7
+  },
+  "startupGate": {
+    "noLicenseExitCode": 3,
+    "noLicenseDatabaseCreated": false,
+    "wrongDeviceExitCode": 3,
+    "wrongDeviceDatabaseCreated": false,
+    "validLicenseWorkerExitCode": 0,
+    "validLicenseDatabaseCreatedInSyntheticLibrary": true
+  },
+  "realWpfSmoke": {
+    "publishedExecutable": true,
+    "displayLogicalPixels": "2560x1707",
+    "displayPhysicalPixelsApprox": "3840x2560",
+    "windowsDpi": 144,
+    "windowsScalePercent": 150,
+    "activationWindowDip": "760x560",
+    "activationWindowPassed": true,
+    "activationLaunchAndCaptureMs": 1714.9,
+    "authorizedMainPassed": true,
+    "authorizedMainLaunchAndCaptureMs": 1066.8,
+    "clipboardCaptureEnabled": false,
+    "explicitSettings": true,
+    "syntheticLibrary": true,
+    "realLibraryAccesses": 0,
+    "networkRequests": 0,
+    "remainingTestProcesses": 0,
+    "computerUse": "unavailable: EPERM while initializing @oai/sky; used in-process production WPF smoke and screenshot instead"
+  },
+  "authority": {
+    "credentialTarget": "FR_Imageprompt/LicenseAuthority/V2",
+    "credentialEntries": 1,
+    "privateKeyInRepository": false,
+    "encryptedBackupRoundTripTest": true,
+    "publishedSignerIssuedOneYearLicense": true,
+    "publishedSignerExitCode": 0
+  },
+  "artifacts": [
+    {
+      "kind": "user-package",
+      "path": "publish/FR_Imageprompt-M9-licensed-win-x64.zip",
+      "bytes": 92470098,
+      "sha256": "159b01de20deced27842547a8366f475a8d220646817c1e4311c71ce66fc5e4f",
+      "entries": ["FR_Imageprompt-M9-licensed-win-x64/FR_Imageprompt.exe"],
+      "forbiddenEntries": 0
+    },
+    {
+      "kind": "owner-signer",
+      "path": "publish/FR_Imageprompt-M9-LicenseManager-win-x64.zip",
+      "bytes": 65087317,
+      "sha256": "f7a85b23b8e2790ef3c7d3c04151b62fd77eda279ea6a106b8a17cbc3715483a",
+      "entries": ["FR_Imageprompt-M9-LicenseManager-win-x64/FR_LicenseManager.exe"],
+      "licenseEntries": 0
+    },
+    {
+      "kind": "owner-permanent-license",
+      "path": "publish/FR_Imageprompt-M9-owner-license/FR_Imageprompt-owner-permanent.frlicense",
+      "bytes": 619,
+      "sha256": "a2a09e9201d4cd8133cadac53413fa81b6fe36e8f0adca63f450942ffd7dbca3"
+    }
+  ],
+  "regressionBoundary": {
+    "databaseSchemaChanged": false,
+    "galleryPerformanceLayerChanged": false,
+    "boardInteractionLayerChanged": false,
+    "licenseValidationInRenderingHotPath": false,
+    "m7_2AndM8ContractsPreserved": true
+  }
+}

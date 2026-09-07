@@ -33,7 +33,7 @@ public partial class BoardWindow
 
         _selectedIds.Clear();
         _selectedIds.Add(candidate.Id);
-        _selectedNoteId = null;
+        _selectedNoteIds.Clear();
         RenderVisibleItems();
         await WaitForLayoutAsync();
 
@@ -49,8 +49,8 @@ public partial class BoardWindow
         TopLeftHandle.RaiseEvent(new DragStartedEventArgs(0, 0) { RoutedEvent = Thumb.DragStartedEvent });
         var gestureLocked = _imageTransformGestureActive
             && _transformSelectionIds?.SetEquals([candidate.Id]) == true;
-        var widths = new double[120];
-        var updateTimes = new double[120];
+        var widths = new double[240];
+        var updateTimes = new double[240];
         var stableElementDuring = true;
         var stableBitmapDuring = true;
         for (var index = 0; index < widths.Length; index++)

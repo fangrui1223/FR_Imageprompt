@@ -66,18 +66,49 @@ public static class BoardCameraEngine
         IEnumerable<BoardNoteRecord> notes,
         long? selectedNoteId)
     {
+        var noteIds = selectedNoteId is { } id
+            ? (IReadOnlySet<long>)new HashSet<long> { id }
+            : new HashSet<long>();
+        return SelectionBounds(items, selectedItemIds, notes, noteIds);
+    }
+
+    public static BoardBoundsResult SelectionBounds(
+        IEnumerable<BoardItemRecord> items,
+        IReadOnlySet<long> selectedItemIds,
+        IEnumerable<BoardNoteRecord> notes,
+        IReadOnlySet<long> selectedNoteIds)
+    {
         ArgumentNullException.ThrowIfNull(items);
         ArgumentNullException.ThrowIfNull(selectedItemIds);
         ArgumentNullException.ThrowIfNull(notes);
+        ArgumentNullException.ThrowIfNull(selectedNoteIds);
         var rectangles = items
             .Where(item => selectedItemIds.Contains(item.Id))
             .Select(ItemBounds);
-        if (selectedNoteId is { } noteId)
-        {
-            rectangles = rectangles.Concat(
-                notes.Where(note => note.Id == noteId).Select(NoteBounds));
-        }
+        rectangles = rectangles.Concat(
+            notes.Where(note => selectedNoteIds.Contains(note.Id)).Select(NoteBounds));
         return Union(rectangles);
+    }
+
+    public static BoardViewport AtOneHundredPercent(
+        BoardBoundsResult preferredCenter,
+        double viewportWidth,
+        double viewportHeight)
+    {
+        viewportWidth = SanitizeViewportLength(viewportWidth);
+        viewportHeight = SanitizeViewportLength(viewportHeight);
+        var centerX = preferredCenter.HasValue && IsFinite(preferredCenter.Bounds)
+            ? preferredCenter.Bounds.X + preferredCenter.Bounds.Width / 2
+            : 0;
+        var centerY = preferredCenter.HasValue && IsFinite(preferredCenter.Bounds)
+            ? preferredCenter.Bounds.Y + preferredCenter.Bounds.Height / 2
+            : 0;
+        return new BoardViewport(
+            viewportWidth / 2 - centerX,
+            viewportHeight / 2 - centerY,
+            1,
+            viewportWidth,
+            viewportHeight);
     }
 
     public static BoardBoundsResult Union(IEnumerable<BoardWorldRect> rectangles)
@@ -208,22 +239,25 @@ public enum BoardFocusTargetKind
 public sealed class BoardFocusTarget : IEquatable<BoardFocusTarget>
 {
     private readonly long[] _itemIds;
+    private readonly long[] _noteIds;
 
     private BoardFocusTarget(
         BoardFocusTargetKind kind,
         IEnumerable<long> itemIds,
-        long? noteId)
+        IEnumerable<long> noteIds)
     {
         Kind = kind;
         _itemIds = itemIds.Distinct().Order().ToArray();
-        NoteId = noteId;
+        _noteIds = noteIds.Distinct().Order().ToArray();
     }
 
     public BoardFocusTargetKind Kind { get; }
 
     public IReadOnlyList<long> ItemIds => _itemIds;
 
-    public long? NoteId { get; }
+    public IReadOnlyList<long> NoteIds => _noteIds;
+
+    public long? NoteId => _noteIds.Length == 1 ? _noteIds[0] : null;
 
     public long? SingleItemId =>
         Kind == BoardFocusTargetKind.SingleItem && _itemIds.Length == 1
@@ -231,30 +265,37 @@ public sealed class BoardFocusTarget : IEquatable<BoardFocusTarget>
             : null;
 
     public static BoardFocusTarget FullBoard() =>
-        new(BoardFocusTargetKind.FullBoard, [], null);
+        new(BoardFocusTargetKind.FullBoard, [], []);
 
     public static BoardFocusTarget Selection(
         IEnumerable<long> itemIds,
         long? noteId = null)
+        => Selection(itemIds, noteId is { } id ? [id] : []);
+
+    public static BoardFocusTarget Selection(
+        IEnumerable<long> itemIds,
+        IEnumerable<long> noteIds)
     {
         ArgumentNullException.ThrowIfNull(itemIds);
+        ArgumentNullException.ThrowIfNull(noteIds);
         var ids = itemIds.ToArray();
-        if (ids.Length == 1 && noteId is null) return SingleItem(ids[0]);
-        if (ids.Length == 0 && noteId is { } id) return SingleNote(id);
-        return new BoardFocusTarget(BoardFocusTargetKind.Selection, ids, noteId);
+        var notes = noteIds.ToArray();
+        if (ids.Length == 1 && notes.Length == 0) return SingleItem(ids[0]);
+        if (ids.Length == 0 && notes.Length == 1) return SingleNote(notes[0]);
+        return new BoardFocusTarget(BoardFocusTargetKind.Selection, ids, notes);
     }
 
     public static BoardFocusTarget SingleItem(long itemId) =>
-        new(BoardFocusTargetKind.SingleItem, [itemId], null);
+        new(BoardFocusTargetKind.SingleItem, [itemId], []);
 
     public static BoardFocusTarget SingleNote(long noteId) =>
-        new(BoardFocusTargetKind.SingleNote, [], noteId);
+        new(BoardFocusTargetKind.SingleNote, [], [noteId]);
 
     public bool Equals(BoardFocusTarget? other) =>
         other is not null
         && Kind == other.Kind
-        && NoteId == other.NoteId
-        && _itemIds.SequenceEqual(other._itemIds);
+        && _itemIds.SequenceEqual(other._itemIds)
+        && _noteIds.SequenceEqual(other._noteIds);
 
     public override bool Equals(object? obj) => obj is BoardFocusTarget other && Equals(other);
 
@@ -262,8 +303,8 @@ public sealed class BoardFocusTarget : IEquatable<BoardFocusTarget>
     {
         var hash = new HashCode();
         hash.Add(Kind);
-        hash.Add(NoteId);
         foreach (var itemId in _itemIds) hash.Add(itemId);
+        foreach (var noteId in _noteIds) hash.Add(noteId);
         return hash.ToHashCode();
     }
 }
@@ -342,6 +383,19 @@ public sealed class BoardFocusController
         BoardBoundsResult bounds) =>
         Focus(current, target, bounds);
 
+    public BoardCameraTransition ForceViewport(
+        BoardViewport current,
+        BoardFocusTarget target,
+        BoardViewport end) =>
+        Focus(current, target, end);
+
+    public BoardCameraTransition? RestoreIfAvailable(BoardViewport current) =>
+        _active is not null
+            ? Restore(current)
+            : _pendingRestore is not null
+                ? ResizePendingRestore(current)
+                : null;
+
     public BoardCameraTransition Refit(
         BoardViewport current,
         BoardBoundsResult bounds)
@@ -394,13 +448,21 @@ public sealed class BoardFocusController
         BoardFocusTarget target,
         BoardBoundsResult bounds)
     {
+        var end = BoardCameraEngine.FitBounds(bounds, current.Width, current.Height);
+        return Focus(current, target, end);
+    }
+
+    private BoardCameraTransition Focus(
+        BoardViewport current,
+        BoardFocusTarget target,
+        BoardViewport end)
+    {
         ArgumentNullException.ThrowIfNull(target);
         var workingCamera = _active?.WorkingCamera
             ?? _pendingRestore
             ?? BoardCameraSnapshot.Capture(current);
         _pendingRestore = null;
         _active = new BoardFocusSession(workingCamera, target);
-        var end = BoardCameraEngine.FitBounds(bounds, current.Width, current.Height);
         return SetTransition(current, end, target, isRestore: false);
     }
 

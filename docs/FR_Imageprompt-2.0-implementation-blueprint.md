@@ -1,6 +1,6 @@
 # FR_Imageprompt 2.0 实施蓝图
 
-> 文档状态：M0–M8、M7.1 P0 与 M7.2 自适应极速浏览层全部完成
+> 文档状态：M0–M10.2、M7.1 P0 与 M7.2 自适应极速浏览层全部完成
 > 初版日期：2026-07-24
 > 产品定位：本地优先、画布优先、AI 辅助的沉浸式视觉资产工作台
 > 适用仓库：`D:\FR_AI\AI image prompt`
@@ -9,6 +9,7 @@
 > M7.1 P0 详细蓝图：`docs/FR_Imageprompt-M7.1-P0-scroll-virtualization-regression-blueprint.md`
 > M7.2 详细蓝图：`docs/FR_Imageprompt-M7.2-adaptive-fast-browsing-blueprint.md`
 > M8 详细蓝图：`docs/FR_Imageprompt-M8-pureref-immersive-board-blueprint.md`
+> M9 详细蓝图：`docs/FR_Imageprompt-M9-offline-device-license-blueprint.md`
 
 本文档既是产品与技术规划，也是跨 Codex 对话的长期进度账本。后续实施必须按稳定步骤编号推进，并在完成每一步后立即更新本文档，避免新对话重复调研、遗漏验证或错误判断项目状态。
 
@@ -257,6 +258,14 @@ M1 目标已完成：FTS、游标分页、准确总数、真正的 UI 与数据�
   - 详细步骤：`docs/FR_Imageprompt-M8-pureref-immersive-board-blueprint.md`。
   - 遗留问题：自由绘制、箭头、矩形标注、画板导出和跨画板复制不进入 M8；设计不应阻塞未来扩展。
 
+- [x] **D-12 V2 采用离线签名、一证一机的轻量授权。**
+
+  完成记录（2026-08-11）：
+  - 结果：许可证绑定一台电脑，默认永久且可选一年；没有有效许可证时完全不能进入；V2 许可证允许所有 V2.x 更新，V3 另行决定。
+  - 技术边界：用户程序只内置 ECDSA P-256 公钥，签发私钥不进入仓库或用户包；继续使用免安装单文件发布，不引入账号、服务器、联网激活或付费服务。
+  - 详细步骤：`docs/FR_Imageprompt-M9-offline-device-license-blueprint.md`。
+  - 遗留问题：离线永久许可证不能远程撤销；这是当前轻量方案明确接受的边界。
+
 ---
 
 ## 6. 总进度
@@ -275,6 +284,7 @@ M1 目标已完成：FTS、游标分页、准确总数、真正的 UI 与数据�
 - [x] M7.1 P0：滚动与虚拟化回归修复。详细步骤、根因和真实性能证据统一维护在 `docs/FR_Imageprompt-M7.1-P0-scroll-virtualization-regression-blueprint.md`。
 - [x] M7.2：自适应极速浏览层。详细步骤、三规模门禁、4K 真界面、最终体验包和推送记录统一维护在 `docs/FR_Imageprompt-M7.2-adaptive-fast-browsing-blueprint.md`。
 - [x] M8：PureRef 式沉浸自由画板。详细产品契约、逐步清单、真实数据和反馈记录统一维护在 `docs/FR_Imageprompt-M8-pureref-immersive-board-blueprint.md`。
+- [x] M9：离线签名设备许可证。详细产品契约、逐步清单、密钥边界和验证记录统一维护在 `docs/FR_Imageprompt-M9-offline-device-license-blueprint.md`。
 
 ---
 
@@ -1386,6 +1396,92 @@ M7.2.1 外观回归修复（2026-07-30）：
 - M8.2 最终结果：四个 28 DIP 角手柄、图片默认等比/Shift 自由/Alt 中心、便签自由缩放与统一历史、Ctrl+右键整窗移动、固定相框内滚轮缩放与左键取景均已落地。Debug/Release 303/303；5,000 项真 WPF 帧 P95/P99 16.671/16.672 ms、近黑帧 0、查询 P95 0.036 ms；M5/M7.2 回归通过。
 - M8.2 体验包为 `publish/FR_Imageprompt-M8.2-transform-crop-window-win-x64.zip`，92,496,904 B，SHA-256 `f493eefcce5819b85de4739cf8c83f95e3be3427c9c7209e056fbeb2393bf0f6`；发布 EXE 合成真界面复验通过，按用户要求未提交、未推送。
 
+## M9：离线签名设备许可证
+
+状态：已完成（2026-08-11）。
+
+目标：在不引入服务器、账号或安装器的前提下，为 V2.x 免安装单文件增加一证一机的离线签名授权；无有效许可证时在任何图库初始化前完全阻止进入。
+
+权威详细步骤：
+
+- `docs/FR_Imageprompt-M9-offline-device-license-blueprint.md`
+
+执行要求：
+
+- 用户程序只允许包含公钥；签发私钥、签发器和个人许可证不得进入用户 ZIP 或 Git。
+- 许可证默认永久、可选一年；V2 许可证允许全部 V2.x，V3 另行决定。
+- M9 不修改图库数据库 schema，不接触 M7.2 浏览热路径或 M8 画板交互。
+- 所有真界面验证继续使用显式 `--settings` 合成图库并关闭剪贴板收录；真实图库访问为 0。
+
+完成记录（2026-08-11）：
+
+- 结果：完成离线一机一证、永久/一年期限、V2.x 版本范围、启动硬门禁、授权窗口、独立签发器、Windows 凭据私钥、加密备份能力及分离发布。
+- 主要文件：`src/PromptVault.Licensing/`、`src/PromptVault.App/Services/ProductLicenseService.cs`、`LicenseActivationWindow.xaml(.cs)`、`tools/FR_Imageprompt.LicenseManager/`、M9 独立蓝图与发布文档。
+- 验证：Release 全解决方案 0 警告/0 错误，346/346 测试通过；无证与错设备均在数据库前以退出码 3 拒绝；发布版 4K/150% 隔离真实 WPF 报告通过。
+- 真实数据：用户 ZIP 92,470,098 B，签发器 ZIP 65,087,317 B，个人永久许可证 619 B；完整 SHA-256 与门禁数据见 `docs/performance/2026-08-11-m9-offline-device-license.json`。
+- 数据安全：真实图库打开/迁移/写入/删除 0，网络请求 0；用户 ZIP 只有 `FR_Imageprompt.exe`，签发器和个人许可证单独交付，私钥未进入仓库或发布包。
+- 遗留问题：授权人需使用自己掌握的口令在签发器中生成实际私钥加密备份；离线永久许可证不能远程撤销，V3 授权另行决定。
+- 后续反馈记录：首次外部分发时重点观察请求码传递、导入文件和换机重签是否足够直观。
+- 提交或工作区状态：按本轮要求仅实施和打包，尚未提交或推送。
+
+## M10：轻量注释节点、统一临时视图与透明零重排
+
+状态：已完成（2026-08-30）。
+
+目标：把画板便签升级为性能优先的轻量注释/标题节点；统一 `Space`、`Ctrl+Space`、`Ctrl+0`、图片双击和 `Esc` 的首次快照与精确恢复；让主图库进入或退出透明模式时保持图片屏幕位置、尺寸、列数和滚动锚点不变。
+
+权威详细步骤：
+
+- `docs/FR_Imageprompt-M10-note-camera-transparent-stability-blueprint.md`
+
+执行要求：
+
+- 不实现字距、自动换行和输入期自动增高；便签样式不得新增数据库 schema。
+- 不触碰 M8.2/M8.3/M8.4 已稳定的图片变换、裁剪和右键拖动职责。
+- 不触碰 M7.2 分页、虚拟化、缓存预算、旧图保持和无黑场协议。
+- M10 每个父步骤的状态、真实数据、数据安全、遗留问题和工作区记录只在独立蓝图维护；本节只保留阶段入口和最终汇总。
+- 本轮按用户要求连续实施到完成，不提交、不推送、不打包。
+
+完成记录（2026-08-30）：
+
+- 结果：便签升级为不自动换行/增高的轻量注释与标题节点，支持单右下角抓手、编辑取消、一次性适合内容、临时属性面板、五个全局样式预设和多选批量应用；未新增数据库 schema。
+- 相机：`Space`、`Ctrl+Space`、`Ctrl+0`、双击与 `Esc` 统一使用首次原视图快照，消除了先恢复再聚焦、二次按键和恢复到空白处的问题；`Ctrl+0` 固定 100%，`Esc` 精确恢复。
+- 透明模式：普通↔透明切换重排 0，布局宽高、列数、卡片、缩略图、选择和滚动锚点全部保持；透明中手工改窗只产生一次 180ms 防抖重排。
+- 验证：Debug/Release 构建 0 警告/0 错误，Debug/Release 全量测试均 359/359；M7.2 三规模 11/11、5,000 项 M8 门禁和 M8.2/M8.3/M8.4/M8.5 回归全部通过。4K/150% 合成真界面确认 `Ctrl+0` 115%→100%、`Esc` 恢复 115%，以及透明模式只隐藏界面而不重排图片。
+- 性能：便签属性预览 240 次 P95 0.0811ms、数据库写入/位图重建 0；5,000 项画板 181 帧 P95 16.671ms、最大实现元素 37、近黑帧 0；完整数据见 `docs/performance/2026-08-30-m10-note-camera-transparent-stability.json`。
+- 数据安全：只使用显式 settings 和 `.m8-isolated`/`.m10-isolated` 合成图库，收录监听、快速编辑、在线 AI 全关闭；真实图库打开、迁移、写入、删除、网络请求和 API 密钥使用均为 0。
+- 工作区状态：M10 实现、验证和记录完成；保留此前 M9 未提交修改，按本轮要求未提交、未推送、未打包。
+
+### M10.1 体验回归：便签焦点、相机快捷键与图库右边缘
+
+状态：已完成（2026-08-30）。
+
+用户在 M10 体验包中确认了五项实际回归：便签输入焦点不能通过画布点击退出并导致便签无法拖动；`Ctrl+Space`、第二次 `Space`、`Ctrl+0` 未按相机契约执行；图库最右卡片进入垂直滚动条/窗口右边缘。权威执行步骤与真实记录维护在：
+
+- `docs/FR_Imageprompt-M10.1-focus-camera-gallery-edge-regression-blueprint.md`
+
+本阶段只修复输入路由、相机命令分流和图库可用视口宽度；不得改变便签样式/schema、图片变换与裁剪职责、M7.2 缓存/虚拟化或 M10 透明零重排协议。
+
+完成记录（2026-08-30）：
+
+- 结果：便签一次空白点击即可退出编辑并把同一次指针交还原目标，随后可立即拖动；`Space` 可从全板视图直接切换到当前选择并在第二次按键精确恢复首次原视图，`Ctrl+Space`、`Ctrl+0`/数字键盘 0 和 `Esc` 均恢复权威契约；图库最右卡片使用真实滚动视口宽度并保留 `8 DIP` 安全区。
+- 主要文件：`BoardWindow.Notes.cs`、`BoardWindow.Keyboard.cs`、`BoardWindow.Camera.cs`、`BoardWindow.xaml.cs`、`MainWindow.xaml.cs`、`ViewModels.cs`、M10 WPF 诊断和图库虚拟化测试。
+- 验证：Debug/Release 构建 0 警告/0 错误、全量测试均 `364/364`；M8.2～M8.5、M7.2 550/5,000/30,000 门禁通过。4K/150% Release WPF 诊断确认便签离焦、跨目标相机精确往返、100%/恢复和最右卡片完整可点；透明切换重排 `0`。
+- 真实数据：便签预览 240 次 P95/最大 `0.0387/0.5154ms`、数据库写入 `0`；图库内容视口/最右边界 `1320/1312 DIP`；M7.2 帧 P95/P99 `16.672/16.672ms`。完整记录见 `docs/performance/2026-08-30-m10.1-focus-camera-gallery-edge-regression.json`。
+- 数据安全：只使用显式 `.m10-isolated` 合成设置，收录监听、快速编辑、在线 AI 全关闭；真实图库打开/修改、网络请求、剪贴板与密钥使用均为 `0`。
+- 遗留问题：最终一次重复真人相机回放被 Windows 锁屏中断，未绕过锁屏；同环境 Release WPF 精确断言已通过，等待用户体验包复核手感。
+- 交付与工作区：生成仅含 `FR_Imageprompt.exe` 的 `publish/FR_Imageprompt-M10.1-final-win-x64.zip`，ZIP `95,308,911` 字节，SHA-256 `606404F747BBC61428C66E604F00A98A066084651901FCD02AF713D6EA0AFA2C`；保留 M9/M10 与用户修改，未提交、未推送。
+
+### M10.2 体验回归：画板交互与透明窗口无闪交接
+
+用户在 M10.1 体验后确认默认等比拖角固定区间跳变、新便签默认与属性绑定、便签颜色、无选择 `Space`、画板顶栏唤出和透明双向切换首屏闪现六组问题。权威产品契约、根因、顺序步骤和真实记录维护在：
+
+- `docs/FR_Imageprompt-M10.2-board-interaction-transparent-handoff-blueprint.md`
+
+M10.2 只在既有数据和性能内核上修复交互：连续投影等比缩放、类型安全视觉目标、WPF 轻量调色浮层、一层手工相机历史、`Alt+Q`/延时顶栏，以及替换主窗口完成预热后原子交接。不得新增数据库 schema、迁移旧便签、恢复逐帧全板重绘或降低 M7.2/M8/M10 门线。
+
+完成摘要（2026-08-31）：M10.2-00～09 全部完成。Debug/Release 完整测试均为 374/374；4K/150% 下 240 次默认等比更新 P95 0.010ms，视觉/位图重建和数据库写入均为 0；新便签默认、类型安全属性、WPF 调色浮层、一层手工相机和 Alt+Q/延时顶栏通过生产 WPF 与 Computer Use。最终 EXE 在四个滚动位置双向完成 160 次透明交接，最大滚动偏差和重排均为 0，160 个退役窗口经 GC 仅剩 1 个 JIT 临时引用。M7.2 550/5,000/30,000 三规模门禁 11/11；完整记录见 `docs/performance/2026-08-31-m10.2-board-interaction-transparent-handoff.json`，体验包为 `publish/FR_Imageprompt-M10.2-final-win-x64.zip`。
+
 ---
 
 ## 8. 数据模型规划
@@ -1769,6 +1865,12 @@ node tools\model-pack\build.mjs
 ## 14. 实施日志
 
 按时间倒序追加，每次只写已经发生的事实。
+
+### 2026-08-30
+
+- M10.1-00～M10.1-06 全部完成：修复便签离焦/拖动输入所有权、相机组合键与跨目标精确恢复、图库最右边缘遮挡；保留 M7.2 浏览层、M8 图片输入职责和 M10 透明零重排协议。
+- Debug/Release 构建 0 警告/0 错误、全量测试均 364/364；M7.2 三规模门禁 11/11、M8.2～M8.5 回归和 4K/150% Release WPF 诊断通过。便签预览 P95 0.0387ms，图库右边缘安全距离 8 DIP，透明切换重排 0。
+- 最终 ZIP 95,308,911 字节，SHA-256 `606404F747BBC61428C66E604F00A98A066084651901FCD02AF713D6EA0AFA2C`，包内仅 `FR_Imageprompt.exe`；显式合成设置下真实图库、剪贴板、网络和密钥使用均为 0，按用户要求未提交、未推送。
 
 ### 2026-08-03
 

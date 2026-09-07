@@ -13,17 +13,35 @@ namespace PromptVault.App;
 public partial class BoardWindow
 {
     private const double CameraAnimationMilliseconds = 180;
+    private static readonly TimeSpan ManualWheelGestureDelay = TimeSpan.FromMilliseconds(250);
 
     private void ToggleSelectionFocus()
     {
+        if (_selectedIds.Count == 0 && _selectedNoteIds.Count == 0)
+        {
+            CompleteManualWheelGesture();
+            if (RestoreWorkingView()) return;
+            if (_manualCameraHistory.Toggle(
+                    Math.Max(1, BoardViewport.ActualWidth),
+                    Math.Max(1, BoardViewport.ActualHeight)) is { } manualTarget)
+            {
+                ApplyManualCameraViewport(manualTarget);
+                SetStatus("已切换到上一次手工视野");
+            }
+            else
+            {
+                SetStatus("当前没有可返回的手工视野");
+            }
+            return;
+        }
         var target = CurrentSelectionFocusTarget();
-        var transition = _focusController.ToggleSpace(
+        var transition = _focusController.FocusOrRestoreSameTarget(
             CurrentViewportSize(),
             target,
             BoundsForTarget(target));
         StartCameraTransition(
             transition,
-            transition.IsRestore ? "已恢复原视野" : FocusStatus(target));
+            transition.IsRestore ? "已恢复进入前视野" : FocusStatus(target));
     }
 
     private void FocusFullBoard()
@@ -55,7 +73,7 @@ public partial class BoardWindow
         if (nextId is null || nextId == currentId) return;
         _selectedIds.Clear();
         _selectedIds.Add(nextId.Value);
-        _selectedNoteId = null;
+        _selectedNoteIds.Clear();
         RenderVisibleItems();
         var target = BoardFocusTarget.SingleItem(nextId.Value);
         var transition = _focusController.ForceFocus(
@@ -93,9 +111,9 @@ public partial class BoardWindow
 
     private BoardFocusTarget CurrentSelectionFocusTarget()
     {
-        if (_selectedIds.Count == 0 && _selectedNoteId is null)
+        if (_selectedIds.Count == 0 && _selectedNoteIds.Count == 0)
             return BoardFocusTarget.FullBoard();
-        return BoardFocusTarget.Selection(_selectedIds, _selectedNoteId);
+        return BoardFocusTarget.Selection(_selectedIds, _selectedNoteIds);
     }
 
     private BoardBoundsResult BoundsForTarget(BoardFocusTarget target)
@@ -106,7 +124,31 @@ public partial class BoardWindow
             _items,
             target.ItemIds.ToHashSet(),
             _notes,
-            target.NoteId);
+            target.NoteIds.ToHashSet());
+    }
+
+    private bool RestoreWorkingView()
+    {
+        var transition = _focusController.RestoreIfAvailable(CurrentViewportSize());
+        if (transition is null)
+        {
+            SetStatus("当前没有可恢复的临时视图");
+            return false;
+        }
+        StartCameraTransition(transition.Value, "已恢复进入前视野");
+        return true;
+    }
+
+    private void ResetViewToOneHundredPercent()
+    {
+        var target = CurrentSelectionFocusTarget();
+        var bounds = target.Kind == BoardFocusTargetKind.FullBoard
+            ? BoardCameraEngine.ContentBounds(_items, _notes)
+            : BoundsForTarget(target);
+        var current = CurrentViewportSize();
+        var end = BoardCameraEngine.AtOneHundredPercent(bounds, current.Width, current.Height);
+        var transition = _focusController.ForceViewport(current, target, end);
+        StartCameraTransition(transition, "画板已恢复到 100%，按 Esc 返回");
     }
 
     private BoardViewport CurrentViewportSize() => _viewport with
@@ -208,6 +250,76 @@ public partial class BoardWindow
         CancelCameraAnimation();
         CancelProgressiveFocusLoad();
         _focusController.InterruptTransition();
+    }
+
+    private void BeginManualCameraGesture()
+    {
+        CompleteManualWheelGesture();
+        InterruptCameraAnimation();
+        _focusController.Reset();
+    }
+
+    private void BeginManualWheelGesture()
+    {
+        if (_manualWheelGestureStart is null)
+        {
+            InterruptCameraAnimation();
+            _focusController.Reset();
+            _manualWheelGestureStart = _viewport;
+        }
+        var previous = _manualWheelGestureCancellation;
+        var cancellation = new CancellationTokenSource();
+        _manualWheelGestureCancellation = cancellation;
+        previous?.Cancel();
+        previous?.Dispose();
+        _ = CompleteManualWheelGestureAfterDelayAsync(cancellation);
+    }
+
+    private async Task CompleteManualWheelGestureAfterDelayAsync(CancellationTokenSource cancellation)
+    {
+        try
+        {
+            await Task.Delay(ManualWheelGestureDelay, cancellation.Token);
+            await Dispatcher.InvokeAsync(() =>
+            {
+                if (!ReferenceEquals(_manualWheelGestureCancellation, cancellation)) return;
+                CompleteManualWheelGesture();
+            });
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void CompleteManualWheelGesture()
+    {
+        var cancellation = _manualWheelGestureCancellation;
+        _manualWheelGestureCancellation = null;
+        cancellation?.Cancel();
+        cancellation?.Dispose();
+        if (_manualWheelGestureStart is not { } before) return;
+        _manualWheelGestureStart = null;
+        _manualCameraHistory.Record(before, _viewport);
+    }
+
+    private void ResetManualCameraHistory()
+    {
+        _manualWheelGestureCancellation?.Cancel();
+        _manualWheelGestureCancellation?.Dispose();
+        _manualWheelGestureCancellation = null;
+        _manualWheelGestureStart = null;
+        _manualCameraHistory.Reset();
+    }
+
+    private void ApplyManualCameraViewport(BoardViewport target)
+    {
+        CancelCameraAnimation();
+        CancelProgressiveFocusLoad();
+        _focusController.Reset();
+        _viewport = target;
+        ApplyViewportMatrix();
+        RenderVisibleItems();
+        QueuePersistView();
     }
 
     private static bool IsTextEditingFocus() =>

@@ -2,11 +2,13 @@
   <Folder Name="/src/">
     <Project Path="src/PromptVault.App/PromptVault.App.csproj" />
     <Project Path="src/PromptVault.Core/PromptVault.Core.csproj" />
+    <Project Path="src/PromptVault.Licensing/PromptVault.Licensing.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/PromptVault.Tests/PromptVault.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">
+    <Project Path="tools/FR_Imageprompt.LicenseManager/FR_Imageprompt.LicenseManager.csproj" />
     <Project Path="tools/PromptVault.Benchmark/PromptVault.Benchmark.csproj" />
     <Project Path="tools/PromptVault.AiWorker/PromptVault.AiWorker.csproj" />
     <Project Path="tools/PromptVault.AiEvaluation/PromptVault.AiEvaluation.csproj" />

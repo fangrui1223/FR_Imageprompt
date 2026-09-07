@@ -4,6 +4,8 @@
 
 用户包使用 Release、win-x64、self-contained。发布脚本会删除 PDB、`.lib`、`.exp`、临时文件和 `DirectML.Debug.*`，然后生成 `release-manifest.json`。清单列出每个文件的用途、大小和 SHA-256。
 
+M9 起必须把三类文件物理分离：普通用户 ZIP 只含 `FR_Imageprompt.exe`；授权人 ZIP 只含 `FR_LicenseManager.exe`；个人 `.frlicense` 单独保存。普通用户 ZIP 禁止包含签发器、私钥、权威备份、许可证、设置、数据库、日志或图片。签发私钥只存在于授权人 Windows 凭据管理器和口令认证加密备份中，不进入源码或任何用户包。
+
 内部诊断布局必须通过 `Publish-Release.ps1 -InternalDiagnostics` 单独生成，文件名含 `internal-diagnostics`，不得交付给普通用户。
 
 ## 标准命令
@@ -25,6 +27,14 @@ powershell -ExecutionPolicy Bypass -File tools\release\Publish-Release.ps1 `
 - 导出诊断包并人工确认无图片、提示词和密钥。
 
 真界面设置必须包含 `"CaptureListeningEnabled": false`，且 `LibraryRoot` 只能指向隔离的合成图库。
+
+## M9 许可证发布门禁
+
+- 缺少许可证和错设备许可证必须在 `AppSettings.Load`、图库初始化、数据库迁移、剪贴板监听、外部索引和 AI Worker 之前拒绝；目标合成图库不得生成 `promptvault.db`。
+- 正确设备的永久许可证必须允许 V2.0、V2.1 和 V2.99，拒绝 V3；一年许可证必须在到期前通过、到期后拒绝。
+- 真界面验证使用显式 `--license` 和显式 `--settings`，合成图库、关闭剪贴板与在线 AI，并记录真实图库访问 0 和网络请求 0。
+- 发布后分别计算用户 ZIP、签发器 ZIP 和个人许可证的字节数与 SHA-256，并审计两个 ZIP 的逐文件清单。
+- 签发器只供授权人使用。先把 V2 私钥做口令认证加密备份，再离线保存；私钥丢失不会破坏已签许可证，但会失去继续签发能力。
 
 ## 模型兼容
 

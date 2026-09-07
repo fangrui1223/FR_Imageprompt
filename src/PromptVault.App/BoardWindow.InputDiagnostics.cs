@@ -142,8 +142,10 @@ public partial class BoardWindow
 
     private void EnsureIsolatedM8Settings(AppSettings settings, string area)
     {
-        var isolatedSegment = $"{Path.DirectorySeparatorChar}.m8-isolated{Path.DirectorySeparatorChar}";
-        if (!_repository.Paths.Root.Contains(isolatedSegment, StringComparison.OrdinalIgnoreCase)
+        var m8Segment = $"{Path.DirectorySeparatorChar}.m8-isolated{Path.DirectorySeparatorChar}";
+        var m10Segment = $"{Path.DirectorySeparatorChar}.m10-isolated{Path.DirectorySeparatorChar}";
+        if ((!_repository.Paths.Root.Contains(m8Segment, StringComparison.OrdinalIgnoreCase)
+                && !_repository.Paths.Root.Contains(m10Segment, StringComparison.OrdinalIgnoreCase))
             || !Path.GetFullPath(settings.LibraryRoot).Equals(_repository.Paths.Root, StringComparison.OrdinalIgnoreCase)
             || settings.CaptureListeningEnabled
             || settings.CaptureQuickEditEnabled

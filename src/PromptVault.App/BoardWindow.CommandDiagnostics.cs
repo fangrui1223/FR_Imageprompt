@@ -42,7 +42,7 @@ public partial class BoardWindow
         var item = _items.First(candidate => File.Exists(ResolveItemOriginalPath(candidate)));
         _selectedIds.Clear();
         _selectedIds.Add(item.Id);
-        _selectedNoteId = null;
+        _selectedNoteIds.Clear();
         RenderVisibleItems();
         var itemMenu = BuildContextMenu(BoardCommandContextKind.Item);
         var itemTitles = MenuTitles(itemMenu);
@@ -56,7 +56,8 @@ public partial class BoardWindow
 
         var note = _notes.First();
         _selectedIds.Clear();
-        _selectedNoteId = note.Id;
+        _selectedNoteIds.Clear();
+        _selectedNoteIds.Add(note.Id);
         RenderVisibleItems();
         var noteMenu = BuildContextMenu(BoardCommandContextKind.Note);
         var noteTitles = MenuTitles(noteMenu);
