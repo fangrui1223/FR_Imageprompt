@@ -14,8 +14,13 @@ public sealed class CaptureCoordinator
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(30) };
 
     private readonly LibraryRepository _repository;
+    private readonly HttpClient _http;
 
-    public CaptureCoordinator(LibraryRepository repository) => _repository = repository;
+    public CaptureCoordinator(LibraryRepository repository, HttpClient? httpClient = null)
+    {
+        _repository = repository;
+        _http = httpClient ?? Http;
+    }
 
     public async Task<PendingCapture> CreateFromFileAsync(string sourcePath, CancellationToken cancellationToken = default)
         => await CreateFromFileAsync(sourcePath, null, cancellationToken).ConfigureAwait(false);
@@ -63,7 +68,7 @@ public sealed class CaptureCoordinator
     public async Task<PendingCapture> CreateFromUriAsync(Uri uri, CancellationToken cancellationToken = default)
     {
         if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) throw new NotSupportedException("只支持 http/https 图片链接。");
-        using var response = await Http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        using var response = await _http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         var extension = ExtensionFromUriOrContentType(uri, response.Content.Headers.ContentType?.MediaType);
         if (!SupportedExtensions.Contains(extension)) throw new NotSupportedException("拖入的链接不是可收录的图片。");
@@ -73,9 +78,11 @@ public sealed class CaptureCoordinator
         try
         {
             await using var input = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-            await using var output = new FileStream(staged, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1024 * 128, true);
-            await input.CopyToAsync(output, cancellationToken).ConfigureAwait(false);
-            await output.FlushAsync(cancellationToken).ConfigureAwait(false);
+            await using (var output = new FileStream(staged, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1024 * 128, true))
+            {
+                await input.CopyToAsync(output, cancellationToken).ConfigureAwait(false);
+                await output.FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
             handedToStateMachine = true;
             return await RegisterAndProcessAsync(
                 staged,
@@ -123,45 +130,24 @@ public sealed class CaptureCoordinator
         {
             throw new ArgumentException("没有提示词时必须先选择人工主分类。", nameof(prompt));
         }
-        AssetInput asset;
-        var createdFiles = new List<string>();
-
-        try
-        {
-            if (pending.ExistingItem is { } existing)
-            {
-                asset = new AssetInput(existing.Hash, existing.OriginalPath, existing.ThumbnailPath, existing.MediumThumbnailPath,
-                    existing.Width, existing.Height, existing.Format);
-            }
-            else
-            {
-                var bucket = pending.Hash[..2];
-                var original = Path.Combine(_repository.Paths.Originals, bucket, $"{pending.Hash}.{pending.Extension}");
-                var small = Path.Combine(_repository.Paths.SmallThumbnails, bucket, $"{pending.Hash}.jpg");
-                var medium = Path.Combine(_repository.Paths.MediumThumbnails, bucket, $"{pending.Hash}.jpg");
-                if (CopyForSave(pending.StagedOriginal, original)) createdFiles.Add(original);
-                if (CopyForSave(pending.StagedSmall, small)) createdFiles.Add(small);
-                if (CopyForSave(pending.StagedMedium, medium)) createdFiles.Add(medium);
-                asset = new AssetInput(pending.Hash, _repository.Paths.ToRelative(original), _repository.Paths.ToRelative(small),
-                    _repository.Paths.ToRelative(medium), pending.Width, pending.Height, pending.Format);
-            }
-
-            var result = await _repository.SaveCaptureAsync(
-                pending.SessionId,
-                new SaveItemInput(asset, prompt, notes, categoryId, ParseTags(tags)),
-                DateTimeOffset.UtcNow + UndoWindow,
-                cancellationToken).ConfigureAwait(false);
-            pending.Dispose();
-            return result;
-        }
-        catch
-        {
-            if (pending.ExistingItem is null)
-            {
-                foreach (var path in createdFiles) TryDeleteStagingFile(path);
-            }
-            throw;
-        }
+        var bucket = pending.Hash[..2];
+        // A newly created asset must not reuse paths awaiting post-commit deletion
+        // by an older capture. Retries of this session still use the same paths.
+        var filename = $"{pending.Hash}-{pending.SessionId:N}";
+        var asset = new AssetInput(
+            pending.Hash,
+            _repository.Paths.ToRelative(Path.Combine(_repository.Paths.Originals, bucket, $"{filename}.{pending.Extension}")),
+            _repository.Paths.ToRelative(Path.Combine(_repository.Paths.SmallThumbnails, bucket, $"{filename}.jpg")),
+            _repository.Paths.ToRelative(Path.Combine(_repository.Paths.MediumThumbnails, bucket, $"{filename}.jpg")),
+            pending.Width, pending.Height, pending.Format);
+        var result = await _repository.SaveCaptureAsync(
+            pending.SessionId,
+            new SaveItemInput(asset, prompt, notes, categoryId, ParseTags(tags)),
+            DateTimeOffset.UtcNow + UndoWindow,
+            cancellationToken,
+            persistStagedFiles: true).ConfigureAwait(false);
+        pending.Dispose();
+        return result;
     }
 
     public async Task DiscardAsync(
@@ -415,21 +401,6 @@ public sealed class CaptureCoordinator
             "image/gif" => ".gif",
             _ => extension
         };
-    }
-
-    private static bool CopyForSave(string source, string destination)
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-        if (File.Exists(destination)) return false;
-        try
-        {
-            File.Copy(source, destination, false);
-            return true;
-        }
-        catch (IOException) when (File.Exists(destination))
-        {
-            return false;
-        }
     }
 
     private static bool CanRehydratePrepared(CaptureSessionRecord session) =>

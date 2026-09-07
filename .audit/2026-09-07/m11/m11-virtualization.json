@@ -1,0 +1,176 @@
+{
+  "StartedAtUtc": "2026-09-07T12:24:48.6902769+00:00",
+  "Environment": {
+    "ItemCount": 30000,
+    "RowCount": 30000,
+    "LogicalViewportWidth": 2560,
+    "LogicalViewportHeight": 1600,
+    "TargetDpiScale": 1.5
+  },
+  "Measurement": {
+    "WarmupMs": 500,
+    "DurationMs": 3000
+  },
+  "Layout": {
+    "Benchmarks": [
+      {
+        "ItemCount": 240,
+        "LayoutMs": 0.107,
+        "AllocatedBytes": 61888,
+        "RowCount": 240
+      },
+      {
+        "ItemCount": 1200,
+        "LayoutMs": 0.446,
+        "AllocatedBytes": 307648,
+        "RowCount": 1200
+      },
+      {
+        "ItemCount": 30000,
+        "LayoutMs": 14.079,
+        "AllocatedBytes": 7680448,
+        "RowCount": 30000
+      }
+    ],
+    "IncrementalDifferenceCount": 0,
+    "ViewportIndexBuildMs": 60.886,
+    "ViewportIndexQueryP95Ms": 0.002,
+    "DataSourceResetCount": 2,
+    "RealizedContainers": 119,
+    "RealizedRows": 119,
+    "MaximumRealizedContainers": 119,
+    "RowRealizeCount": 1133,
+    "RowReleaseCount": 1014,
+    "PeakManagedBytes": 75199144
+  },
+  "ViewportCompleteness": {
+    "Positions": [
+      {
+        "Sequence": 0,
+        "Percentage": 0,
+        "VerticalOffset": 0,
+        "ExpectedVisible": 29,
+        "ExpectedCached": 73,
+        "ActualRealized": 73,
+        "MissingVisible": 0,
+        "ExtraOutsideCache": 0,
+        "UnrealizedVisible": 0
+      },
+      {
+        "Sequence": 1,
+        "Percentage": 0.25,
+        "VerticalOffset": 531341.595,
+        "ExpectedVisible": 29,
+        "ExpectedCached": 119,
+        "ActualRealized": 119,
+        "MissingVisible": 0,
+        "ExtraOutsideCache": 0,
+        "UnrealizedVisible": 0
+      },
+      {
+        "Sequence": 2,
+        "Percentage": 0.5,
+        "VerticalOffset": 1062683.19,
+        "ExpectedVisible": 27,
+        "ExpectedCached": 119,
+        "ActualRealized": 119,
+        "MissingVisible": 0,
+        "ExtraOutsideCache": 0,
+        "UnrealizedVisible": 0
+      },
+      {
+        "Sequence": 3,
+        "Percentage": 0.75,
+        "VerticalOffset": 1594024.786,
+        "ExpectedVisible": 30,
+        "ExpectedCached": 119,
+        "ActualRealized": 119,
+        "MissingVisible": 0,
+        "ExtraOutsideCache": 0,
+        "UnrealizedVisible": 0
+      },
+      {
+        "Sequence": 4,
+        "Percentage": 1,
+        "VerticalOffset": 2125366.381,
+        "ExpectedVisible": 10,
+        "ExpectedCached": 54,
+        "ActualRealized": 54,
+        "MissingVisible": 0,
+        "ExtraOutsideCache": 0,
+        "UnrealizedVisible": 0
+      },
+      {
+        "Sequence": 5,
+        "Percentage": 0.75,
+        "VerticalOffset": 1594024.786,
+        "ExpectedVisible": 30,
+        "ExpectedCached": 119,
+        "ActualRealized": 119,
+        "MissingVisible": 0,
+        "ExtraOutsideCache": 0,
+        "UnrealizedVisible": 0
+      },
+      {
+        "Sequence": 6,
+        "Percentage": 0.5,
+        "VerticalOffset": 1062683.19,
+        "ExpectedVisible": 27,
+        "ExpectedCached": 119,
+        "ActualRealized": 119,
+        "MissingVisible": 0,
+        "ExtraOutsideCache": 0,
+        "UnrealizedVisible": 0
+      },
+      {
+        "Sequence": 7,
+        "Percentage": 0.25,
+        "VerticalOffset": 531341.595,
+        "ExpectedVisible": 29,
+        "ExpectedCached": 119,
+        "ActualRealized": 119,
+        "MissingVisible": 0,
+        "ExtraOutsideCache": 0,
+        "UnrealizedVisible": 0
+      },
+      {
+        "Sequence": 8,
+        "Percentage": 0,
+        "VerticalOffset": 0,
+        "ExpectedVisible": 29,
+        "ExpectedCached": 73,
+        "ActualRealized": 73,
+        "MissingVisible": 0,
+        "ExtraOutsideCache": 0,
+        "UnrealizedVisible": 0
+      }
+    ],
+    "MissingVisibleTotal": 0,
+    "ExtraOutsideCacheTotal": 0,
+    "UnrealizedVisibleTotal": 0
+  },
+  "Frames": {
+    "Count": 181,
+    "P95Ms": 16.672,
+    "P99Ms": 16.672,
+    "MaximumMs": 16.672
+  },
+  "CallbackArrivalDiagnostic": {
+    "Count": 181,
+    "P95Ms": 17.117,
+    "MaximumMs": 18.101,
+    "DiagnosticOnly": true
+  },
+  "Checks": {
+    "P95LimitMs": 16.949,
+    "P99LimitMs": 33.898,
+    "MaximumLimitMs": 33.898,
+    "VirtualizationLimit": 3000,
+    "SimulatedRegression": false
+  },
+  "StructuralPassed": true,
+  "ViewportCompletenessPassed": true,
+  "StandaloneFrameCadencePassed": true,
+  "FrameCadenceAuthority": "The product main-window trace is authoritative when supplied to PromptVault.M6Gate; this simplified window remains a diagnostic fallback.",
+  "Passed": true
+}

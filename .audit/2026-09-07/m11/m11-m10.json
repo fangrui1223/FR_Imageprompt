@@ -1,0 +1,68 @@
+{
+  "Milestone": "M10-note-camera-transparent-stability",
+  "GeneratedAt": "2026-09-07T20:29:23.6979805+08:00",
+  "DataKind": "synthetic",
+  "Passed": true,
+  "Display": {
+    "PhysicalWidth": 3840,
+    "PhysicalHeight": 2560,
+    "AppliedDpi": 144,
+    "DpiScaleX": 1.5,
+    "ActualWidth": 2573.333333333333,
+    "ActualHeight": 1720
+  },
+  "Note": {
+    "LightweightVisual": true,
+    "NewNoteDefaultsWorked": true,
+    "NewNoteWidth": 420,
+    "NewNoteHeight": 140,
+    "NewNoteFontSize": 32,
+    "NewNoteVerticalPadding": 16,
+    "SelectedDecoration": true,
+    "PropertyPanelVisible": true,
+    "NoteTargetTypedCorrectly": true,
+    "ColorControlsReadable": true,
+    "PropertyPanelAutoHidden": true,
+    "PreviewSamples": 240,
+    "PreviewP50Ms": 0.0221,
+    "PreviewP95Ms": 0.0241,
+    "PreviewMaximumMs": 0.4332,
+    "PreviewDatabaseWrites": 0,
+    "PropertyCommittedOnce": true,
+    "OneShotFitWorked": true,
+    "FitElapsedMs": 1.9184,
+    "EditCancelWorked": true,
+    "EditCommitWorked": true,
+    "EditorTemplateOwnedByNote": true,
+    "OutsideClickReleasedEditor": true,
+    "ReadOnlyNoteOwnedByNote": true,
+    "BatchPresetWorked": true,
+    "BatchPresetElapsedMs": 2.1281
+  },
+  "Camera": {
+    "EmptySpaceNoOp": true,
+    "SpaceRoundTripExact": true,
+    "SelectionReplacesFullBoardFocus": true,
+    "SwitchedTargetRoundTripExact": true,
+    "MixedCommandsPreservedInitialSnapshot": true,
+    "OneLevelManualCameraWorked": true,
+    "OneHundredPercentZoom": 1,
+    "RestoredExactCamera": true
+  },
+  "Regression": {
+    "ImageLayerUntouched": true,
+    "DatabaseSchemaChanged": false,
+    "GalleryPerformanceLayerTouched": false,
+    "BitmapRebuildsDuringPropertyPreview": 0
+  },
+  "DataSafety": {
+    "SyntheticFixtureOnly": true,
+    "CaptureListeningEnabled": false,
+    "CaptureQuickEditEnabled": false,
+    "OnlineAiEnabled": false,
+    "RealLibraryOpened": false,
+    "ClipboardUsed": false,
+    "NetworkUsed": false,
+    "ApiKeyUsed": false
+  }
+}

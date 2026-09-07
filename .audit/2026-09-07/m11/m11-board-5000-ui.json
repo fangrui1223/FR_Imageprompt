@@ -1,0 +1,49 @@
+{
+  "Milestone": "M8-08-5000-item-real-wpf-frame-gate",
+  "GeneratedAt": "2026-09-07T20:34:54.7562215+08:00",
+  "DataKind": "synthetic",
+  "Display": {
+    "PhysicalWidth": 3840,
+    "PhysicalHeight": 2560,
+    "AppliedDpi": 144,
+    "DpiScale": 1.5,
+    "RefreshRateHz": 59,
+    "OneRefreshPeriodMs": 16.949,
+    "TwoRefreshPeriodsMs": 33.898
+  },
+  "Board": {
+    "ItemCount": 5000,
+    "Samples": 181,
+    "DurationMs": 3459.834,
+    "FrameP50Ms": 16.671,
+    "FrameP95Ms": 16.671,
+    "FrameP99Ms": 16.671,
+    "FrameMaximumMs": 16.672,
+    "CallbackP95Ms": 17.086,
+    "MaximumRealizedElements": 37,
+    "NearBlackFrames": 0,
+    "ViewportQueryP95Ms": 0.02,
+    "MaximumVisibleCandidates": 34,
+    "ContinuousPan": true,
+    "ContinuousZoom": true,
+    "ContinuousMultiTransform": true
+  },
+  "Process": {
+    "WorkingSetBytes": 338120704,
+    "PrivateMemoryBytes": 664002560,
+    "HandleCount": 814,
+    "ThreadCount": 29,
+    "Responding": true
+  },
+  "DataSafety": {
+    "SyntheticFixtureOnly": true,
+    "CaptureListeningEnabled": false,
+    "CaptureQuickEditEnabled": false,
+    "OnlineAiEnabled": false,
+    "RealLibraryOpened": false,
+    "ClipboardUsed": false,
+    "NetworkUsed": false,
+    "ApiKeyUsed": false
+  },
+  "Passed": true
+}

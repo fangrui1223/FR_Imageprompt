@@ -51,10 +51,21 @@ public sealed class AppSettings
             var settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions)
                 ?? throw new JsonException("设置文件内容为空。");
             settings.ExternalFolders ??= [];
-            settings.GalleryLayouts ??= [];
-            foreach (var preference in settings.GalleryLayouts.Values)
+            settings.ExternalFolders.RemoveAll(folder => folder is null || string.IsNullOrWhiteSpace(folder.Path));
+            foreach (var folder in settings.ExternalFolders)
             {
-                preference.Normalize();
+                if (string.IsNullOrWhiteSpace(folder.Id)) folder.Id = Guid.NewGuid().ToString("N");
+                folder.Name ??= "";
+                folder.Path ??= "";
+            }
+            settings.LibraryRoot ??= "";
+            settings.OnlineAiEndpoint ??= "";
+            settings.OnlineAiModel ??= "";
+            settings.GalleryLayouts ??= [];
+            foreach (var key in settings.GalleryLayouts.Keys.ToArray())
+            {
+                settings.GalleryLayouts[key] ??= new GalleryLayoutPreference();
+                settings.GalleryLayouts[key].Normalize();
             }
             if (!hasAppearance)
             {

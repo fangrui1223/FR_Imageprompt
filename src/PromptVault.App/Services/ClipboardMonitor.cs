@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media.Imaging;
 using PromptVault.Core;
+using DataFormats = System.Windows.DataFormats;
 
 namespace PromptVault.App.Services;
 
@@ -104,10 +105,6 @@ public sealed class ClipboardMonitor : IDisposable
         if (sequence != 0 && sequence == _lastSequence) return IntPtr.Zero;
         var observedAt = Stopwatch.GetTimestamp();
         _lastSequence = sequence;
-        if (TryHasImageFormat())
-        {
-            ShowImageDetectedFeedback(sequence, observedAt);
-        }
         _ = _owner.Dispatcher.BeginInvoke(
             System.Windows.Threading.DispatcherPriority.Background,
             () => CaptureAndEnqueueClipboard(sequence, observedAt));
@@ -130,6 +127,7 @@ public sealed class ClipboardMonitor : IDisposable
     private void CaptureAndEnqueueClipboard(uint sequence, long observedAt)
     {
         if (!_enabled || Volatile.Read(ref _disposed) != 0) return;
+        if (sequence != 0 && GetClipboardSequenceNumber() != sequence) return;
         var read = TryCaptureClipboardSnapshot(sequence, observedAt);
         if (read.Snapshot is { } snapshot)
         {
@@ -149,24 +147,31 @@ public sealed class ClipboardMonitor : IDisposable
 
     private async Task RetryClipboardReadAsync(uint expectedSequence, long observedAt)
     {
-        foreach (var delay in new[] { 20, 50, 100 })
+        var token = _lifetime.Token;
+        try
         {
-            await Task.Delay(delay, _lifetime.Token).ConfigureAwait(false);
-            if (!_enabled || Volatile.Read(ref _disposed) != 0) return;
-            var currentSequence = GetClipboardSequenceNumber();
-            if (expectedSequence != 0 && currentSequence != expectedSequence) return;
-            var read = await _owner.Dispatcher.InvokeAsync(() =>
-                TryCaptureClipboardSnapshot(currentSequence, observedAt));
-            if (read.Snapshot is not { } snapshot)
+            foreach (var delay in new[] { 20, 50, 100 })
             {
-                if (!read.WasBusy) return;
-                continue;
-            }
+                await Task.Delay(delay, token).ConfigureAwait(false);
+                if (!_enabled || Volatile.Read(ref _disposed) != 0) return;
+                var currentSequence = GetClipboardSequenceNumber();
+                if (expectedSequence != 0 && currentSequence != expectedSequence) return;
+                var read = await _owner.Dispatcher.InvokeAsync(() =>
+                {
+                    return TryCaptureClipboardSnapshot(currentSequence, observedAt);
+                });
+                if (read.Snapshot is not { } snapshot)
+                {
+                    if (!read.WasBusy) return;
+                    continue;
+                }
 
-            _lastSequence = currentSequence;
-            _eventPump.TryEnqueue(snapshot);
-            return;
+                _lastSequence = currentSequence;
+                _eventPump.TryEnqueue(snapshot);
+                return;
+            }
         }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
     }
 
     private async Task HandleClipboardSnapshotAsync(
@@ -1197,29 +1202,19 @@ public sealed class ClipboardMonitor : IDisposable
         ((ICollection<KeyValuePair<Guid, CancellationTokenSource>>)timers).Remove(
             new KeyValuePair<Guid, CancellationTokenSource>(captureId, cancellation));
 
-    private static ClipboardReadResult TryCaptureClipboardSnapshot(
+    private ClipboardReadResult TryCaptureClipboardSnapshot(
         uint sequence,
         long observedTimestamp)
     {
         try
         {
-            var file = TryGetImageFile();
-            BitmapSource? image = null;
-            if (file is null) image = TryGetClipboardImage();
-            var text = TryGetClipboardText();
-            if (file is null && image is null && string.IsNullOrWhiteSpace(text))
+            var snapshot = ReadClipboardSnapshot(Clipboard.GetDataObject(), sequence, observedTimestamp, () =>
             {
-                return new ClipboardReadResult(null, false);
-            }
-
-            return new ClipboardReadResult(
-                new ClipboardSnapshot(
-                    sequence,
-                    file,
-                    image,
-                    text,
-                    observedTimestamp),
-                false);
+                if (sequence == 0 || GetClipboardSequenceNumber() == sequence)
+                    ShowImageDetectedFeedback(sequence, observedTimestamp);
+            });
+            if (sequence != 0 && GetClipboardSequenceNumber() != sequence) snapshot = null;
+            return new ClipboardReadResult(snapshot, false);
         }
         catch (ExternalException)
         {
@@ -1227,30 +1222,26 @@ public sealed class ClipboardMonitor : IDisposable
         }
     }
 
-    private static bool TryHasImageFormat()
-        => IsClipboardFormatAvailable(2)
-           || IsClipboardFormatAvailable(8)
-           || IsClipboardFormatAvailable(15)
-           || IsClipboardFormatAvailable(17);
-
-    private static string? TryGetClipboardText() =>
-        Clipboard.ContainsText() ? Clipboard.GetText() : null;
-
-    private static string? TryGetImageFile()
+    internal static ClipboardSnapshot? ReadClipboardSnapshot(System.Windows.IDataObject? data, uint sequence, long observedTimestamp,
+        Action? imageDetected = null)
     {
-        if (!Clipboard.ContainsFileDropList()) return null;
-        return Clipboard.GetFileDropList().Cast<string>().FirstOrDefault(path =>
-            SupportedImageExtensions.Contains(
-                Path.GetExtension(path),
-                StringComparer.OrdinalIgnoreCase));
-    }
-
-    private static BitmapSource? TryGetClipboardImage()
-    {
-        if (!Clipboard.ContainsImage()) return null;
-        var image = Clipboard.GetImage();
+        if (data is null) return null;
+        // File copies own the whole event, including any bitmap/text fallback formats.
+        if (data.GetDataPresent(DataFormats.FileDrop))
+        {
+            if (data.GetData(DataFormats.FileDrop) is not string[] { Length: 1 } files) return null;
+            var file = files[0];
+            if (!File.Exists(file) || !SupportedImageExtensions.Contains(Path.GetExtension(file), StringComparer.OrdinalIgnoreCase)) return null;
+            imageDetected?.Invoke();
+            return new ClipboardSnapshot(sequence, file, null, null, observedTimestamp);
+        }
+        var hasBitmap = data.GetDataPresent(DataFormats.Bitmap);
+        if (hasBitmap) imageDetected?.Invoke();
+        var image = hasBitmap ? data.GetData(DataFormats.Bitmap) as BitmapSource : null;
         image?.Freeze();
-        return image;
+        var text = data.GetDataPresent(DataFormats.UnicodeText) ? data.GetData(DataFormats.UnicodeText) as string : null;
+        if (image is null && string.IsNullOrWhiteSpace(text)) return null;
+        return new ClipboardSnapshot(sequence, null, image, text, observedTimestamp);
     }
 
     private static string FriendlyReadError(Exception ex, string prefix)
@@ -1299,7 +1290,7 @@ public sealed class ClipboardMonitor : IDisposable
         _lifetime.Dispose();
     }
 
-    private sealed record ClipboardSnapshot(
+    internal sealed record ClipboardSnapshot(
         uint Sequence,
         string? FilePath,
         BitmapSource? Image,
@@ -1320,7 +1311,4 @@ public sealed class ClipboardMonitor : IDisposable
     [DllImport("user32.dll")]
     private static extern uint GetClipboardSequenceNumber();
 
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool IsClipboardFormatAvailable(uint format);
 }

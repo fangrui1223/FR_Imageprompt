@@ -1,0 +1,1373 @@
+{
+  "Milestone": "M7.2-adaptive-fast-browsing",
+  "StartedAtUtc": "2026-09-07T12:24:50.9785892+00:00",
+  "CompletedAtUtc": "2026-09-07T12:25:26.8177896+00:00",
+  "Environment": {
+    "OperatingSystem": "Microsoft Windows NT 10.0.26200.0",
+    "DotNet": "10.0.9",
+    "LogicalProcessors": 32,
+    "ActualAvailableMemoryBytes": 100516380672,
+    "TypicalPolicyMemoryBytes": 17179869184
+  },
+  "FixtureContract": {
+    "UniquePathPerItem": true,
+    "UniqueContentTokenPerItem": true,
+    "AspectRatios": [
+      "1:4",
+      "1:2",
+      "2:3",
+      "1:1",
+      "3:2",
+      "2:1",
+      "4:1"
+    ],
+    "VisibleItemsPerJump": 24,
+    "JumpPercentages": [
+      0,
+      25,
+      50,
+      75,
+      100,
+      75,
+      50,
+      25,
+      0
+    ],
+    "ReadinessSampleMilliseconds": [
+      0,
+      50,
+      100,
+      150,
+      250,
+      500
+    ],
+    "ContainsUserData": false
+  },
+  "Scales": {
+    "Small550": {
+      "ItemCount": 550,
+      "Tier": "SmallFullWarm",
+      "MotionPixels": 480,
+      "WarmItemLimit": 550,
+      "BatchSize": 48,
+      "MotionDecodeConcurrency": 2,
+      "MotionMemoryBudgetBytes": 1073741824,
+      "FixtureCreationMs": 539.039,
+      "UniquePaths": 550,
+      "UniqueContentTokens": 550,
+      "Metadata": {
+        "Count": 550,
+        "UniqueIds": 550,
+        "Ordered": true,
+        "BuildMs": 33.272,
+        "RetainedManagedBytes": 96176,
+        "ContainsPromptOrNotes": false
+      },
+      "ExpectedWarmRequests": 550,
+      "WarmRequestLatency": {
+        "P50Ms": 23.253,
+        "P95Ms": 1101.689,
+        "P99Ms": 1122.032,
+        "MaximumMs": 1126.159
+      },
+      "Jumps": [
+        {
+          "Percentage": 0,
+          "FirstIndex": 0,
+          "Visible": 24,
+          "InstantCached": 24,
+          "AllReadyMs": 11.793,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 25,
+          "FirstIndex": 132,
+          "Visible": 24,
+          "InstantCached": 24,
+          "AllReadyMs": 0.327,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 50,
+          "FirstIndex": 263,
+          "Visible": 24,
+          "InstantCached": 24,
+          "AllReadyMs": 0.313,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 75,
+          "FirstIndex": 395,
+          "Visible": 24,
+          "InstantCached": 24,
+          "AllReadyMs": 0.78,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 100,
+          "FirstIndex": 526,
+          "Visible": 24,
+          "InstantCached": 24,
+          "AllReadyMs": 0.288,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 75,
+          "FirstIndex": 395,
+          "Visible": 24,
+          "InstantCached": 24,
+          "AllReadyMs": 0.314,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 50,
+          "FirstIndex": 263,
+          "Visible": 24,
+          "InstantCached": 24,
+          "AllReadyMs": 0.528,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 25,
+          "FirstIndex": 132,
+          "Visible": 24,
+          "InstantCached": 24,
+          "AllReadyMs": 0.363,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 0,
+          "FirstIndex": 0,
+          "Visible": 24,
+          "InstantCached": 24,
+          "AllReadyMs": 0.302,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        }
+      ],
+      "ForegroundPreemption": {
+        "VisibleReadyMs": 0.188,
+        "MaximumObservedConcurrency": 1,
+        "RunningPrefetchAtEnd": 0,
+        "Passed": true
+      },
+      "Cancellation": {
+        "Requested": 96,
+        "CanceledSubscribers": 94,
+        "CanceledBeforeStart": 93,
+        "Passed": true
+      },
+      "HighQualityUpgrade": {
+        "IdleDelayMs": 150,
+        "Requested": 8,
+        "MotionCachedBefore": 8,
+        "MotionCachedAfter": 8,
+        "HighQualityReadyMs": 5.828,
+        "HighQualityDecodes": 8,
+        "MotionCachePreserved": true
+      },
+      "Scheduler": {
+        "RequestCount": 998,
+        "CacheHitCount": 448,
+        "DecodeCount": 550,
+        "CoalescedRequestCount": 0,
+        "CanceledBeforeStartCount": 0,
+        "PendingCount": 0,
+        "RunningCount": 0,
+        "RunningPrefetchCount": 0,
+        "MaximumObservedConcurrency": 2,
+        "CacheEntryCount": 550,
+        "CachedBytes": 720691200,
+        "MemoryBudgetBytes": 1073741824
+      },
+      "CacheWithinBudget": true
+    },
+    "Medium5000": {
+      "ItemCount": 5000,
+      "Tier": "MediumMicroWarm",
+      "MotionPixels": 256,
+      "WarmItemLimit": 873,
+      "BatchSize": 48,
+      "MotionDecodeConcurrency": 2,
+      "MotionMemoryBudgetBytes": 343597383,
+      "FixtureCreationMs": 1833.339,
+      "UniquePaths": 5000,
+      "UniqueContentTokens": 5000,
+      "Metadata": {
+        "Count": 5000,
+        "UniqueIds": 5000,
+        "Ordered": true,
+        "BuildMs": 0.38,
+        "RetainedManagedBytes": 814312,
+        "ContainsPromptOrNotes": false
+      },
+      "ExpectedWarmRequests": 5000,
+      "WarmRequestLatency": {
+        "P50Ms": 12.812,
+        "P95Ms": 24.161,
+        "P99Ms": 25.774,
+        "MaximumMs": 34.112
+      },
+      "Jumps": [
+        {
+          "Percentage": 0,
+          "FirstIndex": 0,
+          "Visible": 24,
+          "InstantCached": 0,
+          "AllReadyMs": 6.757,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 25,
+          "FirstIndex": 1244,
+          "Visible": 24,
+          "InstantCached": 0,
+          "AllReadyMs": 7.69,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 50,
+          "FirstIndex": 2488,
+          "Visible": 24,
+          "InstantCached": 0,
+          "AllReadyMs": 7.088,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 75,
+          "FirstIndex": 3732,
+          "Visible": 24,
+          "InstantCached": 0,
+          "AllReadyMs": 8.027,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 100,
+          "FirstIndex": 4976,
+          "Visible": 24,
+          "InstantCached": 24,
+          "AllReadyMs": 0.278,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 75,
+          "FirstIndex": 3732,
+          "Visible": 24,
+          "InstantCached": 24,
+          "AllReadyMs": 0.319,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 50,
+          "FirstIndex": 2488,
+          "Visible": 24,
+          "InstantCached": 24,
+          "AllReadyMs": 0.355,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 25,
+          "FirstIndex": 1244,
+          "Visible": 24,
+          "InstantCached": 24,
+          "AllReadyMs": 0.349,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 0,
+          "FirstIndex": 0,
+          "Visible": 24,
+          "InstantCached": 24,
+          "AllReadyMs": 0.327,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        }
+      ],
+      "ForegroundPreemption": {
+        "VisibleReadyMs": 0.524,
+        "MaximumObservedConcurrency": 2,
+        "RunningPrefetchAtEnd": 0,
+        "Passed": true
+      },
+      "Cancellation": {
+        "Requested": 96,
+        "CanceledSubscribers": 87,
+        "CanceledBeforeStart": 86,
+        "Passed": true
+      },
+      "HighQualityUpgrade": {
+        "IdleDelayMs": 150,
+        "Requested": 8,
+        "MotionCachedBefore": 8,
+        "MotionCachedAfter": 8,
+        "HighQualityReadyMs": 5.834,
+        "HighQualityDecodes": 8,
+        "MotionCachePreserved": true
+      },
+      "Scheduler": {
+        "RequestCount": 5352,
+        "CacheHitCount": 256,
+        "DecodeCount": 5096,
+        "CoalescedRequestCount": 0,
+        "CanceledBeforeStartCount": 0,
+        "PendingCount": 0,
+        "RunningCount": 0,
+        "RunningPrefetchCount": 0,
+        "MaximumObservedConcurrency": 2,
+        "CacheEntryCount": 923,
+        "CachedBytes": 343476224,
+        "MemoryBudgetBytes": 343597383
+      },
+      "CacheWithinBudget": true
+    },
+    "Large30000": {
+      "ItemCount": 30000,
+      "Tier": "LargeRollingWindow",
+      "MotionPixels": 256,
+      "WarmItemLimit": 873,
+      "BatchSize": 48,
+      "MotionDecodeConcurrency": 2,
+      "MotionMemoryBudgetBytes": 343597383,
+      "FixtureCreationMs": 10425.978,
+      "UniquePaths": 30000,
+      "UniqueContentTokens": 30000,
+      "Metadata": {
+        "Count": 30000,
+        "UniqueIds": 30000,
+        "Ordered": true,
+        "BuildMs": 4.709,
+        "RetainedManagedBytes": 4885296,
+        "ContainsPromptOrNotes": false
+      },
+      "ExpectedWarmRequests": 8730,
+      "WarmRequestLatency": {
+        "P50Ms": 10.07,
+        "P95Ms": 22.321,
+        "P99Ms": 24.307,
+        "MaximumMs": 41.683
+      },
+      "Jumps": [
+        {
+          "Percentage": 0,
+          "FirstIndex": 0,
+          "Visible": 24,
+          "InstantCached": 24,
+          "AllReadyMs": 0.211,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 25,
+          "FirstIndex": 7494,
+          "Visible": 24,
+          "InstantCached": 0,
+          "AllReadyMs": 19.418,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 50,
+          "FirstIndex": 14988,
+          "Visible": 24,
+          "InstantCached": 0,
+          "AllReadyMs": 6.451,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 75,
+          "FirstIndex": 22482,
+          "Visible": 24,
+          "InstantCached": 0,
+          "AllReadyMs": 5.906,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 100,
+          "FirstIndex": 29976,
+          "Visible": 24,
+          "InstantCached": 0,
+          "AllReadyMs": 5.968,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 75,
+          "FirstIndex": 22482,
+          "Visible": 24,
+          "InstantCached": 0,
+          "AllReadyMs": 6.353,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 50,
+          "FirstIndex": 14988,
+          "Visible": 24,
+          "InstantCached": 0,
+          "AllReadyMs": 6.268,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 25,
+          "FirstIndex": 7494,
+          "Visible": 24,
+          "InstantCached": 0,
+          "AllReadyMs": 5.348,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        },
+        {
+          "Percentage": 0,
+          "FirstIndex": 0,
+          "Visible": 24,
+          "InstantCached": 0,
+          "AllReadyMs": 6.897,
+          "Readiness": [
+            {
+              "AtMs": 0,
+              "Ready": 0,
+              "Visible": 24
+            },
+            {
+              "AtMs": 50,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 100,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 150,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 250,
+              "Ready": 24,
+              "Visible": 24
+            },
+            {
+              "AtMs": 500,
+              "Ready": 24,
+              "Visible": 24
+            }
+          ]
+        }
+      ],
+      "ForegroundPreemption": {
+        "VisibleReadyMs": 0.466,
+        "MaximumObservedConcurrency": 2,
+        "RunningPrefetchAtEnd": 0,
+        "Passed": true
+      },
+      "Cancellation": {
+        "Requested": 96,
+        "CanceledSubscribers": 96,
+        "CanceledBeforeStart": 95,
+        "Passed": true
+      },
+      "HighQualityUpgrade": {
+        "IdleDelayMs": 150,
+        "Requested": 8,
+        "MotionCachedBefore": 8,
+        "MotionCachedAfter": 8,
+        "HighQualityReadyMs": 5.772,
+        "HighQualityDecodes": 8,
+        "MotionCachePreserved": true
+      },
+      "Scheduler": {
+        "RequestCount": 8986,
+        "CacheHitCount": 1129,
+        "DecodeCount": 7857,
+        "CoalescedRequestCount": 0,
+        "CanceledBeforeStartCount": 0,
+        "PendingCount": 0,
+        "RunningCount": 0,
+        "RunningPrefetchCount": 0,
+        "MaximumObservedConcurrency": 2,
+        "CacheEntryCount": 921,
+        "CachedBytes": 343192576,
+        "MemoryBudgetBytes": 343597383
+      },
+      "CacheWithinBudget": true
+    }
+  },
+  "Virtualization": {
+    "Passed": true,
+    "MissingVisibleTotal": 0,
+    "ExtraOutsideCacheTotal": 0,
+    "UnrealizedVisibleTotal": 0,
+    "FrameP95Ms": 16.672,
+    "FrameP99Ms": 16.672,
+    "Summary": "passed=True; missing/extra/unrealized=0/0/0; P95/P99=16.672/16.672ms"
+  },
+  "Checks": [
+    {
+      "Name": "small-550-unique-fixtures",
+      "Passed": true,
+      "Evidence": "550/550 unique paths"
+    },
+    {
+      "Name": "small-550-instant-after-warm",
+      "Passed": true,
+      "Evidence": "9/9 jumps at 24/24"
+    },
+    {
+      "Name": "medium-5000-budgeted-complete-warm",
+      "Passed": true,
+      "Evidence": "5096 decodes; 343476224/343597383 bytes"
+    },
+    {
+      "Name": "medium-5000-visible-by-500ms",
+      "Passed": true,
+      "Evidence": "9/9 jumps at 24/24"
+    },
+    {
+      "Name": "large-30000-light-metadata",
+      "Passed": true,
+      "Evidence": "30000 ordered lightweight records"
+    },
+    {
+      "Name": "large-30000-window-bounded",
+      "Passed": true,
+      "Evidence": "873 planned; 921 cached"
+    },
+    {
+      "Name": "large-30000-visible-by-500ms",
+      "Passed": true,
+      "Evidence": "9/9 jumps at 24/24"
+    },
+    {
+      "Name": "foreground-visible-preempts-prefetch",
+      "Passed": true,
+      "Evidence": "visible ms 0.188/0.524/0.466"
+    },
+    {
+      "Name": "generation-cancellation",
+      "Passed": true,
+      "Evidence": "canceled subscribers 94/87/96"
+    },
+    {
+      "Name": "idle-high-quality-keeps-motion",
+      "Passed": true,
+      "Evidence": "motion bitmaps retained through 150ms high-quality upgrade"
+    },
+    {
+      "Name": "m7.1-virtualization-completeness",
+      "Passed": true,
+      "Evidence": "passed=True; missing/extra/unrealized=0/0/0; P95/P99=16.672/16.672ms"
+    }
+  ],
+  "UiFixture": null,
+  "DataSafety": {
+    "SyntheticFixturesOnly": true,
+    "RealLibraryOpened": false,
+    "RealLibraryModified": false,
+    "ClipboardMonitoringUsed": false,
+    "OnlineRequests": 0,
+    "ApiKeysUsed": 0,
+    "AbsolutePathsSerialized": false
+  },
+  "Passed": true
+}

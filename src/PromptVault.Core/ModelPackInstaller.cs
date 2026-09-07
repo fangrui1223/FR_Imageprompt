@@ -24,17 +24,19 @@ public sealed class ModelPackInstaller
             response.EnsureSuccessStatusCode();
             var length = response.Content.Headers.ContentLength;
             await using var input = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-            await using var output = new FileStream(download, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1024 * 256, true);
-            var buffer = new byte[1024 * 256];
-            long total = 0;
-            int read;
-            while ((read = await input.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+            await using (var output = new FileStream(download, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1024 * 256, true))
             {
-                await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
-                total += read;
-                if (length is > 0) progress?.Report(total / (double)length.Value);
+                var buffer = new byte[1024 * 256];
+                long total = 0;
+                int read;
+                while ((read = await input.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+                {
+                    await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+                    total += read;
+                    if (length is > 0) progress?.Report(total / (double)length.Value);
+                }
+                await output.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
-            await output.FlushAsync(cancellationToken).ConfigureAwait(false);
             await VerifyAndInstallAsync(download, expectedSha256, modelsDirectory, cancellationToken).ConfigureAwait(false);
         }
         finally { TryDelete(download); }

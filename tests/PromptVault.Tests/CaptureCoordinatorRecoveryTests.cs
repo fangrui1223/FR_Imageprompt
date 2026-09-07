@@ -170,6 +170,119 @@ public sealed class CaptureCoordinatorRecoveryTests : IAsyncLifetime
                 new SearchOptions(Query: "saved without AI", PageSize: 10))).TotalCount);
     }
 
+    [Fact]
+    public async Task DuplicatePreparedBeforePermanentDeletionCopiesNewManagedFiles()
+    {
+        var source = Path.Combine(_root, "stale.png");
+        WriteSyntheticPng(source, 80, 60, 61);
+        var coordinator = new CaptureCoordinator(_repository);
+        var first = await coordinator.CreateFromFileAsync(source);
+        var saved = await coordinator.SaveAsync(first, "first", "", null, []);
+        using var duplicate = await coordinator.CreateFromFileAsync(source);
+        Assert.NotNull(duplicate.ExistingItem);
+        var oldPath = duplicate.ExistingItem.OriginalPath;
+        await _repository.MoveToTrashAsync(saved.ItemId);
+        await _repository.PermanentlyDeleteTrashItemsAsync([saved.ItemId]);
+
+        var result = await coordinator.SaveAsync(duplicate, "second", "", null, []);
+
+        Assert.False(result.WasDuplicate);
+        var current = (await _repository.FindByHashAsync(duplicate.Hash))!;
+        Assert.NotEqual(oldPath, current.OriginalPath);
+        Assert.Empty((await _repository.InspectOrphanedFilesAsync()).MissingReferencedFiles);
+        Assert.Equal(80, ImagePipeline.DecodeFirstFrame(_repository.Paths.ToAbsolute(current.OriginalPath)).PixelWidth);
+        Assert.False(File.Exists(duplicate.StagedOriginal));
+    }
+
+    [Fact]
+    public async Task DuplicateRepairsMissingFilesAndFailedSaveRetainsStaging()
+    {
+        var source = Path.Combine(_root, "repair.png");
+        WriteSyntheticPng(source, 80, 60, 71);
+        var coordinator = new CaptureCoordinator(_repository);
+        var first = await coordinator.CreateFromFileAsync(source);
+        await coordinator.SaveAsync(first, "first", "", null, []);
+        using var pending = await coordinator.CreateFromFileAsync(source);
+        var item = pending.ExistingItem!;
+        File.Delete(_repository.Paths.ToAbsolute(item.OriginalPath));
+        File.Delete(_repository.Paths.ToAbsolute(item.ThumbnailPath));
+
+        await Assert.ThrowsAsync<SqliteException>(() => coordinator.SaveAsync(pending, "invalid", "", long.MaxValue, []));
+        Assert.True(File.Exists(pending.StagedOriginal));
+        Assert.Empty((await _repository.InspectOrphanedFilesAsync()).MissingReferencedFiles);
+        Assert.Equal("first", (await _repository.FindByHashAsync(pending.Hash))!.Prompt);
+        var result = await coordinator.SaveAsync(pending, "repaired", "", null, []);
+        Assert.True(result.WasDuplicate);
+        Assert.Equal(item.OriginalPath, (await _repository.FindByHashAsync(pending.Hash))!.OriginalPath);
+        Assert.False(File.Exists(pending.StagedOriginal));
+    }
+
+    [Fact]
+    public async Task DownloadClosesWriterBeforePreparingImage()
+    {
+        var source = Path.Combine(_root, "download.png");
+        WriteSyntheticPng(source, 91, 73, 19);
+        using var http = new System.Net.Http.HttpClient(new SyntheticHttpHandler(await File.ReadAllBytesAsync(source)));
+        var coordinator = new CaptureCoordinator(_repository, http);
+        using var pending = await coordinator.CreateFromUriAsync(new Uri("https://synthetic.invalid/image.png"));
+        Assert.Equal(91, pending.Width);
+        await coordinator.SaveAsync(pending, "downloaded", "", null, []);
+        Assert.Empty((await _repository.InspectOrphanedFilesAsync()).MissingReferencedFiles);
+    }
+
+    [Fact]
+    public async Task InvalidDownloadIsRecoverableAndCancellationCreatesNoSession()
+    {
+        using var http = new System.Net.Http.HttpClient(new SyntheticHttpHandler([1, 2, 3]));
+        var coordinator = new CaptureCoordinator(_repository, http);
+        await Assert.ThrowsAsync<CapturePreparationException>(() => coordinator.CreateFromUriAsync(new Uri("https://synthetic.invalid/invalid.png")));
+        var failed = Assert.Single(await _repository.GetCaptureInboxAsync());
+        Assert.True(File.Exists(_repository.Paths.ToAbsolute(failed.StagedOriginalPath!)));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => coordinator.CreateFromUriAsync(new Uri("https://synthetic.invalid/image.png"), cancellation.Token));
+        Assert.Single(await _repository.GetCaptureInboxAsync());
+    }
+
+    [Fact]
+    public async Task CancellationAndConcurrentDuplicateSavePreserveStagingAndReferences()
+    {
+        var source = Path.Combine(_root, "concurrent.png");
+        WriteSyntheticPng(source, 80, 60, 28);
+        var coordinator = new CaptureCoordinator(_repository);
+        using var first = await coordinator.CreateFromFileAsync(source);
+        using var second = await coordinator.CreateFromFileAsync(source);
+        using var canceled = new CancellationTokenSource();
+        canceled.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => coordinator.SaveAsync(first, "canceled", "", null, [], canceled.Token));
+        Assert.True(File.Exists(first.StagedOriginal));
+        var saved = await Task.WhenAll(
+            Task.Run(() => coordinator.SaveAsync(first, "first", "", null, [])),
+            Task.Run(() => coordinator.SaveAsync(second, "second", "", null, [])));
+        Assert.Equal(saved[0].ItemId, saved[1].ItemId);
+        Assert.Single(saved, result => result.WasDuplicate);
+        Assert.Empty((await _repository.InspectOrphanedFilesAsync()).MissingReferencedFiles);
+        Assert.False(File.Exists(first.StagedOriginal));
+        Assert.False(File.Exists(second.StagedOriginal));
+    }
+
+    [Fact]
+    public async Task UndoPreservesManuallyChangedOriginalFile()
+    {
+        var source = Path.Combine(_root, "changed-original.png");
+        WriteSyntheticPng(source, 80, 60, 21);
+        var coordinator = new CaptureCoordinator(_repository);
+        using var pending = await coordinator.CreateFromFileAsync(source);
+        var saved = await coordinator.SaveAsync(pending, "original", "", null, []);
+        var item = (await _repository.GetGalleryItemAsync(saved.ItemId))!;
+        var managed = _repository.Paths.ToAbsolute(item.OriginalPath);
+        await File.AppendAllTextAsync(managed, "manual change");
+        var modified = await File.ReadAllBytesAsync(managed);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _repository.UndoCaptureAsync(pending.SessionId, DateTimeOffset.UtcNow));
+        Assert.Equal(modified, await File.ReadAllBytesAsync(managed));
+        Assert.NotNull(await _repository.GetGalleryItemAsync(saved.ItemId));
+    }
+
     private static void WriteSyntheticPng(
         string path,
         int width,

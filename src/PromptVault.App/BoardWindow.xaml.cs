@@ -99,6 +99,7 @@ public partial class BoardWindow : Window
         long boardId)
     {
         _repository = repository;
+        _pendingSaves = new BoardPendingSaves(repository);
         _workspace = workspace;
         _settings = settings;
         CurrentBoardId = boardId;
@@ -118,6 +119,7 @@ public partial class BoardWindow : Window
     {
         if (requests.Count == 0) return;
         await EnsureBoardLoadedAsync();
+        if (_pendingSaves.HasPending && !await FlushPendingSavesAsync()) return;
         PushUndoSnapshot();
         var center = BoardViewportEngine.ScreenToWorld(
             _viewport,
@@ -187,9 +189,36 @@ public partial class BoardWindow : Window
 
     private async Task LoadBoardAsync(long boardId)
     {
+        if (_boardBoundaryActive) return;
+        _boardBoundaryActive = true;
+        var enabled = IsEnabled;
+        IsEnabled = false;
+        try
+        {
+            if (_boardLoaded && !await PrepareBoardBoundaryAsync()) return;
+            await LoadBoardCoreAsync(boardId);
+            _boardLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warning("board-load", "Board could not be switched.", ex);
+            SetStatus($"未切换画板：{ex.Message}");
+        }
+        finally
+        {
+            var loading = _loadingBoard;
+            _loadingBoard = true;
+            BoardSelector.SelectedItem = _boards.FirstOrDefault(board => board.Id == CurrentBoardId);
+            _loadingBoard = loading;
+            IsEnabled = enabled;
+            _boardBoundaryActive = false;
+        }
+    }
+
+    private async Task LoadBoardCoreAsync(long boardId)
+    {
         CancelCameraAnimation();
         CancelProgressiveFocusLoad();
-        if (_cropModeActive) await CommitCropModeAsync("裁剪已保存并切换画板");
         if (BoardInspector.Visibility == Visibility.Visible) CloseInspector();
         ExitTransformMode();
         _focusController.Reset();
@@ -229,7 +258,6 @@ public partial class BoardWindow : Window
     {
         if (_loadingBoard || BoardSelector.SelectedItem is not BoardRecord board
             || board.Id == CurrentBoardId) return;
-        await PersistViewNowAsync(force: true);
         await LoadBoardAsync(board.Id);
     }
 
@@ -626,7 +654,7 @@ public partial class BoardWindow : Window
         if (!BoardInteractionEngine.ShouldBeginBlankCanvasGesture(
                 FindParent<Thumb>(source) is not null,
                 IsBlankCanvasSource(source))) return;
-        if (_cropModeActive) await CommitCropModeAsync("裁剪已保存");
+        if (_cropModeActive && !await CommitCropModeAsync()) return;
         if (BoardInspector.Visibility == Visibility.Visible) CloseInspector();
         InterruptCameraAnimation();
         var point = e.GetPosition(BoardViewport);
@@ -798,7 +826,7 @@ public partial class BoardWindow : Window
         if (TryBeginCropPointerGesture(border, id, e)) return;
         if (_cropModeActive)
         {
-            await CommitCropModeAsync("裁剪已保存");
+            if (!await CommitCropModeAsync()) return;
         }
         _selectedNoteIds.Clear();
         if (e.ClickCount > 1)
@@ -928,7 +956,7 @@ public partial class BoardWindow : Window
     {
         if (sender is not Border { Tag: BoardNoteVisualTag { NoteId: var id } } root
             || FindParent<Thumb>(e.OriginalSource as DependencyObject) is not null) return;
-        if (_cropModeActive) await CommitCropModeAsync("裁剪已保存");
+        if (_cropModeActive && !await CommitCropModeAsync()) return;
         if (e.ClickCount > 1)
         {
             BeginNoteEditing(id);
@@ -1088,38 +1116,27 @@ public partial class BoardWindow : Window
         await CommitNoteEditingAsync(id);
     }
 
-    private async Task SaveNoteAsync(BoardNoteRecord note, string status)
+    private async Task<bool> SaveNoteAsync(BoardNoteRecord note, string status)
     {
-        await _repository.UpdateBoardNoteAsync(CurrentBoardId, ToUpdate(note));
-        SetStatus(status);
+        _pendingSaves.EnqueueNotes(note.BoardId, [ToUpdate(note)]);
+        return await FlushPendingSavesAsync(status);
     }
 
-    private async Task SaveSelectedNotesAsync(string status)
+    private async Task<bool> SaveSelectedNotesAsync(string status)
     {
         var updates = _notes
             .Where(note => _selectedNoteIds.Contains(note.Id))
             .Select(ToUpdate)
             .ToArray();
-        await _repository.UpdateBoardNotesAsync(CurrentBoardId, updates);
-        SetStatus(status);
+        _pendingSaves.EnqueueNotes(CurrentBoardId, updates);
+        return await FlushPendingSavesAsync(status);
     }
 
-    private async Task SaveSelectedItemsAsync()
+    private async Task<bool> SaveSelectedItemsAsync()
     {
-        try
-        {
-            var updates = _items
-                .Where(item => _selectedIds.Contains(item.Id))
-                .Select(ToUpdate)
-                .ToArray();
-            await _repository.UpdateBoardItemsAsync(CurrentBoardId, updates);
-            SetStatus($"已保存 {_selectedIds.Count} 个画板项");
-        }
-        catch (Exception ex)
-        {
-            AppLog.Warning("board-save", "Board item changes could not be saved.", ex);
-            SetStatus($"保存失败：{ex.Message}");
-        }
+        var updates = _items.Where(item => _selectedIds.Contains(item.Id)).Select(ToUpdate).ToArray();
+        _pendingSaves.EnqueueItems(CurrentBoardId, updates);
+        return await FlushPendingSavesAsync($"已保存 {updates.Length} 个画板项");
     }
 
     private async Task MutateSelectionAsync(Func<BoardItemRecord, BoardItemRecord> transform)
@@ -1189,7 +1206,7 @@ public partial class BoardWindow : Window
         _undo.Push(snapshot);
         while (_undo.Count > 50)
         {
-            var retained = _undo.Reverse().Take(50).Reverse().ToArray();
+            var retained = _undo.Take(50).Reverse().ToArray();
             _undo.Clear();
             foreach (var entry in retained) _undo.Push(entry);
         }
@@ -1202,9 +1219,11 @@ public partial class BoardWindow : Window
     private async Task UndoAsync()
     {
         if (_undo.Count == 0) return;
-        _redo.Push(SnapshotScene());
-        var snapshot = _undo.Pop();
-        await RestoreSnapshotAsync(snapshot, "已撤销");
+        var current = SnapshotScene();
+        await RestoreSnapshotAsync(_undo.Peek(), "已撤销");
+        _undo.Pop();
+        _redo.Push(current);
+        UpdateUndoButtons();
     }
 
     private async void RedoClick(object sender, RoutedEventArgs e) => await ExecuteBoardCommandAsync(BoardCommandId.Redo);
@@ -1212,19 +1231,20 @@ public partial class BoardWindow : Window
     private async Task RedoAsync()
     {
         if (_redo.Count == 0) return;
-        _undo.Push(SnapshotScene());
-        var snapshot = _redo.Pop();
-        await RestoreSnapshotAsync(snapshot, "已重做");
+        var current = SnapshotScene();
+        await RestoreSnapshotAsync(_redo.Peek(), "已重做");
+        _redo.Pop();
+        _undo.Push(current);
+        UpdateUndoButtons();
     }
 
     private async Task RestoreSnapshotAsync(BoardSceneSnapshot snapshot, string status)
     {
-        await _repository.ReplaceBoardItemsAsync(CurrentBoardId, snapshot.Items);
-        await _repository.ReplaceBoardNotesAsync(CurrentBoardId, snapshot.Notes);
+        await _repository.ReplaceBoardSceneAsync(CurrentBoardId, snapshot.Items, snapshot.Notes);
         _items.Clear();
-        _items.AddRange(await _repository.GetBoardItemsAsync(CurrentBoardId));
+        _items.AddRange(snapshot.Items);
         _notes.Clear();
-        _notes.AddRange(await _repository.GetBoardNotesAsync(CurrentBoardId));
+        _notes.AddRange(snapshot.Notes);
         BoardViewportEngine.Invalidate(_items);
         _selectedIds.RemoveWhere(id => _items.All(item => item.Id != id));
         RenderVisibleItems();
@@ -1249,13 +1269,17 @@ public partial class BoardWindow : Window
         _viewSaveCancellation?.Cancel();
         _viewSaveCancellation?.Dispose();
         var cancellation = _viewSaveCancellation = new CancellationTokenSource();
+        var token = cancellation.Token;
+        var boardId = CurrentBoardId;
         _persistViewQueued = true;
         _ = Task.Run(async () =>
         {
             try
             {
-                await Task.Delay(300, cancellation.Token);
-                await Dispatcher.InvokeAsync(async () => await PersistViewNowAsync());
+                await Task.Delay(300, token);
+                await (await Dispatcher.InvokeAsync(() =>
+                    token.IsCancellationRequested || boardId != CurrentBoardId || _closeApproved
+                        ? Task.FromResult(true) : PersistViewNowAsync()));
             }
             catch (OperationCanceledException)
             {
@@ -1263,24 +1287,33 @@ public partial class BoardWindow : Window
         });
     }
 
-    private async Task PersistViewNowAsync(bool force = false)
+    private async Task<bool> PersistViewNowAsync(bool force = false)
     {
-        if (!force && !_persistViewQueued && _boards.Count > 0) return;
+        if (!force && !_persistViewQueued && _boards.Count > 0) return !_pendingSaves.HasPending;
         _persistViewQueued = false;
         var workingViewport = _focusController.WorkingViewport(_viewport);
-        await _repository.UpdateBoardViewAsync(
+        _pendingSaves.EnqueueView(
             CurrentBoardId,
             workingViewport.OffsetX,
             workingViewport.OffsetY,
             workingViewport.Zoom);
+        return await FlushPendingSavesAsync();
     }
 
     private async void BackgroundSelectorChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_loadingBoard || BackgroundSelector.SelectedValue is not string style) return;
-        await _repository.UpdateBoardBackgroundAsync(CurrentBoardId, style);
-        ApplyBackground(style);
-        SetStatus("画板背景已保存");
+        try
+        {
+            await _repository.UpdateBoardBackgroundAsync(CurrentBoardId, style);
+            ApplyBackground(style);
+            SetStatus("画板背景已保存");
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warning("board-background", "Board background was not saved.", ex);
+            SetStatus($"背景未保存：{ex.Message}");
+        }
     }
 
     private async void AddNoteClick(object sender, RoutedEventArgs e) => await ExecuteBoardCommandAsync(BoardCommandId.AddNote);
@@ -1356,7 +1389,7 @@ public partial class BoardWindow : Window
 
     private async Task CreateBoardAsync()
     {
-        await PersistViewNowAsync(force: true);
+        if (!await PrepareBoardBoundaryAsync()) return;
         var name = UniqueBoardName("新画板");
         var board = await _repository.CreateBoardAsync(name);
         await ReloadBoardsAsync(board.Id);
@@ -1371,7 +1404,7 @@ public partial class BoardWindow : Window
         if (string.IsNullOrWhiteSpace(name)) return;
         try
         {
-            await PersistViewNowAsync(force: true);
+            if (!await PrepareBoardBoundaryAsync()) return;
             await _repository.RenameBoardAsync(board.Id, name);
             await ReloadBoardsAsync(board.Id);
         }
@@ -1392,7 +1425,7 @@ public partial class BoardWindow : Window
                 "删除画板",
                 MessageBoxButton.OKCancel,
                 MessageBoxImage.Warning) != MessageBoxResult.OK) return;
-        await PersistViewNowAsync(force: true);
+        if (!await PrepareBoardBoundaryAsync()) return;
         await _repository.DeleteBoardAsync(board.Id);
         var remaining = await _repository.GetBoardsAsync();
         var next = remaining.FirstOrDefault() ?? await _repository.CreateBoardAsync("灵感画板");
@@ -1498,6 +1531,12 @@ public partial class BoardWindow : Window
             return;
         }
         var textEditing = IsTextEditingFocus();
+        if (e.Key == Key.S && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            _ = RetryBoardSaveAsync();
+            e.Handled = true;
+            return;
+        }
         if (textEditing)
         {
             if (e.Key == Key.Escape)
@@ -1625,26 +1664,9 @@ public partial class BoardWindow : Window
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
-        CancelCameraAnimation();
-        CancelProgressiveFocusLoad();
-        _viewSaveCancellation?.Cancel();
-        try
-        {
-            if (_cropModeActive) CommitCropModeAsync("裁剪已保存").GetAwaiter().GetResult();
-            var workingViewport = _focusController.WorkingViewport(_viewport);
-            _repository.UpdateBoardViewAsync(
-                    CurrentBoardId,
-                    workingViewport.OffsetX,
-                    workingViewport.OffsetY,
-                    workingViewport.Zoom)
-                .GetAwaiter()
-                .GetResult();
-        }
-        catch (Exception ex)
-        {
-            AppLog.Warning("board-close", "Final board view could not be saved.", ex);
-        }
+        if (!_closeApproved) e.Cancel = true;
         base.OnClosing(e);
+        if (!_closeApproved && !_boardBoundaryActive) _ = CloseAfterSavingAsync();
     }
 
     private void BoardWindowDragOver(object sender, System.Windows.DragEventArgs e)
@@ -1680,6 +1702,7 @@ public partial class BoardWindow : Window
 
     private void SetStatus(string text)
     {
+        if (_pendingSaves.HasPending && _saveError is not null) text = _saveError;
         BoardStatusText.Text = text;
         ShowStatusOverlay();
     }

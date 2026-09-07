@@ -210,7 +210,8 @@ public partial class MainWindow
         GalleryEntry[] backgroundEntries,
         int generation)
     {
-        if (!_fastBrowseGenerations.IsCurrent(generation)
+        if (_galleryRowsTransferredOut || _windowLifetime.IsCancellationRequested
+            || !_fastBrowseGenerations.IsCurrent(generation)
             || backgroundEntries.Length == 0 && _totalCount > 0)
         {
             return FastBrowseApplyResult.NotApplied;

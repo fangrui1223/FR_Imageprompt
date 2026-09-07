@@ -348,11 +348,19 @@ public sealed partial class LibraryRepository
         IReadOnlyList<BoardItemRecord> items,
         CancellationToken cancellationToken = default)
     {
-        if (items.Any(item => item.BoardId != boardId))
-            throw new InvalidOperationException("画板快照包含其他画板的项目。");
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using var transaction =
             (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        await ReplaceBoardItemsCoreAsync(connection, transaction, boardId, items, cancellationToken).ConfigureAwait(false);
+        await TouchBoardAsync(connection, transaction, boardId, cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task ReplaceBoardItemsCoreAsync(SqliteConnection connection, SqliteTransaction transaction,
+        long boardId, IReadOnlyList<BoardItemRecord> items, CancellationToken cancellationToken)
+    {
+        if (items.Any(item => item.BoardId != boardId))
+            throw new InvalidOperationException("画板快照包含其他画板的项目。");
         await EnsureBoardExistsAsync(connection, transaction, boardId, cancellationToken)
             .ConfigureAwait(false);
         var delete = connection.CreateCommand();
@@ -396,8 +404,6 @@ public sealed partial class LibraryRepository
             insert.Parameters.AddWithValue("$updated", item.UpdatedAt.ToString("O"));
             await insert.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
-        await TouchBoardAsync(connection, transaction, boardId, cancellationToken).ConfigureAwait(false);
-        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<BoardGroupRecord> CreateBoardGroupAsync(
@@ -670,14 +676,34 @@ public sealed partial class LibraryRepository
         IReadOnlyList<BoardNoteRecord> notes,
         CancellationToken cancellationToken = default)
     {
+        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction =
+            (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        await ReplaceBoardNotesCoreAsync(connection, transaction, boardId, notes, cancellationToken).ConfigureAwait(false);
+        await TouchBoardAsync(connection, transaction, boardId, cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task ReplaceBoardSceneAsync(long boardId, IReadOnlyList<BoardItemRecord> items,
+        IReadOnlyList<BoardNoteRecord> notes, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction =
+            (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        await ReplaceBoardItemsCoreAsync(connection, transaction, boardId, items, cancellationToken).ConfigureAwait(false);
+        await ReplaceBoardNotesCoreAsync(connection, transaction, boardId, notes, cancellationToken).ConfigureAwait(false);
+        await TouchBoardAsync(connection, transaction, boardId, cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task ReplaceBoardNotesCoreAsync(SqliteConnection connection, SqliteTransaction transaction,
+        long boardId, IReadOnlyList<BoardNoteRecord> notes, CancellationToken cancellationToken)
+    {
         if (notes.Any(note => note.BoardId != boardId))
             throw new InvalidOperationException("画板快照包含其他画板的便签。");
         foreach (var note in notes) ValidateNoteUpdate(new BoardNoteUpdate(
             note.Id, NormalizeNoteText(note.Text), note.X, note.Y, note.Width, note.Height,
             note.ZIndex, NormalizeNoteColor(note.ColorStyle)));
-        await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
-        await using var transaction =
-            (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
         await EnsureBoardExistsAsync(connection, transaction, boardId, cancellationToken).ConfigureAwait(false);
         var delete = connection.CreateCommand();
         delete.Transaction = transaction;
@@ -709,8 +735,6 @@ public sealed partial class LibraryRepository
             insert.Parameters.AddWithValue("$updated", note.UpdatedAt.ToString("O"));
             await insert.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
-        await TouchBoardAsync(connection, transaction, boardId, cancellationToken).ConfigureAwait(false);
-        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task DeleteBoardNotesAsync(

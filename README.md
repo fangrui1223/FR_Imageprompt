@@ -18,7 +18,7 @@ FR_Imageprompt（内部项目名 PromptVault）是 Windows 10/11 x64 的本地�
 
 ## 安装与第一次运行
 
-1. 解压 `FR_Imageprompt-M9-licensed-win-x64.zip`。
+1. 解压 `FR_Imageprompt-M11-final-win-x64.zip`。
 2. 运行 `FR_Imageprompt.exe`。发布包自带 .NET 运行时，不需要另装 .NET。
 3. 第一次启动会显示匿名设备请求码。把请求码发给授权人，收到 `.frlicense` 文件后点击“导入许可证”；授权过程不需要联网。
 4. 验证通过后选择一个新的或已有的图库文件夹。图库中的 `promptvault.db`、`originals`、`thumbnails` 和 `backups` 均由应用管理。
@@ -35,6 +35,10 @@ FR_Imageprompt（内部项目名 PromptVault）是 Windows 10/11 x64 的本地�
 3. 在图库输入任意中文或英文片段即时搜索。单击只选择图片；按 `Q` 主动打开占位式详情侧栏，双击或空格打开沉浸大图。
 4. 两分钟内没有提示词的图片会进入“待补提示词”，稍后可以单项或批量补全。
 5. 从卡片菜单、右侧检查器或 `Ctrl+K` 命令面板把图片加入自由画板。
+
+M11 保留现有收录开关：开启时只接受单张图片；一次复制多个文件或复制文件夹会整次忽略，不弹提示，也不进入待补收件箱。收录后再编辑图片内容、提示词、标签等，撤销会保留后续修改并说明冲突。画板保存失败时保留修改，点击“重试保存”或按 `Ctrl+S` 重试；保存成功后才允许切换画板或退出。
+
+本轮修复计划与验证账本见 [M11 稳定性与数据安全计划](docs/FR_Imageprompt-M11-stability-data-safety-repair-plan.md)。
 
 准备首次体验时，建议按[首次体验与问题反馈指南](docs/first-experience-guide.md)完成一轮测试。面向日常使用和全部快捷键的说明见[完整操作手册](docs/FR_Imageprompt-V2-complete-operation-manual.md)，功能设计说明见[用户指南](docs/user-guide.md)，AI 数据边界见[本地与在线 AI 隐私](docs/privacy-and-ai.md)，模型包格式见[模型包文档](docs/model-pack.md)。
 

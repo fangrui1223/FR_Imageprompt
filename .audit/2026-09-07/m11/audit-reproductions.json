@@ -1,0 +1,65 @@
+{
+  "runRoot": "D:\\FR_AI\\AI image prompt\\.audit\\2026-09-07\\m11\\synthetic-7129188d765445d4bd376a1772b94039",
+  "results": [
+    {
+      "name": "upgrade-rollback-expired-files",
+      "observation": {
+        "failureInjected": true,
+        "databaseRowRestored": true,
+        "remainingFiles": 3,
+        "missingFiles": [],
+        "recoveryReported": true,
+        "bugReproduced": false
+      }
+    },
+    {
+      "name": "uri-capture-file-lock",
+      "observation": {
+        "exceptionType": null,
+        "rootCause": null,
+        "hresult": null,
+        "sourceStillDecodes": true,
+        "failedSessions": 0,
+        "bugReproduced": false
+      }
+    },
+    {
+      "name": "url-model-install-file-lock",
+      "observation": {
+        "bugReproduced": false
+      }
+    },
+    {
+      "name": "stale-duplicate-after-permanent-delete",
+      "observation": {
+        "cachedExisting": true,
+        "stagedBeforeSave": true,
+        "reportedSaveSuccess": true,
+        "reportedDuplicate": false,
+        "savedRowExists": true,
+        "stagedAfterSave": false,
+        "missingFiles": [],
+        "bugReproduced": false
+      }
+    },
+    {
+      "name": "capture-undo-overwrites-newer-edit",
+      "observation": {
+        "beforePrompt": "newer manual prompt",
+        "afterPrompt": "newer manual prompt",
+        "beforeNotes": "newer manual notes",
+        "afterNotes": "newer manual notes",
+        "conflict": "\u56FE\u7247\u5728\u6536\u5F55\u540E\u5DF2\u6709\u4FEE\u6539\u6216\u65E0\u6CD5\u6838\u5BF9\u539F\u72B6\u6001\uFF0C\u5DF2\u4FDD\u7559\u5F53\u524D\u5185\u5BB9\uFF0C\u4E0D\u80FD\u64A4\u9500\u8FD9\u6B21\u6536\u5F55\u3002",
+        "newerEditPreserved": true,
+        "bugReproduced": false
+      }
+    },
+    {
+      "name": "settings-null-layout",
+      "observation": {
+        "bugReproduced": false,
+        "recovered": false
+      }
+    }
+  ]
+}

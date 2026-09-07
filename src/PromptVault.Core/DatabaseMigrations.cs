@@ -32,7 +32,7 @@ public sealed class DatabaseMigrationException : Exception
 
 internal static class DatabaseMigrations
 {
-    public const int LatestVersion = 12;
+    public const int LatestVersion = 13;
 
     private static readonly IReadOnlyList<Migration> Steps =
     [
@@ -252,6 +252,11 @@ internal static class DatabaseMigrations
                 updated_at TEXT NOT NULL);
             CREATE INDEX IF NOT EXISTS ix_board_notes_board_z
                 ON board_notes(board_id, z_index, id);
+            """),
+        new(13, """
+            CREATE TABLE IF NOT EXISTS capture_undo_guards(
+                capture_id TEXT PRIMARY KEY REFERENCES capture_inbox(id) ON DELETE CASCADE,
+                fingerprint TEXT NOT NULL);
             """)
     ];
 

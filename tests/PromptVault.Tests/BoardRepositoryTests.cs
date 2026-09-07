@@ -355,6 +355,59 @@ public sealed class BoardRepositoryTests : IAsyncLifetime
             (await _repository.SearchPageAsync(new SearchOptions(PageSize: 10))).Items).Id);
     }
 
+    [Fact]
+    public async Task SceneRestoreRollsBackImagesWhenNoteRestoreFails()
+    {
+        var saved = await SaveItemAsync("atomic-scene");
+        var board = await _repository.CreateBoardAsync("原子恢复");
+        var item = Assert.Single(await _repository.AddBoardItemsAsync(board.Id, [new BoardItemPlacementInput(saved.ItemId, 10, 20, 300, 200)]));
+        var note = await _repository.AddBoardNoteAsync(board.Id, "original", 30, 40);
+        await ExecuteSqlAsync("CREATE TRIGGER reject_notes BEFORE INSERT ON board_notes BEGIN SELECT RAISE(ABORT, 'injected'); END;");
+        await Assert.ThrowsAsync<SqliteException>(() => _repository.ReplaceBoardSceneAsync(board.Id, [item with { X = 900 }], [note with { Text = "replacement" }]));
+        var failed = (await _repository.GetBoardDocumentAsync(board.Id))!;
+        Assert.Equal(10, Assert.Single(failed.Items).X);
+        Assert.Equal("original", Assert.Single(failed.Notes).Text);
+        await ExecuteSqlAsync("DROP TRIGGER reject_notes;");
+        await _repository.ReplaceBoardSceneAsync(board.Id, [item with { X = 900 }], [note with { Text = "replacement" }]);
+        var restored = (await _repository.GetBoardDocumentAsync(board.Id))!;
+        Assert.Equal(900, Assert.Single(restored.Items).X);
+        Assert.Equal("replacement", Assert.Single(restored.Notes).Text);
+    }
+
+    [Fact]
+    public async Task PendingChangesSurviveFailureAndRetryForTheirOwnBoards()
+    {
+        var saved = await SaveItemAsync("pending-scene");
+        var first = await _repository.CreateBoardAsync("待保存 A");
+        var second = await _repository.CreateBoardAsync("待保存 B");
+        var item = Assert.Single(await _repository.AddBoardItemsAsync(first.Id, [new BoardItemPlacementInput(saved.ItemId, 10, 20, 300, 200)]));
+        var note = await _repository.AddBoardNoteAsync(second.Id, "original", 30, 40);
+        var pending = new PromptVault.App.Services.BoardPendingSaves(_repository);
+        pending.EnqueueItems(first.Id, [new BoardItemUpdate(item.Id, 500, 20, 300, 200, 0, 0, 0, 0, 0, 0, null, null)]);
+        pending.EnqueueNotes(second.Id, [new BoardNoteUpdate(note.Id, "edited", 30, 40, 300, 200, 0, note.ColorStyle)]);
+        pending.EnqueueView(second.Id, 123, 456, 1.5);
+        await ExecuteSqlAsync("CREATE TRIGGER reject_items BEFORE UPDATE ON board_items BEGIN SELECT RAISE(ABORT, 'injected'); END;");
+        await Assert.ThrowsAsync<SqliteException>(() => pending.FlushAsync());
+        Assert.True(pending.HasPending);
+        Assert.Equal(10, Assert.Single(await _repository.GetBoardItemsAsync(first.Id)).X);
+        pending.EnqueueItems(first.Id, [new BoardItemUpdate(item.Id, 700, 20, 300, 200, 0, 0, 0, 0, 0, 0, null, null)]);
+        await ExecuteSqlAsync("DROP TRIGGER reject_items;");
+        await Task.WhenAll(pending.FlushAsync(), pending.FlushAsync());
+        Assert.False(pending.HasPending);
+        Assert.Equal(700, Assert.Single(await _repository.GetBoardItemsAsync(first.Id)).X);
+        var updatedSecond = (await _repository.GetBoardDocumentAsync(second.Id))!;
+        Assert.Equal("edited", Assert.Single(updatedSecond.Notes).Text);
+        Assert.Equal(123, updatedSecond.Board.ViewOffsetX);
+        Assert.Equal(1.5, updatedSecond.Board.Zoom);
+        pending.EnqueueView(first.Id, 300, 400, 2);
+        using var canceled = new CancellationTokenSource();
+        canceled.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending.FlushAsync(canceled.Token));
+        Assert.True(pending.HasPending);
+        await pending.FlushAsync();
+        Assert.False(pending.HasPending);
+    }
+
     private async Task<SaveResult> SaveItemAsync(string hash, bool createFiles = false)
     {
         if (createFiles)

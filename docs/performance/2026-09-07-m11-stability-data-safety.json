@@ -1,0 +1,370 @@
+{
+  "milestone": "M11-stability-data-safety",
+  "generatedAt": "2026-09-07T20:45:38.123582+08:00",
+  "dataKind": "synthetic",
+  "baselineCommit": "48875a9",
+  "passed": true,
+  "buildAndTests": {
+    "debugPassed": 403,
+    "debugFailed": 0,
+    "releasePassed": 403,
+    "releaseFailed": 0,
+    "originalTests": 374,
+    "addedTests": 29,
+    "compilerWarnings": 0,
+    "compilerErrors": 0
+  },
+  "originalAudit": [
+    {
+      "name": "upgrade-rollback-expired-files",
+      "observation": {
+        "failureInjected": true,
+        "databaseRowRestored": true,
+        "remainingFiles": 3,
+        "missingFiles": [],
+        "recoveryReported": true,
+        "bugReproduced": false
+      }
+    },
+    {
+      "name": "uri-capture-file-lock",
+      "observation": {
+        "exceptionType": null,
+        "rootCause": null,
+        "hresult": null,
+        "sourceStillDecodes": true,
+        "failedSessions": 0,
+        "bugReproduced": false
+      }
+    },
+    {
+      "name": "url-model-install-file-lock",
+      "observation": {
+        "bugReproduced": false
+      }
+    },
+    {
+      "name": "stale-duplicate-after-permanent-delete",
+      "observation": {
+        "cachedExisting": true,
+        "stagedBeforeSave": true,
+        "reportedSaveSuccess": true,
+        "reportedDuplicate": false,
+        "savedRowExists": true,
+        "stagedAfterSave": false,
+        "missingFiles": [],
+        "bugReproduced": false
+      }
+    },
+    {
+      "name": "capture-undo-overwrites-newer-edit",
+      "observation": {
+        "beforePrompt": "newer manual prompt",
+        "afterPrompt": "newer manual prompt",
+        "beforeNotes": "newer manual notes",
+        "afterNotes": "newer manual notes",
+        "conflict": "图片在收录后已有修改或无法核对原状态，已保留当前内容，不能撤销这次收录。",
+        "newerEditPreserved": true,
+        "bugReproduced": false
+      }
+    },
+    {
+      "name": "settings-null-layout",
+      "observation": {
+        "bugReproduced": false,
+        "recovered": false
+      }
+    }
+  ],
+  "clipboardPolicy": {
+    "singleImageAccepted": true,
+    "multipleFilesIgnoredAsWhole": true,
+    "foldersIgnoredWithoutScanning": true,
+    "ignoredEventFeedbackCount": 0,
+    "ignoredEventSnapshotCount": 0,
+    "bitmapAndTextFallbackBlockedForIgnoredFileLists": true,
+    "systemClipboardModified": false
+  },
+  "wpfFaultRegression": {
+    "Milestone": "M11",
+    "DataKind": "synthetic",
+    "Passed": true,
+    "Results": {
+      "prewarmWheelSelectionAndCloseIgnored": true,
+      "duplicateRejectedWithoutCancelingTransfer": true,
+      "duplicateHandoffRowsAndPositionRetained": true,
+      "abortedPreparationRestoresSource": true,
+      "rollbackRowsRemainIntact": true,
+      "retryAfterAbortedPreparation": true,
+      "rollbackRetryPositionRetained": true,
+      "mouseCaptureLossEndsWindowDrag": true,
+      "noteFailureReported": true,
+      "switchBlockedAndEditRetained": true,
+      "closeBlocked": true,
+      "applicationExitBlocked": true,
+      "noteRetryPersisted": true,
+      "cropFailureStaysEditable": true,
+      "cropRetryCommitted": true,
+      "failedUndoRetainsStacksAndScene": true,
+      "undoRedoRoundTrip": true,
+      "switchSucceedsAfterRetry": true,
+      "exitPreparationSucceedsAfterRetry": true,
+      "allPendingSavedBeforeExit": true
+    },
+    "Error": null
+  },
+  "transparentFinalExecutable": {
+    "matrix": {
+      "ScrollPositions": [
+        0,
+        0.2,
+        0.5,
+        0.9
+      ],
+      "CyclesPerDirectionPerPosition": 20,
+      "ExpectedHandoffs": 160,
+      "ActualHandoffs": 160,
+      "DirectionCounts": {
+        "normal-to-transparent": 80,
+        "transparent-to-normal": 80
+      },
+      "PassedHandoffs": 160,
+      "MinimumPreparedRenderFrames": 2,
+      "MaximumOffsetError": 0,
+      "MaximumGalleryReflows": 0,
+      "ElapsedP50Ms": 73.237,
+      "ElapsedP95Ms": 102.549,
+      "ElapsedMaximumMs": 128.6409
+    },
+    "protocol": {
+      "ScreenshotOverlayUsed": false,
+      "AnimationUsed": false,
+      "OldWindowVisibleUntilReplacementStable": true,
+      "ReplacementHiddenUntilStable": true,
+      "AtomicDispatcherCommit": true,
+      "FirstScreenFallbackPathUsed": false
+    },
+    "retiredWindows": 160,
+    "aliveAfterCollection": 1
+  },
+  "display": {
+    "PhysicalWidth": 3840,
+    "PhysicalHeight": 2560,
+    "AppliedDpi": 144,
+    "DpiScale": 1.5,
+    "RefreshRateHz": 59,
+    "OneRefreshPeriodMs": 16.949,
+    "TwoRefreshPeriodsMs": 33.898
+  },
+  "board5000": {
+    "ItemCount": 5000,
+    "Samples": 181,
+    "DurationMs": 3459.834,
+    "FrameP50Ms": 16.671,
+    "FrameP95Ms": 16.671,
+    "FrameP99Ms": 16.671,
+    "FrameMaximumMs": 16.672,
+    "CallbackP95Ms": 17.086,
+    "MaximumRealizedElements": 37,
+    "NearBlackFrames": 0,
+    "ViewportQueryP95Ms": 0.02,
+    "MaximumVisibleCandidates": 34,
+    "ContinuousPan": true,
+    "ContinuousZoom": true,
+    "ContinuousMultiTransform": true
+  },
+  "proportionalResize": {
+    "Samples": 240,
+    "InputMode": "absolute-pointer-from-fixed-start",
+    "Monotonic": true,
+    "AspectRatioPreserved": true,
+    "GestureLocked": true,
+    "GestureCleared": true,
+    "VisualRebuildsDuringGesture": 0,
+    "BitmapRebuildsDuringGesture": 0,
+    "VisualRebuildsOnCompletion": 0,
+    "BitmapRebuildsOnCompletion": 0,
+    "DatabaseWritesDuringGesture": 0,
+    "UndoRecords": 1,
+    "UpdateP50Ms": 0.005,
+    "UpdateP95Ms": 0.007,
+    "UpdateP99Ms": 0.012,
+    "UpdateMaximumMs": 0.0641,
+    "Before": {
+      "Width": 550.6900742317744,
+      "Height": 2202.7602969270974
+    },
+    "After": {
+      "Width": 565.2532891096714,
+      "Height": 2261.0131564386857
+    }
+  },
+  "notes": {
+    "LightweightVisual": true,
+    "NewNoteDefaultsWorked": true,
+    "NewNoteWidth": 420,
+    "NewNoteHeight": 140,
+    "NewNoteFontSize": 32,
+    "NewNoteVerticalPadding": 16,
+    "SelectedDecoration": true,
+    "PropertyPanelVisible": true,
+    "NoteTargetTypedCorrectly": true,
+    "ColorControlsReadable": true,
+    "PropertyPanelAutoHidden": true,
+    "PreviewSamples": 240,
+    "PreviewP50Ms": 0.0221,
+    "PreviewP95Ms": 0.0241,
+    "PreviewMaximumMs": 0.4332,
+    "PreviewDatabaseWrites": 0,
+    "PropertyCommittedOnce": true,
+    "OneShotFitWorked": true,
+    "FitElapsedMs": 1.9184,
+    "EditCancelWorked": true,
+    "EditCommitWorked": true,
+    "EditorTemplateOwnedByNote": true,
+    "OutsideClickReleasedEditor": true,
+    "ReadOnlyNoteOwnedByNote": true,
+    "BatchPresetWorked": true,
+    "BatchPresetElapsedMs": 2.1281
+  },
+  "camera": {
+    "EmptySpaceNoOp": true,
+    "SpaceRoundTripExact": true,
+    "SelectionReplacesFullBoardFocus": true,
+    "SwitchedTargetRoundTripExact": true,
+    "MixedCommandsPreservedInitialSnapshot": true,
+    "OneLevelManualCameraWorked": true,
+    "OneHundredPercentZoom": 1,
+    "RestoredExactCamera": true
+  },
+  "fastBrowsingChecks": [
+    {
+      "Name": "small-550-unique-fixtures",
+      "Passed": true,
+      "Evidence": "550/550 unique paths"
+    },
+    {
+      "Name": "small-550-instant-after-warm",
+      "Passed": true,
+      "Evidence": "9/9 jumps at 24/24"
+    },
+    {
+      "Name": "medium-5000-budgeted-complete-warm",
+      "Passed": true,
+      "Evidence": "5096 decodes; 343476224/343597383 bytes"
+    },
+    {
+      "Name": "medium-5000-visible-by-500ms",
+      "Passed": true,
+      "Evidence": "9/9 jumps at 24/24"
+    },
+    {
+      "Name": "large-30000-light-metadata",
+      "Passed": true,
+      "Evidence": "30000 ordered lightweight records"
+    },
+    {
+      "Name": "large-30000-window-bounded",
+      "Passed": true,
+      "Evidence": "873 planned; 921 cached"
+    },
+    {
+      "Name": "large-30000-visible-by-500ms",
+      "Passed": true,
+      "Evidence": "9/9 jumps at 24/24"
+    },
+    {
+      "Name": "foreground-visible-preempts-prefetch",
+      "Passed": true,
+      "Evidence": "visible ms 0.188/0.524/0.466"
+    },
+    {
+      "Name": "generation-cancellation",
+      "Passed": true,
+      "Evidence": "canceled subscribers 94/87/96"
+    },
+    {
+      "Name": "idle-high-quality-keeps-motion",
+      "Passed": true,
+      "Evidence": "motion bitmaps retained through 150ms high-quality upgrade"
+    },
+    {
+      "Name": "m7.1-virtualization-completeness",
+      "Passed": true,
+      "Evidence": "passed=True; missing/extra/unrealized=0/0/0; P95/P99=16.672/16.672ms"
+    }
+  ],
+  "imageAndCacheChecks": {
+    "FirstLargeDecode": {
+      "ActualMs": 201.415,
+      "LimitMs": 300,
+      "Passed": true
+    },
+    "CachedLargeSwitch": {
+      "ActualMs": 0.19,
+      "LimitMs": 100,
+      "Passed": true
+    },
+    "ThumbnailMemory": {
+      "ActualBytes": 16588800,
+      "LimitBytes": 536870912,
+      "Passed": true
+    },
+    "ImmersiveMemory": {
+      "ActualBytes": 194040000,
+      "LimitBytes": 201326592,
+      "Passed": true
+    }
+  },
+  "package": {
+    "path": "publish/FR_Imageprompt-M11-final-win-x64.zip",
+    "zipBytes": 95333761,
+    "zipSha256": "7e40561adf2b39d9b3557d5a13d1016efaf32d473f7377650640c44705b0cce6",
+    "manifest": {
+      "product": "FR_Imageprompt",
+      "version": "2.0.0",
+      "milestone": "M11",
+      "runtime": "win-x64",
+      "selfContained": true,
+      "schema": 13,
+      "files": [
+        {
+          "path": "FR_Imageprompt.exe",
+          "bytes": 238611148,
+          "sha256": "b14dedd0466116770b77ebde355e945b2eeb0b4f8f802e801d16b22ec9653387"
+        }
+      ]
+    },
+    "forbiddenFiles": 0
+  },
+  "safety": {
+    "realLibraryOpened": false,
+    "realLibraryModified": false,
+    "userSettingsModified": false,
+    "externalNetworkRequests": 0,
+    "privateKeysRead": 0,
+    "userPackageLicenseFiles": 0,
+    "schemaVersion": 13
+  },
+  "limits": [
+    "Physical cross-monitor DPI transitions were not replayed; coordinate tests cover 100/150/200 percent and production capture loss passed on a 150 percent display.",
+    "A completely stalled system compositor was not forced; production preparation cancellation, render-wait cleanup and source recovery were exercised.",
+    "Windows filesystem cache was not forcibly purged; all fixtures are synthetic.",
+    "Pending board edits remain in the running window until a successful retry; forced process termination and power loss were not simulated."
+  ],
+  "evidence": [
+    "m11-virtualization.json",
+    "m11-fast-browse.json",
+    "m11-board-scales.json",
+    "m11-board-5000-ui.json",
+    "m11-image-performance.json",
+    "m11-m82.json",
+    "m11-m83.json",
+    "m11-m84.json",
+    "m11-m85.json",
+    "m11-m10.json",
+    "m11-final-exe-m11-stability-smoke.json",
+    "m11-final-exe-m102-transparent-handoff-smoke.json",
+    "m11-release-package.json"
+  ]
+}

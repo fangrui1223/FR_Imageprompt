@@ -62,6 +62,41 @@ public sealed class ModelPackInstallerTests
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DownloadClosesWriterAndFailedValidationPreservesInstalledModel(bool wrongHash)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "PromptVaultModelDownloadTests", Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(root, "clip"));
+            var model = Path.Combine(root, "clip", "image_encoder.onnx");
+            await File.WriteAllTextAsync(model, "previous");
+            using var buffer = new MemoryStream();
+            using (var archive = new ZipArchive(buffer, ZipArchiveMode.Create, leaveOpen: true))
+            {
+                Write(archive, "clip/image_encoder.onnx", "replacement");
+                Write(archive, "clip/manifest.json", "{}");
+            }
+            var payload = buffer.ToArray();
+            var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(payload));
+            using var http = new System.Net.Http.HttpClient(new SyntheticHttpHandler(payload));
+            var installer = new ModelPackInstaller(http);
+            var install = installer.InstallFromUrlAsync(new Uri("https://synthetic.invalid/model.zip"), wrongHash ? new string('0', 64) : hash, root);
+            if (wrongHash) await Assert.ThrowsAsync<InvalidDataException>(() => install);
+            else await install;
+            Assert.Equal(wrongHash ? "previous" : "replacement", await File.ReadAllTextAsync(model));
+            Assert.Empty(Directory.EnumerateFiles(root, ".model-*"));
+            Assert.Empty(Directory.EnumerateDirectories(root, ".install-*"));
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => installer.InstallFromUrlAsync(new Uri("https://synthetic.invalid/model.zip"), hash, root, cancellationToken: cancellation.Token));
+            Assert.Empty(Directory.EnumerateFiles(root, ".model-*"));
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
     private static void Write(ZipArchive archive, string path, string value)
     {
         using var writer = new StreamWriter(archive.CreateEntry(path).Open());

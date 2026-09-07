@@ -1,0 +1,22 @@
+{
+  "packageDirectory": "D:\\FR_AI\\AI image prompt\\publish\\FR_Imageprompt-M11-final-win-x64",
+  "zipPath": "D:\\FR_AI\\AI image prompt\\publish\\FR_Imageprompt-M11-final-win-x64.zip",
+  "zipBytes": 95333761,
+  "zipSha256": "7e40561adf2b39d9b3557d5a13d1016efaf32d473f7377650640c44705b0cce6",
+  "manifest": {
+    "product": "FR_Imageprompt",
+    "version": "2.0.0",
+    "milestone": "M11",
+    "runtime": "win-x64",
+    "selfContained": true,
+    "schema": 13,
+    "files": [
+      {
+        "path": "FR_Imageprompt.exe",
+        "bytes": 238611148,
+        "sha256": "b14dedd0466116770b77ebde355e945b2eeb0b4f8f802e801d16b22ec9653387"
+      }
+    ]
+  },
+  "forbiddenFiles": 0
+}

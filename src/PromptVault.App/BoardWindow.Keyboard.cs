@@ -49,6 +49,7 @@ public partial class BoardWindow
         if (message == WmHotKey && wParam.ToInt32() == CtrlSpaceHotKeyId)
         {
             handled = true;
+            if (_boardBoundaryActive || !IsEnabled) return IntPtr.Zero;
             if (!IsTextEditingFocus()) FocusFullBoard();
             return IntPtr.Zero;
         }

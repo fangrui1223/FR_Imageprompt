@@ -69,7 +69,6 @@ public sealed partial class LibraryRepository
                 cancellationToken).ConfigureAwait(false);
             _searchIndexBackend = await InitializeSearchIndexAsync(connection, cancellationToken).ConfigureAwait(false);
             await SeedCategoriesAsync(connection, cancellationToken).ConfigureAwait(false);
-            await PurgeTrashAsync(30, cancellationToken).ConfigureAwait(false);
             LastUpgrade = await upgrade.CompleteAsync(
                 preflight,
                 LastUpgradeRecovery,
@@ -90,6 +89,18 @@ public sealed partial class LibraryRepository
         finally
         {
             if (connection is not null) await connection.DisposeAsync().ConfigureAwait(false);
+        }
+
+        // Irreversible file maintenance must never be inside the upgrade rollback scope.
+        try
+        {
+            await PurgeTrashAsync(30, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Trace.TraceWarning($"PromptVault trash maintenance failed after initialization: {ex}");
+            Diagnostic?.Invoke(this, new RepositoryDiagnostic("trash-maintenance",
+                "图库已正常打开，但过期回收站清理未完成，将在下次启动时重试。", ex));
         }
     }
 

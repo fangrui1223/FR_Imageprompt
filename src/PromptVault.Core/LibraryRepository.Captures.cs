@@ -246,7 +246,8 @@ public sealed partial class LibraryRepository
         Guid captureId,
         SaveItemInput input,
         DateTimeOffset undoDeadlineAt,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool persistStagedFiles = false)
     {
         await using var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using var transaction =
@@ -258,12 +259,29 @@ public sealed partial class LibraryRepository
             cancellationToken).ConfigureAwait(false);
         CaptureStateMachine.EnsureTransition(capture.State, CaptureState.Saved);
 
+        if (persistStagedFiles)
+        {
+            input = input with
+            {
+                Asset = await PersistCaptureFilesAsync(connection, transaction, capture, input.Asset, cancellationToken)
+                    .ConfigureAwait(false)
+            };
+        }
+
         var previous = await ReadExistingItemSnapshotAsync(
             connection,
             transaction,
             input.Asset.Hash,
             cancellationToken).ConfigureAwait(false);
         var result = await SaveItemCoreAsync(connection, transaction, input, cancellationToken).ConfigureAwait(false);
+
+        var guard = connection.CreateCommand();
+        guard.Transaction = transaction;
+        guard.CommandText = "INSERT OR REPLACE INTO capture_undo_guards(capture_id, fingerprint) VALUES($capture, $fingerprint);";
+        guard.Parameters.AddWithValue("$capture", captureId.ToString("D"));
+        guard.Parameters.AddWithValue("$fingerprint", await CaptureItemFingerprintAsync(
+            connection, transaction, result.ItemId, cancellationToken).ConfigureAwait(false));
+        await guard.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
         var command = connection.CreateCommand();
         command.Transaction = transaction;
@@ -337,6 +355,16 @@ public sealed partial class LibraryRepository
             {
                 throw new InvalidDataException("捕获记录缺少已保存项目。");
             }
+
+            var guard = connection.CreateCommand();
+            guard.Transaction = transaction;
+            guard.CommandText = "SELECT fingerprint FROM capture_undo_guards WHERE capture_id = $capture;";
+            guard.Parameters.AddWithValue("$capture", captureId.ToString("D"));
+            var savedFingerprint = await guard.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) as string;
+            if (savedFingerprint is null || !string.Equals(savedFingerprint,
+                    await CaptureItemFingerprintAsync(connection, transaction, itemId.Value, cancellationToken).ConfigureAwait(false),
+                    StringComparison.Ordinal))
+                throw new InvalidOperationException("图片在收录后已有修改或无法核对原状态，已保留当前内容，不能撤销这次收录。");
 
             if (wasDuplicate)
             {

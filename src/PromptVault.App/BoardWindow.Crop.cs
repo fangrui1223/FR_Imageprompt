@@ -16,6 +16,7 @@ public partial class BoardWindow
     private Point? _cropPanStart;
     private BoardCropViewport _cropPanOrigin;
     private bool _cropChanged;
+    private bool _cropCommitActive;
     private DispatcherTimer? _cropHintTimer;
 
     private BoardCropViewport GetDisplayCropViewport(BoardItemRecord item) =>
@@ -52,30 +53,48 @@ public partial class BoardWindow
         SetStatus("裁剪模式：框内滚轮缩放，左键拖动图片");
     }
 
-    private async Task CommitCropModeAsync(string status = "裁剪已保存")
+    private async Task<bool> CommitCropModeAsync(string status = "裁剪已保存")
     {
+        if (_cropCommitActive) return false;
         if (!_cropModeActive || _cropItemId is not { } itemId || _cropOriginalItem is null)
         {
             EndCropSessionVisuals();
-            return;
+            return true;
         }
-        var current = _items.SingleOrDefault(item => item.Id == itemId);
-        var changed = _cropChanged;
-        if (current is not null && _cropChanged)
+        _cropCommitActive = true;
+        var enabled = IsEnabled;
+        IsEnabled = false;
+        try
         {
-            var before = SnapshotItems();
-            ReplaceItem(BoardCropEngine.Apply(current, _cropViewport));
-            CommitHistorySnapshot(before);
-            await SaveSelectedItemsAsync();
+            var current = _items.SingleOrDefault(item => item.Id == itemId);
+            var changed = _cropChanged;
+            if (current is not null && _cropChanged)
+            {
+                var before = SnapshotItems().Select(item => item.Id == itemId ? _cropOriginalItem : item).ToArray();
+                ReplaceItem(BoardCropEngine.Apply(current, _cropViewport));
+                if (!await SaveSelectedItemsAsync()) return false;
+                CommitHistorySnapshot(before);
+            }
+            EndCropSessionVisuals();
+            RenderVisibleItems();
+            SetStatus(changed ? status : "已退出裁剪模式");
+            return true;
         }
-        EndCropSessionVisuals();
-        RenderVisibleItems();
-        SetStatus(changed ? status : "已退出裁剪模式");
+        finally { IsEnabled = enabled; _cropCommitActive = false; }
     }
 
     private void CancelCropMode()
     {
-        if (_cropOriginalItem is { } original) ReplaceItem(original);
+        if (_cropCommitActive) return;
+        if (_cropOriginalItem is { } original)
+        {
+            ReplaceItem(original);
+            if (_saveError is not null)
+            {
+                _pendingSaves.EnqueueItems(CurrentBoardId, [ToUpdate(original)]);
+                _ = FlushPendingSavesAsync("已取消裁剪");
+            }
+        }
         EndCropSessionVisuals();
         RenderVisibleItems();
         SetStatus("已取消裁剪");

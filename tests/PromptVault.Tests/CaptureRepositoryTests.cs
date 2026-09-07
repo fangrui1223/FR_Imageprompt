@@ -283,6 +283,56 @@ public sealed class CaptureRepositoryTests : IAsyncLifetime
         Assert.Equal(undoDeadline, cleared.UndoDeadlineAt);
     }
 
+    [Theory]
+    [InlineData(false, "notes")]
+    [InlineData(true, "notes")]
+    [InlineData(true, "favorite")]
+    [InlineData(false, "board")]
+    [InlineData(true, "recapture")]
+    public async Task UndoPreservesChangesMadeAfterCapture(bool duplicate, string change)
+    {
+        var hash = "guard-" + change;
+        var asset = CreateAsset(hash, createFiles: true);
+        if (duplicate) await _repository.SaveAsync(new SaveItemInput(asset, "before", "", null, []));
+        var id = await CreatePreparedPromptCaptureAsync(hash, "captured");
+        var saved = await _repository.SaveCaptureAsync(id,
+            new SaveItemInput(asset, "captured", "", null, ["captured-tag"]), DateTimeOffset.UtcNow.AddSeconds(10));
+        if (change == "notes")
+            await _repository.UpdateItemDetailsAsync(saved.ItemId, "manual", "manual-tag", "keep this note");
+        else if (change == "favorite") await _repository.SetFavoriteAsync(saved.ItemId, true);
+        else if (change == "board")
+        {
+            var board = await _repository.CreateBoardAsync("later board");
+            await _repository.AddBoardItemsAsync(board.Id, [new BoardItemPlacementInput(saved.ItemId, 0, 0, 100, 100, 0)]);
+        }
+        else
+        {
+            var later = await CreatePreparedPromptCaptureAsync(hash, "later capture");
+            await _repository.SaveCaptureAsync(later, new SaveItemInput(asset, "later capture", "", null, []),
+                DateTimeOffset.UtcNow.AddSeconds(10));
+        }
+        var beforeUndo = await _repository.FindByHashAsync(hash);
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => _repository.UndoCaptureAsync(id, DateTimeOffset.UtcNow));
+
+        Assert.Contains("已保留当前内容", error.Message);
+        Assert.Equal(beforeUndo, await _repository.FindByHashAsync(hash));
+        Assert.True(File.Exists(_repository.Paths.ToAbsolute(asset.OriginalPath)));
+        Assert.Equal(CaptureState.Saved, (await _repository.GetCaptureSessionAsync(id))!.State);
+    }
+
+    [Fact]
+    public async Task AiSummaryDoesNotInvalidateUndoGuard()
+    {
+        var id = await CreatePreparedPromptCaptureAsync("guard-summary", "prompt");
+        await _repository.SaveCaptureAsync(id, new SaveItemInput(CreateAsset("guard-summary", true), "prompt", "", null, []),
+            DateTimeOffset.UtcNow.AddSeconds(10));
+        await _repository.SetCaptureAiSummaryAsync(id, "draft available");
+        await _repository.ClearCaptureAiSummaryAsync(id);
+        await _repository.UndoCaptureAsync(id, DateTimeOffset.UtcNow);
+        Assert.Null(await _repository.FindByHashAsync("guard-summary"));
+    }
+
     private async Task<Guid> CreatePreparedPromptCaptureAsync(string hash, string prompt)
     {
         var now = DateTimeOffset.UtcNow;

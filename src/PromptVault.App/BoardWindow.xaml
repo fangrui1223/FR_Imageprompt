@@ -354,6 +354,8 @@
                Foreground="{DynamicResource StatusHintBrush}" Text="准备就绪"/>
     <TextBlock x:Name="VisibleCountText" Margin="14,0,0,0" AutomationProperties.AutomationId="BoardVisibleCountText"
                Foreground="{DynamicResource MutedTextBrush}" Text="0 项"/>
+    <Button x:Name="RetryBoardSaveButton" Margin="12,0,0,0" Padding="8,2" Visibility="Collapsed"
+            Content="重试保存" ToolTip="重试保存（Ctrl+S）" Click="RetryBoardSaveClick"/>
    </StackPanel>
   </Border>
  </Grid>

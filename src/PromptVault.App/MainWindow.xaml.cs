@@ -45,6 +45,7 @@ public partial class MainWindow : Window
     private readonly MainWindowSnapshot? _initialSnapshot;
     private readonly bool _transitionStaging;
     private readonly TaskCompletionSource _transitionReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly CancellationTokenSource _windowLifetime = new();
     private int _transitionPreparedRenderFrames;
     private bool _stagedHandoffCommitted;
     private bool _galleryRowsTransferredOut;
@@ -107,6 +108,7 @@ public partial class MainWindow : Window
         DataContext = this;
         if (!transitionStaging) VisualModeService.Apply(transparentWindow, settings.ReducedMotionEnabled);
         InitializeComponent();
+        LostMouseCapture += (_, _) => { if (_ctrlRightDragging) EndCtrlRightDrag(); };
         UpdateAppearanceResources();
         UpdateInspectorPinVisual();
         UpdateLayoutControlVisuals();
@@ -147,7 +149,9 @@ public partial class MainWindow : Window
                 try
                 {
                     await LoadCategoriesAsync();
+                    _windowLifetime.Token.ThrowIfCancellationRequested();
                     await LoadExternalFoldersAsync();
+                    _windowLifetime.Token.ThrowIfCancellationRequested();
                     ApplyInitialSnapshot();
                     UpdateLayoutControlVisuals();
                     ApplyTransparentMode(applyVisualModeResources: !transitionStaging);
@@ -220,7 +224,6 @@ public partial class MainWindow : Window
             _nextExternalPageCursor,
             _isFastBrowseIndexing,
             _rowsScrollViewer?.VerticalOffset ?? 0);
-        _galleryRowsTransferredOut = true;
         return new MainWindowSnapshot(
             Left,
             Top,
@@ -312,6 +315,8 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _windowLifetime.Cancel();
+        ReleaseHandoffInput();
         _loadCancellation?.Cancel();
         _loadCancellation?.Dispose();
         _loadCancellation = null;
@@ -408,11 +413,11 @@ public partial class MainWindow : Window
         _stagedHandoffCommitted = true;
     }
 
-    internal void CancelSnapshotTransfer() => _galleryRowsTransferredOut = false;
-
     internal void AbandonStagedWindow()
     {
-        if (_restoredGallerySession) _galleryRowsTransferredOut = true;
+        _windowLifetime.Cancel();
+        _transitionReady.TrySetCanceled(_windowLifetime.Token);
+        if (_initialSnapshot?.GallerySession is not null) _galleryRowsTransferredOut = true;
     }
 
     private async Task PrepareTransitionHandoffAsync()
@@ -435,9 +440,10 @@ public partial class MainWindow : Window
         }
     }
 
-    private Task WaitForRenderFrameAsync()
+    private async Task WaitForRenderFrameAsync()
     {
         var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var token = _windowLifetime.Token;
         EventHandler? handler = null;
         handler = (_, _) =>
         {
@@ -445,7 +451,9 @@ public partial class MainWindow : Window
             ready.TrySetResult();
         };
         CompositionTarget.Rendering += handler;
-        return ready.Task;
+        using var registration = token.Register(() => ready.TrySetCanceled(token));
+        try { await ready.Task; }
+        finally { CompositionTarget.Rendering -= handler; }
     }
 
     private static string FormatExternalFolderStatus(ExternalFolderIndexState? state)
@@ -496,6 +504,13 @@ public partial class MainWindow : Window
     }
 
     private async Task RefreshAsync(RefreshAnimationKind animationKind = RefreshAnimationKind.ContentChange)
+    {
+        if (_galleryRowsTransferredOut || _windowLifetime.IsCancellationRequested) return;
+        _activeGalleryRefresh = RefreshCoreAsync(animationKind);
+        await _activeGalleryRefresh;
+    }
+
+    private async Task RefreshCoreAsync(RefreshAnimationKind animationKind)
     {
         if (_inspectorVisible && _inspectorPromptDirty)
         {
@@ -782,9 +797,11 @@ public partial class MainWindow : Window
 
     private void QueueNextPageIfNeeded()
     {
+        if (_galleryRowsTransferredOut || _windowLifetime.IsCancellationRequested) return;
         if (_isFastBrowseIndexing || !_hasMoreItems || _isLoadingNextPage) return;
         _ = Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
         {
+            if (_galleryRowsTransferredOut || _windowLifetime.IsCancellationRequested) return;
             _rowsScrollViewer ??= FindDescendant<ScrollViewer>(RowsList);
             if (_rowsScrollViewer is not null && ShouldPrefetchNextPage(_rowsScrollViewer))
             {
@@ -1099,6 +1116,7 @@ public partial class MainWindow : Window
 
     private void RegroupIfNeeded()
     {
+        if (_galleryRowsTransferredOut || _windowLifetime.IsCancellationRequested) return;
         var width = GetGalleryAvailableWidth();
         if (Math.Abs(width - _layoutWidth) < 32) return;
         _galleryReflowCount++;

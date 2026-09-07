@@ -12,26 +12,34 @@ public partial class MainWindow
     private bool _ctrlRightDragging;
     private Point _ctrlRightStartScreen;
     private Point _ctrlRightStartWindow;
+    private DpiScale _ctrlRightDpi;
+    private bool _transparentToggleActive;
 
     private void TransparentToggleClick(object sender, RoutedEventArgs e) => ToggleTransparentMode();
 
     private async void ToggleTransparentMode()
     {
-        if (!_transparentMode && _inspectorVisible)
+        if (_transparentToggleActive || _handoffInputFrozen) return;
+        _transparentToggleActive = true;
+        try
         {
-            if (!await SaveInspectorOrdinaryFieldsAsync())
+            if (!_transparentMode && _inspectorVisible)
             {
-                InspectorTagsEditor.Focus();
-                return;
+                if (!await SaveInspectorOrdinaryFieldsAsync())
+                {
+                    InspectorTagsEditor.Focus();
+                    return;
+                }
+                if (!await ResolveDirtyPromptBeforeSwitchAsync())
+                {
+                    InspectorPromptEditor.Focus();
+                    return;
+                }
             }
-            if (!await ResolveDirtyPromptBeforeSwitchAsync())
-            {
-                InspectorPromptEditor.Focus();
-                return;
-            }
+            if (System.Windows.Application.Current is App app)
+                await app.SwitchMainWindowAsync(this, !_transparentMode);
         }
-        if (System.Windows.Application.Current is App app)
-            await app.SwitchMainWindowAsync(!_transparentMode, CreateSnapshot());
+        finally { _transparentToggleActive = false; }
     }
 
     private void ApplyTransparentMode(bool applyVisualModeResources = true)
@@ -96,10 +104,12 @@ public partial class MainWindow
     private bool TryStartCtrlRightDrag(MouseButtonEventArgs e)
     {
         if (e.ChangedButton != MouseButton.Right || !Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) return false;
+        if (WindowState != WindowState.Normal || _handoffInputFrozen) return false;
         _ctrlRightDragging = true;
         _ctrlRightStartScreen = PointToScreen(e.GetPosition(this));
         _ctrlRightStartWindow = new Point(Left, Top);
-        CaptureMouse();
+        _ctrlRightDpi = VisualTreeHelper.GetDpi(this);
+        if (!CaptureMouse()) { _ctrlRightDragging = false; return false; }
         Cursor = Cursors.SizeAll;
         e.Handled = true;
         return true;
@@ -109,19 +119,30 @@ public partial class MainWindow
     {
         ObserveEdgeIntent(e.GetPosition(this));
         if (!_ctrlRightDragging) return;
+        if (e.RightButton != MouseButtonState.Pressed || Mouse.Captured != this)
+        {
+            EndCtrlRightDrag();
+            return;
+        }
         var current = PointToScreen(e.GetPosition(this));
-        Left = _ctrlRightStartWindow.X + current.X - _ctrlRightStartScreen.X;
-        Top = _ctrlRightStartWindow.Y + current.Y - _ctrlRightStartScreen.Y;
+        var position = WindowDragGeometry.Position(_ctrlRightStartWindow, _ctrlRightStartScreen, current, _ctrlRightDpi);
+        Left = position.X;
+        Top = position.Y;
         e.Handled = true;
     }
 
     private void MainWindowPreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (!_ctrlRightDragging) return;
-        _ctrlRightDragging = false;
-        ReleaseMouseCapture();
-        Cursor = Cursors.Arrow;
+        EndCtrlRightDrag();
         e.Handled = true;
+    }
+
+    private void EndCtrlRightDrag()
+    {
+        _ctrlRightDragging = false;
+        if (Mouse.Captured == this) ReleaseMouseCapture();
+        Cursor = Cursors.Arrow;
     }
 
     private static void ApplyTextBoxChrome(TextBox textBox, bool transparent)

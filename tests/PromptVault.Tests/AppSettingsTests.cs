@@ -7,6 +7,35 @@ namespace PromptVault.Tests;
 public sealed class AppSettingsTests
 {
     [Fact]
+    public void NullMembersAreRepairedWithoutLosingLibraryAndValidPreferences()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "PromptVaultSettingsTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var path = Path.Combine(root, "settings.json");
+        try
+        {
+            File.WriteAllText(path, """
+                {"LibraryRoot":"D:\\PreservedLibrary","CaptureListeningEnabled":false,
+                 "GalleryLayouts":{"library":null,"valid":{"Spacing":19}},
+                 "ExternalFolders":[null,{"Id":null,"Name":null,"Path":null},{"Id":"valid","Path":"D:\\References"}],
+                 "GalleryAppearance":null,"BoardNotePresets":[null],"OnlineAiEndpoint":null,"OnlineAiModel":null}
+                """);
+            var settings = AppSettings.Load(path);
+            Assert.Equal("D:\\PreservedLibrary", settings.LibraryRoot);
+            Assert.False(settings.CaptureListeningEnabled);
+            Assert.NotNull(settings.GalleryLayouts["library"]);
+            Assert.Equal(19, settings.GalleryLayouts["valid"].Spacing);
+            Assert.Single(settings.ExternalFolders);
+            Assert.Equal("D:\\References", settings.ExternalFolders[0].Path);
+            Assert.All(settings.BoardNotePresets, Assert.NotNull);
+            Assert.Null(settings.RecoveryBackupPath);
+            settings.Save();
+            Assert.Equal(settings.LibraryRoot, AppSettings.Load(path).LibraryRoot);
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
     public void CorruptSettingsArePreservedBeforeDefaultsAreSaved()
     {
         var root = Path.Combine(Path.GetTempPath(), "PromptVaultSettingsTests", Guid.NewGuid().ToString("N"));

@@ -225,7 +225,8 @@ public partial class BoardWindow
     {
         BoardStatusOverlay.Opacity = 1;
         _boardStatusHideTimer.Stop();
-        _boardStatusHideTimer.Start();
+        BoardStatusOverlay.IsHitTestVisible = _saveError is not null;
+        if (_saveError is null) _boardStatusHideTimer.Start();
     }
 
     private void BoardStatusHideTimerTick(object? sender, EventArgs e)

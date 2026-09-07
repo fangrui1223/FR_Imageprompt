@@ -4,6 +4,8 @@
 
 ## 0. 当前长期实施蓝图
 
+2026-09-07 起的稳定性、数据安全、剪贴板防误收录、透明交接和画板保存回归统一按 `docs/FR_Imageprompt-M11-stability-data-safety-repair-plan.md` 执行。修复前版本已提交推送为 `48875a9`；本轮按计划中的首个未完成步骤继续并回填验证，既有 M7.2～M10.2 契约保持。
+
 FR_Imageprompt 2.0 的产品决策、分阶段实施步骤、性能验收线和跨对话进度记录统一维护在：
 
 - `docs/FR_Imageprompt-2.0-implementation-blueprint.md`

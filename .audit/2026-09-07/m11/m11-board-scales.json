@@ -1,0 +1,149 @@
+{
+  "Milestone": "M8-00-pureref-board-baseline",
+  "GeneratedAt": "2026-09-07T20:30:13.7439822+08:00",
+  "DataKind": "synthetic",
+  "Environment": {
+    "Runtime": ".NET 10.0.9",
+    "OS": "Microsoft Windows 10.0.26200",
+    "Architecture": "X64"
+  },
+  "FixtureContract": {
+    "Sizes": [
+      20,
+      500,
+      5000
+    ],
+    "AspectRatios": [
+      "1:4",
+      "1:2",
+      "2:3",
+      "1:1",
+      "3:2",
+      "2:1",
+      "4:1"
+    ],
+    "HasRotation": true,
+    "HasCrop": true,
+    "HasTwoGroups": true,
+    "HasTwoNotes": true,
+    "IntentionallyMissingUniqueSourceCount": 1,
+    "UsesFixedSeed": true
+  },
+  "Fixtures": [
+    {
+      "RelativeRoot": "board-20",
+      "BoardName": "M8 \u57FA\u7EBF\u753B\u677F 20",
+      "LibraryItemCount": 8,
+      "BoardItemCount": 20,
+      "GroupCount": 2,
+      "NoteCount": 2,
+      "BackgroundStyle": "blueprint",
+      "AspectRatios": [
+        "1:1",
+        "1:2",
+        "1:4",
+        "2:1",
+        "2:3",
+        "3:2",
+        "4:1"
+      ],
+      "RotatedItemCount": 16,
+      "CroppedItemCount": 1,
+      "IntentionallyMissingUniqueSourceCount": 1,
+      "SeedMs": 1096.756,
+      "RestartDocumentLoadMs": 9.922,
+      "ViewportQueries": 301,
+      "ViewportQueryP50Ms": 0.0006,
+      "ViewportQueryP95Ms": 0.0008,
+      "ViewportQueryP99Ms": 0.0009,
+      "ViewportQueryMaxMs": 3.1352,
+      "MaximumRealizedCandidateCount": 11,
+      "Passed": true
+    },
+    {
+      "RelativeRoot": "board-500",
+      "BoardName": "M8 \u57FA\u7EBF\u753B\u677F 500",
+      "LibraryItemCount": 8,
+      "BoardItemCount": 500,
+      "GroupCount": 2,
+      "NoteCount": 2,
+      "BackgroundStyle": "blueprint",
+      "AspectRatios": [
+        "1:1",
+        "1:2",
+        "1:4",
+        "2:1",
+        "2:3",
+        "3:2",
+        "4:1"
+      ],
+      "RotatedItemCount": 416,
+      "CroppedItemCount": 45,
+      "IntentionallyMissingUniqueSourceCount": 1,
+      "SeedMs": 192.205,
+      "RestartDocumentLoadMs": 2.701,
+      "ViewportQueries": 301,
+      "ViewportQueryP50Ms": 0.013,
+      "ViewportQueryP95Ms": 0.0163,
+      "ViewportQueryP99Ms": 0.0177,
+      "ViewportQueryMaxMs": 0.1301,
+      "MaximumRealizedCandidateCount": 34,
+      "Passed": true
+    },
+    {
+      "RelativeRoot": "board-5000",
+      "BoardName": "M8 \u57FA\u7EBF\u753B\u677F 5,000",
+      "LibraryItemCount": 8,
+      "BoardItemCount": 5000,
+      "GroupCount": 2,
+      "NoteCount": 2,
+      "BackgroundStyle": "blueprint",
+      "AspectRatios": [
+        "1:1",
+        "1:2",
+        "1:4",
+        "2:1",
+        "2:3",
+        "3:2",
+        "4:1"
+      ],
+      "RotatedItemCount": 4166,
+      "CroppedItemCount": 454,
+      "IntentionallyMissingUniqueSourceCount": 1,
+      "SeedMs": 708.278,
+      "RestartDocumentLoadMs": 38.289,
+      "ViewportQueries": 301,
+      "ViewportQueryP50Ms": 0.0276,
+      "ViewportQueryP95Ms": 0.0317,
+      "ViewportQueryP99Ms": 0.0342,
+      "ViewportQueryMaxMs": 1.1289,
+      "MaximumRealizedCandidateCount": 34,
+      "Passed": true
+    }
+  ],
+  "UiFixture": {
+    "RelativeRoot": "board-20",
+    "SettingsFile": "m11-5000-settings.json",
+    "BoardName": "M8 \u57FA\u7EBF\u753B\u677F 20",
+    "BoardItemCount": 20,
+    "CaptureListeningEnabled": false,
+    "CaptureQuickEditEnabled": false,
+    "OnlineAiEnabled": false
+  },
+  "Gates": {
+    "ViewportQueryP95LimitMs": 0.1,
+    "MaximumRealizedCandidateLimit": 300,
+    "Passed": true
+  },
+  "DataSafety": {
+    "SyntheticFixturesOnly": true,
+    "RealLibraryOpened": false,
+    "RealLibraryModified": false,
+    "RealLibraryDeleted": false,
+    "ClipboardUsed": false,
+    "NetworkUsed": false,
+    "ApiKeyUsed": false,
+    "AbsolutePathsIncludedInReport": false
+  },
+  "Passed": true
+}

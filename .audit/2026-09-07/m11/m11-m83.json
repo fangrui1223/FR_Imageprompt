@@ -1,0 +1,65 @@
+{
+  "Milestone": "M8.3-image-transform-right-drag",
+  "GeneratedAt": "2026-09-07T20:29:18.4607684+08:00",
+  "DataKind": "synthetic",
+  "Passed": true,
+  "Display": {
+    "PhysicalWidth": 3840,
+    "PhysicalHeight": 2560,
+    "AppliedDpi": 144,
+    "DpiScale": 1.5,
+    "ActualWidth": 2573.333333333333,
+    "ActualHeight": 1720,
+    "Zoom": 7.030603174603174
+  },
+  "ImageHandle": {
+    "HitDip": 28,
+    "HandleHit": true,
+    "LegacyBlankClassification": true,
+    "BlankGestureBlocked": true,
+    "SingleGestureLocked": true,
+    "SingleSelectionPersisted": true,
+    "SingleScaled": true,
+    "SingleBefore": {
+      "X": -87.1247736407056,
+      "Y": -83.3019877792002,
+      "Width": 323.51192682854423,
+      "Height": 323.51192682854423
+    },
+    "SingleAfter": {
+      "X": -91.81853876731759,
+      "Y": -87.9957529058122,
+      "Width": 328.2056919551562,
+      "Height": 328.2056919551562
+    },
+    "SingleGestureCleared": true,
+    "MultiSelectionPersisted": true,
+    "MultiScaled": true,
+    "MultiGestureCleared": true,
+    "DatabaseWritesDuringSingleGesture": 0
+  },
+  "RightDragPolicy": {
+    "PlainWindowedPans": true,
+    "PlainMaximizedPans": true,
+    "PlainNeverMovesWindow": true,
+    "CtrlWindowedMovesWindow": true,
+    "CtrlMaximizedMovesWindow": true,
+    "CtrlNeverPans": true
+  },
+  "Regression": {
+    "NotesUnchanged": true,
+    "CropFieldsUnchanged": true,
+    "DatabaseSchemaChanged": false,
+    "GalleryPerformanceLayerTouched": false
+  },
+  "DataSafety": {
+    "SyntheticFixtureOnly": true,
+    "CaptureListeningEnabled": false,
+    "CaptureQuickEditEnabled": false,
+    "OnlineAiEnabled": false,
+    "RealLibraryOpened": false,
+    "ClipboardUsed": false,
+    "NetworkUsed": false,
+    "ApiKeyUsed": false
+  }
+}

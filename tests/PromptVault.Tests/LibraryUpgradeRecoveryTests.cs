@@ -97,7 +97,7 @@ public sealed class LibraryUpgradeRecoveryTests
             Assert.NotNull(resumed.LastUpgradeRecovery);
             Assert.True(resumed.LastUpgradeRecovery!.Recovered);
             Assert.True(resumed.LastUpgradeRecovery.ResumedValidation);
-            Assert.Equal(12L, await ExecuteScalarAsync(
+            Assert.Equal(13L, await ExecuteScalarAsync(
                 fixture.Paths.Database,
                 "SELECT version FROM schema_info;"));
             Assert.Equal(LibraryUpgradePhase.Completed, ReadPhase(fixture.Paths.UpgradeState));

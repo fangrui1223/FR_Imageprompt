@@ -20,6 +20,15 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        if (args.Contains("--initialize-m11-fixture"))
+        {
+            var root = Path.GetFullPath(args[0]);
+            if (!root.Contains($"{Path.DirectorySeparatorChar}.m10-isolated{Path.DirectorySeparatorChar}m11-", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Requires a new M11 synthetic fixture.");
+            new LibraryRepository(new LibraryPaths(root)).InitializeAsync().GetAwaiter().GetResult();
+            SqliteConnection.ClearAllPools();
+            return;
+        }
         if (args.Contains("--board-history"))
         {
             BoardHistoryProbe.Run(args[0]);
@@ -202,10 +211,13 @@ internal static class Program
         await coordinator.SaveAsync(duplicate, "duplicate prompt", "duplicate notes", null, ["duplicate"]);
         await repo.UpdateItemDetailsAsync(first.ItemId, "newer manual prompt", "newer", "newer manual notes");
         var before = await repo.GetGalleryItemAsync(first.ItemId);
-        await repo.UndoCaptureAsync(duplicate.SessionId, DateTimeOffset.UtcNow);
+        string? conflict = null;
+        try { await repo.UndoCaptureAsync(duplicate.SessionId, DateTimeOffset.UtcNow); }
+        catch (InvalidOperationException ex) { conflict = ex.Message; }
         var after = await repo.GetGalleryItemAsync(first.ItemId);
         return new { beforePrompt = before?.Prompt, afterPrompt = after?.Prompt, beforeNotes = before?.Notes,
-            afterNotes = after?.Notes, bugReproduced = before?.Prompt == "newer manual prompt" && after?.Prompt == "original prompt" };
+            afterNotes = after?.Notes, conflict, newerEditPreserved = conflict is not null && before == after,
+            bugReproduced = before?.Prompt == "newer manual prompt" && after?.Prompt == "original prompt" };
     }
 
     private static async Task<object> NullLayoutAsync(string name)

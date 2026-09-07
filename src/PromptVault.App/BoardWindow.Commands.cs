@@ -82,7 +82,7 @@ public partial class BoardWindow
     {
         var initialTarget = ResolveRightTarget(e.OriginalSource as DependencyObject);
         if (_cropModeActive && initialTarget.TargetId != _cropItemId)
-            await CommitCropModeAsync("裁剪已保存");
+            if (!await CommitCropModeAsync()) return;
         var point = e.GetPosition(BoardViewport);
         _rightPointerStartScreen = point;
         _rightGesture = new BoardRightGestureClassifier(point.X, point.Y);
@@ -222,6 +222,25 @@ public partial class BoardWindow
         BoardCommandPolicy.CanExecute(id, CurrentCommandState(context));
 
     private async Task ExecuteBoardCommandAsync(BoardCommandId id)
+    {
+        if (_boardBoundaryActive || _boardCommandActive) return;
+        _boardCommandActive = true;
+        try
+        {
+            if (_pendingSaves.HasPending && !await FlushPendingSavesAsync()) return;
+            await ExecuteBoardCommandCoreAsync(id);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warning("board-command", "Board command failed; current content and history retained.", ex);
+            SetStatus($"操作未完成：{ex.Message}");
+        }
+        finally { _boardCommandActive = false; }
+    }
+
+    private bool _boardCommandActive;
+
+    private async Task ExecuteBoardCommandCoreAsync(BoardCommandId id)
     {
         var context = CurrentBoardCommandContext();
         if (!CanExecuteBoardCommand(id, context)) return;

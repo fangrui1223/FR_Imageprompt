@@ -205,8 +205,14 @@ public partial class App : System.Windows.Application
             _externalIndex.Start(_settings.ExternalFolders);
             var window = CreateMainWindow(false, null);
             MainWindow = window;
-            _tray = new TrayService(window, () => Shutdown());
+            _tray = new TrayService(window, () => _ = RequestExitAsync());
             window.Show();
+            if (GetOptionValue(e.Args, "--m11-stability-smoke") is { } m11Report)
+            {
+                var passed = await RunM11StabilitySmokeAsync(m11Report);
+                Shutdown(passed ? 0 : 2);
+                return;
+            }
             if (m102TransparentHandoffSmokeReport is not null)
             {
                 var passed = await RunM102TransparentHandoffStressAsync(
@@ -387,20 +393,38 @@ public partial class App : System.Windows.Application
     }
 
     private bool _mainWindowSwitchActive;
+    private bool _exitActive;
 
-    internal async Task<bool> SwitchMainWindowAsync(bool transparent, MainWindowSnapshot snapshot)
+    private async Task RequestExitAsync()
+    {
+        if (_exitActive || _mainWindowSwitchActive) return;
+        _exitActive = true;
+        var boards = Windows.OfType<BoardWindow>().Select(window => (Window: window, Enabled: window.IsEnabled)).ToArray();
+        foreach (var entry in boards) entry.Window.IsEnabled = false;
+        try
+        {
+            foreach (var entry in boards)
+                if (!await entry.Window.PrepareForApplicationExitAsync()) return;
+            foreach (var entry in boards) entry.Window.ApproveApplicationExit();
+            Shutdown();
+        }
+        finally
+        {
+            foreach (var entry in boards) if (entry.Window.IsVisible) entry.Window.IsEnabled = entry.Enabled;
+            _exitActive = false;
+        }
+    }
+
+    internal async Task<bool> SwitchMainWindowAsync(MainWindow source, bool transparent)
     {
         if (_repository is null || _capture is null || _settings is null || _externalIndex is null) return false;
-        if (_mainWindowSwitchActive)
-        {
-            (MainWindow as MainWindow)?.CancelSnapshotTransfer();
-            return false;
-        }
+        if (_mainWindowSwitchActive || _exitActive || !ReferenceEquals(MainWindow, source)) return false;
         _mainWindowSwitchActive = true;
         var oldWindow = MainWindow as MainWindow;
         MainWindow? next = null;
         try
         {
+            var snapshot = await source.BeginSnapshotTransferAsync();
             next = CreateMainWindow(transparent, snapshot, transitionStaging: true);
             next.Opacity = 0;
             next.IsEnabled = false;
@@ -494,7 +518,7 @@ public partial class App : System.Windows.Application
                             throw new InvalidOperationException("M10.2 交接方向状态异常。");
                         var snapshot = await source.PrepareM102HandoffProbeAsync(settings, position);
                         var clock = System.Diagnostics.Stopwatch.StartNew();
-                        var switched = await SwitchMainWindowAsync(targetTransparent, snapshot);
+                        var switched = await SwitchMainWindowAsync(source, targetTransparent);
                         clock.Stop();
                         if (!switched || MainWindow is not PromptVault.App.MainWindow replacement)
                             throw new InvalidOperationException("M10.2 窗口交接失败。");
