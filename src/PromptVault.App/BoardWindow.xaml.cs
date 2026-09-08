@@ -50,8 +50,6 @@ public partial class BoardWindow : Window
     private bool _noteDragActive;
     private BoardSceneSnapshot? _noteGestureSnapshot;
     private Point _dragStartWorld;
-    private Dictionary<long, (double X, double Y)> _dragOrigins = [];
-    private (double X, double Y) _noteDragOrigin;
     private BoardNoteRecord? _noteResizeOrigin;
     private BoardResizeHandle _noteResizeHandle;
     private double _noteResizeDeltaX;
@@ -65,7 +63,6 @@ public partial class BoardWindow : Window
     private HashSet<long> _marqueeBaseline = [];
     private HashSet<long> _marqueeBaselineNoteIds = [];
     private bool _marqueeActive;
-    private IReadOnlyList<BoardItemRecord>? _pendingHistorySnapshot;
     private bool _loadingBoard;
     private bool _persistViewQueued;
     private CancellationTokenSource? _viewSaveCancellation;
@@ -88,7 +85,7 @@ public partial class BoardWindow : Window
         IReadOnlyList<BoardItemRecord> Items,
         IReadOnlyList<BoardNoteRecord> Notes);
 
-    private long? SingleSelectedNoteId => _selectedNoteIds.Count == 1
+    private long? SingleSelectedNoteId => _selectedNoteIds.Count == 1 && _selectedIds.Count == 0
         ? _selectedNoteIds.First()
         : null;
 
@@ -103,6 +100,7 @@ public partial class BoardWindow : Window
         _workspace = workspace;
         _settings = settings;
         CurrentBoardId = boardId;
+        _referenceLocked = _settings.ReferenceLockedBoards.Contains(ReferenceLockKey);
         InitializeComponent();
         ApplyTopmostPreference(_settings.BoardAlwaysOnTop);
     }
@@ -119,6 +117,7 @@ public partial class BoardWindow : Window
     {
         if (requests.Count == 0) return;
         await EnsureBoardLoadedAsync();
+        if (RejectReferenceMutation()) return;
         if (_pendingSaves.HasPending && !await FlushPendingSavesAsync()) return;
         PushUndoSnapshot();
         var center = BoardViewportEngine.ScreenToWorld(
@@ -190,6 +189,15 @@ public partial class BoardWindow : Window
     private async Task LoadBoardAsync(long boardId)
     {
         if (_boardBoundaryActive) return;
+        if (_workspace.ActivateOtherWindow(boardId, this))
+        {
+            var loading = _loadingBoard;
+            _loadingBoard = true;
+            BoardSelector.SelectedItem = _boards.FirstOrDefault(board => board.Id == CurrentBoardId);
+            _loadingBoard = loading;
+            SetStatus("已切换到该画板现有窗口");
+            return;
+        }
         _boardBoundaryActive = true;
         var enabled = IsEnabled;
         IsEnabled = false;
@@ -227,6 +235,7 @@ public partial class BoardWindow : Window
         if (document is null) return;
         var previous = CurrentBoardId;
         CurrentBoardId = boardId;
+        _referenceLocked = _settings.ReferenceLockedBoards.Contains(ReferenceLockKey);
         if (previous != boardId) _workspace.BoardChanged(this, previous, boardId);
         Title = $"FR_Imageprompt · {document.Board.Name}";
         _items.Clear();
@@ -252,6 +261,7 @@ public partial class BoardWindow : Window
         RenderVisibleItems();
         UpdateUndoButtons();
         SetStatus($"已恢复“{document.Board.Name}”");
+        UpdateReferenceLockUi();
     }
 
     private async void BoardSelectorChanged(object sender, SelectionChangedEventArgs e)
@@ -396,6 +406,7 @@ public partial class BoardWindow : Window
 
     private void UpdateItemElement(FrameworkElement element, BoardItemRecord item)
     {
+        element.Cursor = _referenceLocked ? Cursors.Arrow : Cursors.SizeAll;
         element.Width = item.Width;
         element.Height = item.Height;
         Canvas.SetLeft(element, item.X);
@@ -413,7 +424,7 @@ public partial class BoardWindow : Window
     {
         var showBorder = BoardSelectionVisualPolicy.ShowIndividualImageBorder(
             _selectedIds.Contains(itemId),
-            _selectedIds.Count);
+            _selectedIds.Count + _selectedNoteIds.Count);
         if (!showBorder)
         {
             border.BorderThickness = new Thickness(0);
@@ -514,6 +525,7 @@ public partial class BoardWindow : Window
 
     private void UpdateNoteVisual(BoardNoteVisual visual, BoardNoteRecord note)
     {
+        visual.Root.Cursor = _referenceLocked ? Cursors.Arrow : Cursors.SizeAll;
         var style = BoardNoteStyleCodec.Decode(note.ColorStyle);
         var selected = _selectedNoteIds.Contains(note.Id);
         var editing = _editingNoteId == note.Id;
@@ -550,7 +562,7 @@ public partial class BoardWindow : Window
         visual.Editor.IsHitTestVisible = editing;
         visual.Editor.Cursor = editing ? Cursors.IBeam : Cursors.SizeAll;
         foreach (var resize in visual.ResizeHandles)
-            resize.Visibility = selected ? Visibility.Visible : Visibility.Collapsed;
+            resize.Visibility = selected && !_referenceLocked && _selectedIds.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         if (!editing && !visual.Editor.IsKeyboardFocusWithin && visual.Editor.Text != note.Text)
             visual.Editor.Text = note.Text;
     }
@@ -828,9 +840,9 @@ public partial class BoardWindow : Window
         {
             if (!await CommitCropModeAsync()) return;
         }
-        _selectedNoteIds.Clear();
         if (e.ClickCount > 1)
         {
+            _selectedNoteIds.Clear();
             _selectedIds.Clear();
             _selectedIds.Add(id);
             RenderVisibleItems();
@@ -838,13 +850,8 @@ public partial class BoardWindow : Window
             e.Handled = true;
             return;
         }
-        var selection = BoardInteractionEngine.SelectItem(
-            _items,
-            _selectedIds,
-            id,
-            Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
-        _selectedIds.Clear();
-        _selectedIds.UnionWith(selection);
+        SelectImageForPointer(id, Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
+        if (!_selectedIds.Contains(id)) { RenderVisibleItems(); e.Handled = true; return; }
         BeginItemPointerGesture(border, id, e);
     }
 
@@ -858,7 +865,8 @@ public partial class BoardWindow : Window
 
     private void BeginItemPointerGesture(UIElement captureTarget, long id, MouseButtonEventArgs e)
     {
-        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        if (_referenceLocked) { RenderVisibleItems(); e.Handled = true; return; }
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && _selectedNoteIds.Count == 0)
         {
             _dragItemId = id;
             BeginRotationGesture(ToWorld(e.GetPosition(BoardViewport)));
@@ -871,10 +879,7 @@ public partial class BoardWindow : Window
         _itemPointerStartScreen = e.GetPosition(BoardViewport);
         _itemDragActive = false;
         _dragStartWorld = ToWorld(e.GetPosition(BoardViewport));
-        _dragOrigins = _items
-            .Where(item => _selectedIds.Contains(item.Id))
-            .ToDictionary(item => item.Id, item => (item.X, item.Y));
-        _pendingHistorySnapshot = null;
+        BeginSelectionTranslation();
         captureTarget.CaptureMouse();
         RenderVisibleItems();
         e.Handled = true;
@@ -907,19 +912,11 @@ public partial class BoardWindow : Window
                     screen.X,
                     screen.Y)) return;
             _itemDragActive = true;
-            _pendingHistorySnapshot = SnapshotItems();
         }
         var current = ToWorld(screen);
         var dx = current.X - _dragStartWorld.X;
         var dy = current.Y - _dragStartWorld.Y;
-        for (var index = 0; index < _items.Count; index++)
-        {
-            var item = _items[index];
-            if (!_dragOrigins.TryGetValue(item.Id, out var origin)) continue;
-            _items[index] = item with { X = origin.X + dx, Y = origin.Y + dy };
-        }
-        BoardViewportEngine.RefreshBounds(_items, _selectedIds);
-        RenderVisibleItems();
+        ApplySelectionTranslation(dx, dy);
     }
 
     private async void BoardItemMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -942,13 +939,8 @@ public partial class BoardWindow : Window
             e.Handled = true;
             return;
         }
-        if (_itemDragActive && _pendingHistorySnapshot is { } before && HasLayoutChanged(before, _items))
-        {
-            CommitHistorySnapshot(before);
-            await SaveSelectedItemsAsync();
-        }
+        await CompleteSelectionTranslationAsync();
         _itemDragActive = false;
-        _pendingHistorySnapshot = null;
         e.Handled = true;
     }
 
@@ -957,7 +949,7 @@ public partial class BoardWindow : Window
         if (sender is not Border { Tag: BoardNoteVisualTag { NoteId: var id } } root
             || FindParent<Thumb>(e.OriginalSource as DependencyObject) is not null) return;
         if (_cropModeActive && !await CommitCropModeAsync()) return;
-        if (e.ClickCount > 1)
+        if (e.ClickCount > 1 && !_referenceLocked)
         {
             BeginNoteEditing(id);
             e.Handled = true;
@@ -966,20 +958,8 @@ public partial class BoardWindow : Window
         if (_editingNoteId == id) return;
         var note = _notes.SingleOrDefault(candidate => candidate.Id == id);
         if (note is null) return;
-        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
-        {
-            if (!_selectedNoteIds.Add(id)) _selectedNoteIds.Remove(id);
-        }
-        else
-        {
-            if (!_selectedNoteIds.Contains(id) || _selectedNoteIds.Count > 1)
-            {
-                _selectedNoteIds.Clear();
-                _selectedNoteIds.Add(id);
-            }
-            _selectedIds.Clear();
-        }
-        if (!_selectedNoteIds.Contains(id))
+        SelectNoteForPointer(id, Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
+        if (_referenceLocked || !_selectedNoteIds.Contains(id))
         {
             RenderVisibleItems();
             e.Handled = true;
@@ -989,8 +969,7 @@ public partial class BoardWindow : Window
         _notePointerStartScreen = e.GetPosition(BoardViewport);
         _noteDragActive = false;
         _dragStartWorld = ToWorld(e.GetPosition(BoardViewport));
-        _noteDragOrigin = (note.X, note.Y);
-        _noteGestureSnapshot = SnapshotScene();
+        BeginSelectionTranslation();
         root.CaptureMouse();
         RenderVisibleItems();
         e.Handled = true;
@@ -1014,12 +993,7 @@ public partial class BoardWindow : Window
         var current = ToWorld(screen);
         var dx = current.X - _dragStartWorld.X;
         var dy = current.Y - _dragStartWorld.Y;
-        if (_noteGestureSnapshot is { } snapshot)
-        {
-            foreach (var original in snapshot.Notes.Where(candidate => _selectedNoteIds.Contains(candidate.Id)))
-                ReplaceNote(original with { X = original.X + dx, Y = original.Y + dy });
-        }
-        RenderVisibleItems();
+        ApplySelectionTranslation(dx, dy);
     }
 
     private async void NoteHeaderMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -1027,11 +1001,7 @@ public partial class BoardWindow : Window
         if (sender is Border header) header.ReleaseMouseCapture();
         if (_dragNoteId is not { } id) return;
         _dragNoteId = null;
-        if (_noteDragActive)
-        {
-            if (_noteGestureSnapshot is { } before) CommitSceneHistorySnapshot(before);
-            await SaveSelectedNotesAsync("便签位置已保存");
-        }
+        await CompleteSelectionTranslationAsync();
         _noteDragActive = false;
         _noteGestureSnapshot = null;
         e.Handled = true;
@@ -1039,6 +1009,7 @@ public partial class BoardWindow : Window
 
     private void NoteResizeStarted(object sender, DragStartedEventArgs e)
     {
+        if (_referenceLocked) return;
         if (sender is not Thumb { Tag: NoteResizeHandleTag tag }) return;
         if (!_selectedNoteIds.Contains(tag.NoteId))
         {
@@ -1182,14 +1153,20 @@ public partial class BoardWindow : Window
 
     private async Task DeleteSelectionAsync()
     {
-        if (_selectedIds.Count == 0) return;
-        PushUndoSnapshot();
-        var ids = _selectedIds.ToArray();
-        await _repository.DeleteBoardItemsAsync(CurrentBoardId, ids);
+        if (_selectedIds.Count + _selectedNoteIds.Count == 0) return;
+        var before = SnapshotScene();
+        var count = _selectedIds.Count + _selectedNoteIds.Count;
+        await _repository.ReplaceBoardSceneAsync(CurrentBoardId,
+            _items.Where(item => !_selectedIds.Contains(item.Id)).ToArray(),
+            _notes.Where(note => !_selectedNoteIds.Contains(note.Id)).ToArray());
         _items.RemoveAll(item => _selectedIds.Contains(item.Id));
+        _notes.RemoveAll(note => _selectedNoteIds.Contains(note.Id));
+        BoardViewportEngine.Invalidate(_items);
         _selectedIds.Clear();
+        _selectedNoteIds.Clear();
+        CommitSceneHistorySnapshot(before);
         RenderVisibleItems();
-        SetStatus($"已从画板移除 {ids.Length} 项，图库原图未改动");
+        SetStatus($"已从画板移除 {count} 项，图库原图未改动");
     }
 
     private void PushUndoSnapshot() => CommitSceneHistorySnapshot(SnapshotScene());
@@ -1247,6 +1224,7 @@ public partial class BoardWindow : Window
         _notes.AddRange(snapshot.Notes);
         BoardViewportEngine.Invalidate(_items);
         _selectedIds.RemoveWhere(id => _items.All(item => item.Id != id));
+        _selectedNoteIds.RemoveWhere(id => _notes.All(note => note.Id != id));
         RenderVisibleItems();
         UpdateUndoButtons();
         SetStatus(status);
@@ -1255,8 +1233,8 @@ public partial class BoardWindow : Window
     private void UpdateUndoButtons()
     {
         if (UndoButton is null) return;
-        UndoButton.IsEnabled = _undo.Count > 0;
-        RedoButton.IsEnabled = _redo.Count > 0;
+        UndoButton.IsEnabled = !_referenceLocked && _undo.Count > 0;
+        RedoButton.IsEnabled = !_referenceLocked && _redo.Count > 0;
     }
 
     private void FitBoardClick(object sender, RoutedEventArgs e)
@@ -1302,7 +1280,7 @@ public partial class BoardWindow : Window
 
     private async void BackgroundSelectorChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_loadingBoard || BackgroundSelector.SelectedValue is not string style) return;
+        if (_loadingBoard || _referenceLocked || BackgroundSelector.SelectedValue is not string style) return;
         try
         {
             await _repository.UpdateBoardBackgroundAsync(CurrentBoardId, style);
@@ -1537,6 +1515,12 @@ public partial class BoardWindow : Window
             e.Handled = true;
             return;
         }
+        if (e.Key == Key.L && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            if (!e.IsRepeat) _ = ExecuteBoardCommandAsync(BoardCommandId.ToggleReferenceLock);
+            e.Handled = true;
+            return;
+        }
         if (textEditing)
         {
             if (e.Key == Key.Escape)
@@ -1583,7 +1567,7 @@ public partial class BoardWindow : Window
         var effectiveKey = e.Key == Key.System ? e.SystemKey : e.Key;
         if (effectiveKey == Key.Q && Keyboard.Modifiers == ModifierKeys.Alt)
         {
-            ShowTopBarFromKeyboard();
+            ShowTopBarFromKeyboard(e.IsRepeat);
             e.Handled = true;
             return;
         }
@@ -1647,17 +1631,12 @@ public partial class BoardWindow : Window
         }
         else if (e.Key == Key.Delete)
         {
-            _ = ExecuteBoardCommandAsync(
-                _selectedNoteIds.Count > 0 ? BoardCommandId.DeleteNote : BoardCommandId.RemoveSelection);
+            _ = ExecuteBoardCommandAsync(BoardCommandId.RemoveSelection);
             e.Handled = true;
         }
         else if (e.Key == Key.A && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
-            _selectedIds.Clear();
-            _selectedNoteIds.Clear();
-            foreach (var note in _notes) _selectedNoteIds.Add(note.Id);
-            foreach (var item in _items) _selectedIds.Add(item.Id);
-            RenderVisibleItems();
+            _ = ExecuteBoardCommandAsync(BoardCommandId.SelectAll);
             e.Handled = true;
         }
     }
@@ -1671,7 +1650,7 @@ public partial class BoardWindow : Window
 
     private void BoardWindowDragOver(object sender, System.Windows.DragEventArgs e)
     {
-        e.Effects = e.Data.GetDataPresent(BoardItemIdsDragFormat, false)
+        e.Effects = !_referenceLocked && e.Data.GetDataPresent(BoardItemIdsDragFormat, false)
             ? System.Windows.DragDropEffects.Copy
             : System.Windows.DragDropEffects.None;
         e.Handled = true;

@@ -28,6 +28,10 @@ public partial class BoardWindow
 
     protected override void OnClosed(EventArgs e)
     {
+        _boardTopRevealTimer.Stop();
+        _boardTopHideTimer.Stop();
+        _boardStatusHideTimer.Stop();
+        _inspectorCloseTimer.Stop();
         Activated -= BoardWindowActivatedForHotKey;
         Deactivated -= BoardWindowDeactivatedForHotKey;
         UnregisterCtrlSpaceHotKey();
@@ -46,6 +50,7 @@ public partial class BoardWindow
         IntPtr lParam,
         ref bool handled)
     {
+        HandleChromePointerMessage(message);
         if (message == WmHotKey && wParam.ToInt32() == CtrlSpaceHotKeyId)
         {
             handled = true;
@@ -69,8 +74,12 @@ public partial class BoardWindow
     private void BoardWindowActivatedForHotKey(object? sender, EventArgs e) =>
         RegisterCtrlSpaceHotKey();
 
-    private void BoardWindowDeactivatedForHotKey(object? sender, EventArgs e) =>
+    private void BoardWindowDeactivatedForHotKey(object? sender, EventArgs e)
+    {
+        _boardTopRevealTimer.Stop();
+        _pointerInsideTopEdge = false;
         UnregisterCtrlSpaceHotKey();
+    }
 
     private void RegisterCtrlSpaceHotKey()
     {

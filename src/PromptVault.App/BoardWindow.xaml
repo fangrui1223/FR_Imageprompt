@@ -7,6 +7,7 @@
  FontFamily="{StaticResource UiFontFamily}"
  AutomationProperties.AutomationId="BoardWindow" AutomationProperties.Name="FR_Imageprompt 自由画板"
  Loaded="BoardWindowLoaded" PreviewKeyDown="BoardWindowPreviewKeyDown" PreviewMouseMove="BoardWindowPreviewMouseMove"
+ PreviewMouseDown="BoardWindowPreviewMouseDown"
  StateChanged="BoardWindowStateChanged"
  AllowDrop="True" DragOver="BoardWindowDragOver" Drop="BoardWindowDrop">
  <shell:WindowChrome.WindowChrome>
@@ -161,7 +162,7 @@
    <Border.RenderTransform><TranslateTransform x:Name="BoardTopBarTranslate" Y="-80"/></Border.RenderTransform>
    <Grid>
     <Grid.ColumnDefinitions>
-     <ColumnDefinition Width="230"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+     <ColumnDefinition Width="*" MinWidth="100" MaxWidth="230"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
     </Grid.ColumnDefinitions>
     <ComboBox x:Name="BoardSelector" Height="38" AutomationProperties.AutomationId="BoardSelector"
               SelectionChanged="BoardSelectorChanged">
@@ -176,7 +177,7 @@
       <Button Style="{StaticResource BoardToolbarButtonStyle}" Width="62" Height="38" Content="全部" ToolTip="显示完整画板 (Ctrl+Space)"
               AutomationProperties.AutomationId="BoardFitButton" Click="FitBoardClick"/>
     </StackPanel>
-    <Border Grid.Column="2" Margin="12,0" Background="Transparent" MouseLeftButtonDown="TopBarTitleMouseLeftButtonDown">
+    <Border Grid.Column="2" Margin="12,0" Background="Transparent" ClipToBounds="True" MouseLeftButtonDown="TopBarTitleMouseLeftButtonDown">
      <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
       <TextBlock x:Name="BoardHintText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                  Foreground="{DynamicResource MutedTextBrush}" Text="Space 聚焦 · 角点缩放 · 右拖平移 · Ctrl+右拖移动窗口"/>
@@ -187,6 +188,9 @@
      </StackPanel>
     </Border>
     <StackPanel Grid.Column="3" Orientation="Horizontal">
+      <ToggleButton x:Name="ReferenceLockButton" Style="{StaticResource BoardToolbarToggleStyle}" Width="48" Height="38" Margin="0,0,6,0" Content="锁定"
+                    ToolTip="参考锁定：保护图片和便签，允许浏览 (Ctrl+L)" Click="ReferenceLockClick"
+                    AutomationProperties.AutomationId="BoardReferenceLock"/>
       <Button Style="{StaticResource BoardToolbarButtonStyle}" Width="58" Height="38" Margin="0,0,6,0" Content="属性" ToolTip="临时属性 (I)"
               AutomationProperties.AutomationId="BoardInspectorButton" Click="InspectorButtonClick"/>
       <ToggleButton x:Name="TopmostButton" Style="{StaticResource BoardToolbarToggleStyle}" Width="58" Height="38" Margin="0,0,6,0" Content="置顶"
@@ -198,6 +202,11 @@
     </StackPanel>
    </Grid>
   </Border>
+
+  <Button x:Name="ReferenceLockBadge" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+          Margin="14,0,14,12" Padding="10,5" Content="参考锁定 · 解锁" Click="ReferenceLockClick"
+          ToolTip="图片和便签已锁定；可缩放、平移和浏览。Ctrl+L 解锁。"
+          AutomationProperties.AutomationId="BoardReferenceLockBadge"/>
 
   <Border x:Name="BoardInspector" Width="360" MaxHeight="760" Margin="0,82,16,40"
           HorizontalAlignment="Right" VerticalAlignment="Stretch" Visibility="Collapsed" Padding="16"

@@ -49,7 +49,17 @@ public enum BoardCommandId
     ToggleTopmost,
     ShowTopBar,
     ShowSettings,
-    ShowShortcuts
+    ShowShortcuts,
+    SelectAll,
+    ToggleReferenceLock,
+    AlignImagesLeft,
+    AlignImagesCenter,
+    AlignImagesRight,
+    AlignImagesTop,
+    AlignImagesMiddle,
+    AlignImagesBottom,
+    DistributeImagesHorizontally,
+    DistributeImagesVertically
 }
 
 public enum BoardCommandContextKind
@@ -82,19 +92,36 @@ public readonly record struct BoardCommandState(
     bool CanRedo,
     bool HasManagedPaste,
     int BoardCount,
-    bool SingleSourceMissing)
+    bool SingleSourceMissing,
+    bool ReferenceLocked = false)
 {
     public bool HasSelectedNote => SelectedNoteCount > 0;
 }
 
 public static class BoardCommandPolicy
 {
-    public static bool CanExecute(BoardCommandId id, BoardCommandState state) => id switch
+    public static bool IsAllowedWhenReferenceLocked(BoardCommandId id) => id is
+        BoardCommandId.FocusSelection or BoardCommandId.FocusAll or BoardCommandId.ResetView
+        or BoardCommandId.SelectAll or BoardCommandId.Copy or BoardCommandId.OpenOriginal
+        or BoardCommandId.NewBoard or BoardCommandId.ShowInspector or BoardCommandId.ToggleTopmost
+        or BoardCommandId.ShowTopBar or BoardCommandId.ShowSettings or BoardCommandId.ShowShortcuts
+        or BoardCommandId.ToggleReferenceLock;
+
+    public static bool CanExecute(BoardCommandId id, BoardCommandState state) =>
+        (!state.ReferenceLocked || IsAllowedWhenReferenceLocked(id))
+        && (!(state.SelectedItemCount > 0 && state.HasSelectedNote) || id is not (
+            BoardCommandId.ResetSize or BoardCommandId.RotateLeft or BoardCommandId.RotateRight
+            or BoardCommandId.ResetRotation or BoardCommandId.EnterCrop or BoardCommandId.ResetCrop
+            or BoardCommandId.LayerFront or BoardCommandId.LayerForward or BoardCommandId.LayerBackward or BoardCommandId.LayerBack))
+        && (id switch
     {
         BoardCommandId.Undo => state.CanUndo,
         BoardCommandId.Redo => state.CanRedo,
         BoardCommandId.FocusSelection => state.SelectedItemCount > 0 || state.HasSelectedNote,
-        BoardCommandId.RemoveSelection => state.SelectedItemCount > 0,
+        BoardCommandId.RemoveSelection => state.SelectedItemCount > 0 || state.HasSelectedNote,
+        BoardCommandId.AlignImagesLeft or BoardCommandId.AlignImagesCenter or BoardCommandId.AlignImagesRight
+            or BoardCommandId.AlignImagesTop or BoardCommandId.AlignImagesMiddle or BoardCommandId.AlignImagesBottom => state.SelectedItemCount >= 2,
+        BoardCommandId.DistributeImagesHorizontally or BoardCommandId.DistributeImagesVertically => state.SelectedItemCount >= 3,
         BoardCommandId.DeleteNote or BoardCommandId.ToggleNoteBackground
             or BoardCommandId.AlignNoteLeft or BoardCommandId.AlignNoteCenter
             or BoardCommandId.AlignNoteRight or BoardCommandId.ApplyNotePreset1
@@ -117,7 +144,7 @@ public static class BoardCommandPolicy
         BoardCommandId.RenameBoard => state.BoardCount > 0,
         BoardCommandId.DeleteBoard => state.BoardCount > 1,
         _ => true
-    };
+    });
 }
 
 public enum BoardRightGestureKind

@@ -20,6 +20,16 @@ public partial class BoardWindow
         {
             Command(BoardCommandId.Undo, "撤销", "Ctrl+Z"),
             Command(BoardCommandId.Redo, "重做", "Ctrl+Y"),
+            Command(BoardCommandId.SelectAll, "全选图片和便签", "Ctrl+A"),
+            Command(BoardCommandId.ToggleReferenceLock, "参考锁定", "Ctrl+L"),
+            Command(BoardCommandId.AlignImagesLeft, "左对齐"),
+            Command(BoardCommandId.AlignImagesCenter, "水平居中"),
+            Command(BoardCommandId.AlignImagesRight, "右对齐"),
+            Command(BoardCommandId.AlignImagesTop, "顶部对齐"),
+            Command(BoardCommandId.AlignImagesMiddle, "垂直居中"),
+            Command(BoardCommandId.AlignImagesBottom, "底部对齐"),
+            Command(BoardCommandId.DistributeImagesHorizontally, "横向等间距"),
+            Command(BoardCommandId.DistributeImagesVertically, "纵向等间距"),
             Command(BoardCommandId.FocusSelection, "聚焦所选", "Space"),
             Command(BoardCommandId.FocusAll, "显示全部", "Ctrl+Space"),
             Command(BoardCommandId.ResetView, "恢复 100%", "Ctrl+0"),
@@ -76,7 +86,8 @@ public partial class BoardWindow
         _redo.Count > 0,
         Clipboard.ContainsData(BoardItemIdsDragFormat),
         _boards.Count,
-        _selectedIds.Count == 1 && !File.Exists(ResolveItemOriginalPath(_items.Single(item => _selectedIds.Contains(item.Id)))));
+        _selectedIds.Count == 1 && !File.Exists(ResolveItemOriginalPath(_items.Single(item => _selectedIds.Contains(item.Id)))),
+        _referenceLocked);
 
     private async void BoardViewportMouseRightButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -208,12 +219,7 @@ public partial class BoardWindow
         }
         else if (context == BoardCommandContextKind.Note)
         {
-            _selectedIds.Clear();
-            if (!_selectedNoteIds.Contains(id.Value))
-            {
-                _selectedNoteIds.Clear();
-                _selectedNoteIds.Add(id.Value);
-            }
+            SelectNoteForPointer(id.Value, additive: false);
             RenderVisibleItems();
         }
     }
@@ -224,6 +230,16 @@ public partial class BoardWindow
     private async Task ExecuteBoardCommandAsync(BoardCommandId id)
     {
         if (_boardBoundaryActive || _boardCommandActive) return;
+        if (_referenceLocked && !BoardCommandPolicy.IsAllowedWhenReferenceLocked(id))
+        {
+            RejectReferenceMutation();
+            return;
+        }
+        if (_imageTransformGestureActive || _dragItemId is not null || _dragNoteId is not null
+            || _noteResizeOrigin is not null)
+        {
+            if (id != BoardCommandId.ToggleReferenceLock) return;
+        }
         _boardCommandActive = true;
         try
         {
@@ -248,6 +264,16 @@ public partial class BoardWindow
         {
             case BoardCommandId.Undo: await UndoAsync(); break;
             case BoardCommandId.Redo: await RedoAsync(); break;
+            case BoardCommandId.SelectAll: SelectAllBoardContent(); break;
+            case BoardCommandId.ToggleReferenceLock: await ToggleReferenceLockAsync(); break;
+            case BoardCommandId.AlignImagesLeft: await ArrangeSelectedImagesAsync(BoardImageLayoutKind.Left); break;
+            case BoardCommandId.AlignImagesCenter: await ArrangeSelectedImagesAsync(BoardImageLayoutKind.Center); break;
+            case BoardCommandId.AlignImagesRight: await ArrangeSelectedImagesAsync(BoardImageLayoutKind.Right); break;
+            case BoardCommandId.AlignImagesTop: await ArrangeSelectedImagesAsync(BoardImageLayoutKind.Top); break;
+            case BoardCommandId.AlignImagesMiddle: await ArrangeSelectedImagesAsync(BoardImageLayoutKind.Middle); break;
+            case BoardCommandId.AlignImagesBottom: await ArrangeSelectedImagesAsync(BoardImageLayoutKind.Bottom); break;
+            case BoardCommandId.DistributeImagesHorizontally: await ArrangeSelectedImagesAsync(BoardImageLayoutKind.HorizontalSpacing); break;
+            case BoardCommandId.DistributeImagesVertically: await ArrangeSelectedImagesAsync(BoardImageLayoutKind.VerticalSpacing); break;
             case BoardCommandId.FocusSelection: ToggleSelectionFocus(); break;
             case BoardCommandId.FocusAll: FocusFullBoard(); break;
             case BoardCommandId.ResetView: ResetViewToOneHundredPercent(); break;
@@ -316,7 +342,7 @@ public partial class BoardWindow
                 SetStatus("画板设置可从顶部栏和画布菜单访问");
                 break;
             case BoardCommandId.ShowTopBar:
-                SetStatus("顶部栏将在沉浸窗口中显示");
+                ShowTopBarFromKeyboard();
                 break;
         }
         RefreshOpenContextMenuState();
@@ -416,13 +442,15 @@ public partial class BoardWindow
     }
 
     private BoardCommandContextKind CurrentBoardCommandContext() =>
-        _selectedNoteIds.Count > 0 ? BoardCommandContextKind.Note
+        _selectedNoteIds.Count > 0 && _selectedIds.Count > 0 ? BoardCommandContextKind.MultiSelection
+        : _selectedNoteIds.Count > 0 ? BoardCommandContextKind.Note
         : _selectedIds.Count > 1 ? BoardCommandContextKind.MultiSelection
         : _selectedIds.Count == 1 ? BoardCommandContextKind.Item
         : BoardCommandContextKind.Canvas;
 
     private ContextMenu BuildContextMenu(BoardCommandContextKind context)
     {
+        if (_selectedIds.Count > 0 && _selectedNoteIds.Count > 0) context = BoardCommandContextKind.MultiSelection;
         var menu = new ContextMenu { Tag = context };
         if (_cropModeActive)
         {
@@ -437,7 +465,7 @@ public partial class BoardWindow
         {
             AddCommands(menu, context, BoardCommandId.Undo, BoardCommandId.Redo);
             menu.Items.Add(new Separator());
-            AddCommands(menu, context, BoardCommandId.Paste, BoardCommandId.AddNote, BoardCommandId.FocusAll, BoardCommandId.ResetView);
+            AddCommands(menu, context, BoardCommandId.Paste, BoardCommandId.AddNote, BoardCommandId.SelectAll, BoardCommandId.FocusAll, BoardCommandId.ResetView);
             menu.Items.Add(new Separator());
             menu.Items.Add(Submenu("画板", context, BoardCommandId.NewBoard, BoardCommandId.RenameBoard, BoardCommandId.DeleteBoard));
             menu.Items.Add(Submenu("窗口", context, BoardCommandId.ToggleTopmost, BoardCommandId.ShowTopBar, BoardCommandId.ShowInspector));
@@ -457,12 +485,18 @@ public partial class BoardWindow
         {
             AddCommands(menu, context, BoardCommandId.FocusSelection, BoardCommandId.OpenOriginal, BoardCommandId.Copy);
             menu.Items.Add(Submenu("变换", context, BoardCommandId.ResetSize, BoardCommandId.RotateLeft, BoardCommandId.RotateRight, BoardCommandId.ResetRotation));
+            menu.Items.Add(Submenu("图片排版", context,
+                BoardCommandId.AlignImagesLeft, BoardCommandId.AlignImagesCenter, BoardCommandId.AlignImagesRight,
+                BoardCommandId.AlignImagesTop, BoardCommandId.AlignImagesMiddle, BoardCommandId.AlignImagesBottom,
+                BoardCommandId.DistributeImagesHorizontally, BoardCommandId.DistributeImagesVertically));
             menu.Items.Add(Submenu("裁剪", context, BoardCommandId.EnterCrop, BoardCommandId.ResetCrop));
             menu.Items.Add(Submenu("层级", context, BoardCommandId.LayerFront, BoardCommandId.LayerForward, BoardCommandId.LayerBackward, BoardCommandId.LayerBack));
             menu.Items.Add(Submenu("分组", context, BoardCommandId.GroupSelection, BoardCommandId.UngroupSelection, BoardCommandId.RenameGroup));
             menu.Items.Add(new Separator());
             AddCommands(menu, context, BoardCommandId.RelinkSource, BoardCommandId.ShowInspector, BoardCommandId.RemoveSelection);
         }
+        menu.Items.Add(new Separator());
+        AddCommands(menu, context, BoardCommandId.ToggleReferenceLock);
         menu.Closed += (_, _) => { if (ReferenceEquals(_openBoardContextMenu, menu)) _openBoardContextMenu = null; };
         return menu;
     }
@@ -488,8 +522,8 @@ public partial class BoardWindow
             InputGestureText = definition.Shortcut ?? string.Empty,
             Tag = id,
             IsEnabled = CanExecuteBoardCommand(id, context),
-            IsCheckable = id == BoardCommandId.ToggleTopmost,
-            IsChecked = id == BoardCommandId.ToggleTopmost && Topmost
+            IsCheckable = id is BoardCommandId.ToggleTopmost or BoardCommandId.ToggleReferenceLock,
+            IsChecked = id == BoardCommandId.ToggleTopmost && Topmost || id == BoardCommandId.ToggleReferenceLock && _referenceLocked
         };
         item.Click += async (_, _) => await ExecuteBoardCommandAsync(id);
         return item;
@@ -503,6 +537,7 @@ public partial class BoardWindow
             if (item.Tag is not BoardCommandId id) continue;
             item.IsEnabled = CanExecuteBoardCommand(id, context);
             if (id == BoardCommandId.ToggleTopmost) item.IsChecked = Topmost;
+            if (id == BoardCommandId.ToggleReferenceLock) item.IsChecked = _referenceLocked;
         }
     }
 

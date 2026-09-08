@@ -26,6 +26,7 @@ public partial class BoardWindow
 
     private void BeginCropMode()
     {
+        if (_referenceLocked) return;
         if (_selectedIds.Count != 1)
         {
             SetStatus("裁剪模式需要只选择一张图片");

@@ -9,10 +9,11 @@ namespace PromptVault.App;
 
 public partial class BoardWindow
 {
-    private readonly DispatcherTimer _boardTopRevealTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
+    private readonly DispatcherTimer _boardTopRevealTimer = new() { Interval = TimeSpan.FromMilliseconds(450) };
     private readonly DispatcherTimer _boardTopHideTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };
     private readonly DispatcherTimer _boardStatusHideTimer = new() { Interval = TimeSpan.FromSeconds(2.4) };
     private bool _boardTopBarShown;
+    private bool _boardTopBarKeyboardHeld;
     private bool _pointerInsideTopBar;
     private bool _pointerInsideTopEdge;
 
@@ -82,6 +83,8 @@ public partial class BoardWindow
 
     private void TopEdgeMouseEnter(object sender, MouseEventArgs e)
     {
+        if (Mouse.LeftButton == MouseButtonState.Pressed || Mouse.RightButton == MouseButtonState.Pressed
+            || Mouse.MiddleButton == MouseButtonState.Pressed) return;
         _pointerInsideTopEdge = true;
         if (!_boardTopBarShown)
         {
@@ -99,8 +102,16 @@ public partial class BoardWindow
 
     private void BoardWindowPreviewMouseMove(object sender, MouseEventArgs e)
     {
-        var position = e.GetPosition(BoardRoot);
-        var insideSensor = position.Y >= 0 && position.Y <= TopEdgeActivationZone.ActualHeight;
+        UpdateTopBarPointerIntent(e.GetPosition(BoardRoot),
+            e.LeftButton == MouseButtonState.Released && e.RightButton == MouseButtonState.Released
+            && e.MiddleButton == MouseButtonState.Released);
+    }
+
+    private void UpdateTopBarPointerIntent(Point position, bool buttonsReleased)
+    {
+        var insideSensor = position.X >= 0 && position.X <= BoardRoot.ActualWidth
+            && position.Y >= 0 && position.Y <= TopEdgeActivationZone.ActualHeight
+            && buttonsReleased;
         if (insideSensor)
         {
             _pointerInsideTopEdge = true;
@@ -135,7 +146,7 @@ public partial class BoardWindow
 
     private void ScheduleTopBarHide()
     {
-        if (!_boardTopBarShown) return;
+        if (!_boardTopBarShown || _boardTopBarKeyboardHeld) return;
         if (_boardTopHideTimer.IsEnabled) return;
         _boardTopHideTimer.Start();
     }
@@ -143,16 +154,21 @@ public partial class BoardWindow
     private void BoardTopRevealTimerTick(object? sender, EventArgs e)
     {
         _boardTopRevealTimer.Stop();
-        if (_pointerInsideTopEdge || Mouse.GetPosition(BoardRoot).Y <= TopEdgeActivationZone.ActualHeight)
+        var point = CurrentChromePointerPosition();
+        if (_pointerInsideTopEdge && IsActive && point.X >= 0 && point.X <= BoardRoot.ActualWidth
+            && point.Y >= 0 && point.Y <= TopEdgeActivationZone.ActualHeight
+            && System.Windows.Forms.Control.MouseButtons == System.Windows.Forms.MouseButtons.None)
             ShowBoardTopBar(focusKeyboard: false);
     }
 
     private void BoardTopHideTimerTick(object? sender, EventArgs e)
     {
         _pointerInsideTopBar = IsPointerInsideTopBar();
-        if (_pointerInsideTopBar
+        if (_boardTopBarKeyboardHeld || _pointerInsideTopBar
             || IsPointerInsideTopSafeCorridor()
+            || BoardTopBar.IsKeyboardFocusWithin
             || BoardSelector.IsDropDownOpen
+            || NoteColorPopup.IsOpen
             || _openBoardContextMenu?.IsOpen == true) return;
         _boardTopHideTimer.Stop();
         HideBoardTopBar();
@@ -169,12 +185,50 @@ public partial class BoardWindow
 
     private bool IsPointerInsideTopSafeCorridor()
     {
-        var point = Mouse.GetPosition(BoardRoot);
+        var point = CurrentChromePointerPosition();
         return point.X >= 0
             && point.X <= BoardRoot.ActualWidth
             && point.Y >= 0
             && point.Y <= BoardTopBar.Margin.Top + BoardTopBar.ActualHeight + 8;
     }
+
+    private Point CurrentChromePointerPosition()
+    {
+        var point = System.Windows.Forms.Cursor.Position;
+        return PointFromScreen(new Point(point.X, point.Y));
+    }
+
+    private void HandleChromePointerMessage(int message)
+    {
+        // WindowChrome owns the outer 8 DIP resize band, so WPF mouse events alone miss it.
+        if (message is not (0x00A0 or 0x02A2)) return; // WM_NCMOUSEMOVE / WM_NCMOUSELEAVE
+        if (!IsLoaded) return;
+        UpdateTopBarPointerIntent(CurrentChromePointerPosition(),
+            System.Windows.Forms.Control.MouseButtons == System.Windows.Forms.MouseButtons.None);
+        if (message == 0x00A0 && _keyboardMessageSource is not null)
+        {
+            var tracking = new ChromeMouseTracking
+            {
+                Size = (uint)System.Runtime.InteropServices.Marshal.SizeOf<ChromeMouseTracking>(),
+                Flags = 0x00000002 | 0x00000010, // TME_LEAVE | TME_NONCLIENT
+                Window = _keyboardMessageSource.Handle
+            };
+            TrackMouseEvent(ref tracking);
+        }
+    }
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct ChromeMouseTracking
+    {
+        public uint Size;
+        public uint Flags;
+        public IntPtr Window;
+        public uint HoverTime;
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    private static extern bool TrackMouseEvent(ref ChromeMouseTracking tracking);
 
     private void ShowBoardTopBar(bool focusKeyboard)
     {
@@ -189,6 +243,8 @@ public partial class BoardWindow
     private void HideBoardTopBar()
     {
         _boardTopRevealTimer.Stop();
+        _boardTopHideTimer.Stop();
+        _boardTopBarKeyboardHeld = false;
         _boardTopBarShown = false;
         BoardTopBar.IsHitTestVisible = false;
         AnimateTopBar(0, -80);
@@ -207,8 +263,9 @@ public partial class BoardWindow
             new DoubleAnimation(translateY, new Duration(duration)) { FillBehavior = FillBehavior.HoldEnd });
     }
 
-    private void ShowTopBarFromKeyboard()
+    private void ShowTopBarFromKeyboard(bool isRepeat = false)
     {
+        if (isRepeat) return;
         if (_boardTopBarShown)
         {
             HideBoardTopBar();
@@ -217,7 +274,19 @@ public partial class BoardWindow
         else
         {
             ShowBoardTopBar(focusKeyboard: false);
+            _boardTopBarKeyboardHeld = true;
             SetStatus("顶部栏已显示");
+        }
+    }
+
+    private void BoardWindowPreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        _boardTopRevealTimer.Stop();
+        if (!_boardTopBarShown || e.OriginalSource is not DependencyObject source) return;
+        if (IsInputDescendantOf(source, BoardViewport))
+        {
+            if (BoardTopBar.IsKeyboardFocusWithin) Keyboard.Focus(BoardViewport);
+            HideBoardTopBar();
         }
     }
 

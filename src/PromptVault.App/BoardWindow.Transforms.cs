@@ -27,18 +27,18 @@ public partial class BoardWindow
     private void UpdateSelectionOverlay()
     {
         UpdateRealizedImageSelectionBorders();
-        if (_selectedIds.Count == 0 || _selectedNoteIds.Count > 0)
+        if (_selectedIds.Count == 0)
         {
             SelectionBoundsOverlay.Visibility = Visibility.Collapsed;
             return;
         }
-        var bounds = BoardCameraEngine.SelectionBounds(_items, _selectedIds, [], (long?)null);
+        var bounds = BoardCameraEngine.SelectionBounds(_items, _selectedIds, _notes, _selectedNoteIds);
         if (!bounds.HasValue)
         {
             SelectionBoundsOverlay.Visibility = Visibility.Collapsed;
             return;
         }
-        var single = _selectedIds.Count == 1
+        var single = _selectedIds.Count == 1 && _selectedNoteIds.Count == 0
             ? _items.SingleOrDefault(item => _selectedIds.Contains(item.Id))
             : null;
         var overlayBounds = single is null
@@ -63,7 +63,8 @@ public partial class BoardWindow
             ? 2d
             : BoardSelectionVisualPolicy.ScreenThicknessForOnePhysicalPixel(dpiScale);
         SelectionOutline.BorderThickness = new Thickness(outlineThickness);
-        var cornerVisibility = _cropModeActive ? Visibility.Collapsed : Visibility.Visible;
+        var cornerVisibility = _cropModeActive || _referenceLocked || _selectedNoteIds.Count > 0
+            ? Visibility.Collapsed : Visibility.Visible;
         TopLeftHandle.Visibility = cornerVisibility;
         TopRightHandle.Visibility = cornerVisibility;
         BottomLeftHandle.Visibility = cornerVisibility;
@@ -73,6 +74,7 @@ public partial class BoardWindow
 
     private void TransformHandleDragStarted(object sender, DragStartedEventArgs e)
     {
+        if (_referenceLocked || _selectedNoteIds.Count > 0) return;
         if (sender is not Thumb { Tag: string handle }
             || !Enum.TryParse(handle, out BoardResizeHandle parsed)
             || _selectedIds.Count == 0) return;
@@ -224,6 +226,7 @@ public partial class BoardWindow
 
     private void BeginRotationGesture(Point pointerWorld)
     {
+        if (_referenceLocked || _selectedNoteIds.Count > 0) return;
         var bounds = BoardCameraEngine.SelectionBounds(_items, _selectedIds, [], (long?)null);
         if (!bounds.HasValue) return;
         _rotationBounds = bounds.Bounds;

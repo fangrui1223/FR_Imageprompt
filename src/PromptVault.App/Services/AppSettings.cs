@@ -17,6 +17,7 @@ public sealed class AppSettings
     public string EdgeMenuSensitivity { get; set; } = EdgeIntentProfile.NormalSensitivity;
     public bool EdgeMenusAlwaysVisible { get; set; }
     public bool BoardAlwaysOnTop { get; set; }
+    public HashSet<string> ReferenceLockedBoards { get; set; } = [];
     public bool OnlineAiEnabled { get; set; }
     public string OnlineAiEndpoint { get; set; } = "";
     public string OnlineAiModel { get; set; } = "";
@@ -59,6 +60,7 @@ public sealed class AppSettings
                 folder.Path ??= "";
             }
             settings.LibraryRoot ??= "";
+            settings.ReferenceLockedBoards ??= [];
             settings.OnlineAiEndpoint ??= "";
             settings.OnlineAiModel ??= "";
             settings.GalleryLayouts ??= [];
@@ -119,6 +121,9 @@ public sealed class AppSettings
         File.WriteAllText(temp, JsonSerializer.Serialize(this, JsonOptions));
         File.Move(temp, path, true);
     }
+
+    public static string BoardReferenceKey(string libraryRoot, long boardId) =>
+        $"{Path.TrimEndingDirectorySeparator(Path.GetFullPath(libraryRoot)).ToUpperInvariant()}|{boardId}";
 
     public static double NormalizeInspectorWidth(double width) =>
         Math.Clamp(double.IsFinite(width) && width > 0 ? width : 440, 360, 720);

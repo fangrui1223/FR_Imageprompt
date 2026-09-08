@@ -61,6 +61,14 @@ internal sealed class BoardWorkspaceService
         _lastBoardId = currentBoardId;
     }
 
+    internal bool ActivateOtherWindow(long boardId, BoardWindow requester)
+    {
+        if (!_windows.TryGetValue(boardId, out var existing) || ReferenceEquals(existing, requester)) return false;
+        if (existing.WindowState == WindowState.Minimized) existing.WindowState = WindowState.Normal;
+        existing.Activate();
+        return true;
+    }
+
     public void SetAlwaysOnTop(bool value)
     {
         _settings.BoardAlwaysOnTop = value;

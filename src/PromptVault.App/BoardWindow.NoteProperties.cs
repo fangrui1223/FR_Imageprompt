@@ -84,6 +84,7 @@ public partial class BoardWindow
 
     private void BeginNotePropertyGesture()
     {
+        if (_referenceLocked) return;
         if (SingleSelectedNoteId is not { } noteId) return;
         if (_notePropertyGestureNoteId == noteId && _notePropertyGestureSnapshot is not null) return;
         _notePropertyGestureSnapshot = SnapshotScene();
@@ -92,6 +93,7 @@ public partial class BoardWindow
 
     private void PreviewSelectedNoteStyle(Func<BoardNoteStyle, BoardNoteStyle> transform)
     {
+        if (_referenceLocked) return;
         if (SingleSelectedNoteId is not { } noteId) return;
         var note = _notes.SingleOrDefault(candidate => candidate.Id == noteId);
         if (note is null) return;
@@ -140,6 +142,7 @@ public partial class BoardWindow
 
     private void OpenNoteColorPopup(bool background, FrameworkElement placementTarget)
     {
+        if (_referenceLocked) return;
         if (SingleSelectedNoteId is not { } noteId) return;
         var note = _notes.Single(candidate => candidate.Id == noteId);
         var style = BoardNoteStyleCodec.Decode(note.ColorStyle);

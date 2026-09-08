@@ -52,12 +52,9 @@ public partial class BoardWindow
         if (_cropModeActive && !await CommitCropModeAsync()) return false;
         // An interrupted preview must not leak into the next board or a closing window.
         ExitTransformMode();
-        if (_itemDragActive && _pendingHistorySnapshot is { } itemsBefore) ReplaceItems(itemsBefore);
+        CancelSelectionTranslation();
         _dragItemId = null;
         _itemDragActive = false;
-        _pendingHistorySnapshot = null;
-        if (_noteDragActive && _noteGestureSnapshot is { } notesBefore)
-            foreach (var note in notesBefore.Notes) ReplaceNote(note);
         _dragNoteId = null;
         _noteDragActive = false;
         _noteGestureSnapshot = null;

@@ -10,6 +10,7 @@ public partial class BoardWindow
 {
     private async void BeginNoteEditing(long noteId, bool isNew = false)
     {
+        if (_referenceLocked) return;
         if (_editingNoteId == noteId) return;
         if (_editingNoteId is { } previousId) await CommitNoteEditingAsync(previousId);
         var note = _notes.SingleOrDefault(candidate => candidate.Id == noteId);
@@ -116,6 +117,7 @@ public partial class BoardWindow
 
     private async Task FitSelectedNoteToContentAsync()
     {
+        if (_referenceLocked) return;
         if (SingleSelectedNoteId is not { } noteId) return;
         var note = _notes.SingleOrDefault(candidate => candidate.Id == noteId);
         if (note is null) return;
@@ -174,7 +176,7 @@ public partial class BoardWindow
         string status,
         bool commitHistory = true)
     {
-        if (_selectedNoteIds.Count == 0) return;
+        if (_referenceLocked || _selectedNoteIds.Count == 0) return;
         var before = commitHistory ? SnapshotScene() : null;
         foreach (var id in _selectedNoteIds.ToArray())
         {

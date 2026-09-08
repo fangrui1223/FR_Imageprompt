@@ -207,6 +207,12 @@ public partial class App : System.Windows.Application
             MainWindow = window;
             _tray = new TrayService(window, () => _ = RequestExitAsync());
             window.Show();
+            if (GetOptionValue(e.Args, "--board-m111-smoke") is { } m111Report)
+            {
+                var passed = await RunM111BoardSmokeAsync(m111Report);
+                Shutdown(passed ? 0 : 2);
+                return;
+            }
             if (GetOptionValue(e.Args, "--m11-stability-smoke") is { } m11Report)
             {
                 var passed = await RunM11StabilitySmokeAsync(m11Report);

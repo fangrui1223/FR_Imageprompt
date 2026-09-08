@@ -56,6 +56,14 @@ public partial class BoardWindow
     private void UpdateInspectorContent()
     {
         var currentBoard = _boards.FirstOrDefault(board => board.Id == CurrentBoardId);
+        if (_selectedIds.Count > 0 && _selectedNoteIds.Count > 0)
+        {
+            SelectionSummaryText.Text = $"已选择 {_selectedIds.Count} 张图片、{_selectedNoteIds.Count} 个便签";
+            InspectorDetailsText.Text = "可共同移动或移除；图片排版只移动所选图片。";
+            SourceStateText.Text = "单独选择图片或便签后，可使用对应的尺寸与样式编辑。";
+            UpdateNotePropertiesPanel();
+            return;
+        }
         if (SingleSelectedNoteId is { } noteId)
         {
             var note = _notes.SingleOrDefault(candidate => candidate.Id == noteId);

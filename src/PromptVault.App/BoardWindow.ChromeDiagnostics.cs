@@ -51,10 +51,12 @@ public partial class BoardWindow
             && TopEdgeActivationZone.ActualHeight >= (chrome?.ResizeBorderThickness.Top ?? 0);
 
         HideBoardTopBar();
-        TopEdgeMouseEnter(TopEdgeActivationZone, new MouseEventArgs(Mouse.PrimaryDevice, 0));
-        await Task.Delay(300);
-        await WaitForLayoutAsync();
+        var savedPointer = System.Windows.Forms.Cursor.Position;
+        Activate();
+        await M111MovePointerAsync(new Point(500, 180), 120);
+        await M111MovePointerAsync(new Point(500, 4), 650);
         var pointerReveal = BoardTopBar.IsHitTestVisible && BoardTopBar.Opacity >= 0.999;
+        System.Windows.Forms.Cursor.Position = savedPointer;
 
         var previous = Topmost;
         var secondaryBoard = await _repository.CreateBoardAsync("M8 窗口同步烟测");
