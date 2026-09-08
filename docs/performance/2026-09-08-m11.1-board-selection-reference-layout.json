@@ -1,0 +1,136 @@
+{
+  "Milestone": "M11.1",
+  "GeneratedAt": "2026-09-08T13:02:19.6835176+08:00",
+  "SourceCommit": "f4710596ae978f8de58279437588711911d5c41e",
+  "Baseline": "a1f073330c16c50e70440d014a6192f02bee641c",
+  "Passed": true,
+  "UnitTests": {
+    "DebugPassed": 415,
+    "ReleasePassed": 415,
+    "AddedCases": 12,
+    "Skipped": 0,
+    "SchemaVersion": 13
+  },
+  "FinalExe": {
+    "final-exe.json": {
+      "Passed": true,
+      "Checks": 44
+    },
+    "final-exe-animated.json": {
+      "Passed": true,
+      "Checks": 44
+    },
+    "final-exe-stability.json": {
+      "Passed": true,
+      "Checks": 20
+    }
+  },
+  "Regression": {
+    "commands.json": {
+      "Passed": true
+    },
+    "chrome.json": {
+      "Passed": true
+    },
+    "m82.json": {
+      "Passed": true
+    },
+    "m83.json": {
+      "Passed": true
+    },
+    "m84.json": {
+      "Passed": true
+    },
+    "m85.json": {
+      "Passed": true
+    },
+    "m10.json": {
+      "Passed": true
+    },
+    "m11-stability.json": {
+      "Passed": true
+    },
+    "board5000.json": {
+      "Passed": true,
+      "Metrics": {
+        "ItemCount": 5000,
+        "Samples": 181,
+        "DurationMs": 3451.721,
+        "FrameP50Ms": 16.671,
+        "FrameP95Ms": 16.671,
+        "FrameP99Ms": 16.671,
+        "FrameMaximumMs": 16.671,
+        "CallbackP95Ms": 17.25,
+        "MaximumRealizedElements": 37,
+        "NearBlackFrames": 0,
+        "ViewportQueryP95Ms": 0.021,
+        "MaximumVisibleCandidates": 34,
+        "ContinuousPan": true,
+        "ContinuousZoom": true,
+        "ContinuousMultiTransform": true
+      }
+    },
+    "transparent-160.json": {
+      "Passed": true,
+      "Metrics": {
+        "ScrollPositions": [
+          0,
+          0.2,
+          0.5,
+          0.9
+        ],
+        "CyclesPerDirectionPerPosition": 20,
+        "ExpectedHandoffs": 160,
+        "ActualHandoffs": 160,
+        "DirectionCounts": {
+          "normal-to-transparent": 80,
+          "transparent-to-normal": 80
+        },
+        "PassedHandoffs": 160,
+        "MinimumPreparedRenderFrames": 2,
+        "MaximumOffsetError": 0,
+        "MaximumGalleryReflows": 0,
+        "ElapsedP50Ms": 73.885,
+        "ElapsedP95Ms": 112.462,
+        "ElapsedMaximumMs": 134.2717
+      }
+    }
+  },
+  "Package": {
+    "Path": "publish/FR_Imageprompt-M11.1-final-win-x64.zip",
+    "Bytes": 95364104,
+    "Sha256": "261b26297cbd22b994b376f2a6330b5ab6667c936d8835b1478f373ab0087571",
+    "ExeSha256": "6c0a013cc747655320290d36e3b28034828144f79fded584faa6a7c98e395c68",
+    "ArchivedExeHashVerified": true,
+    "Entries": [
+      {
+        "Name": "FR_Imageprompt-M11.1-final-win-x64/FR_Imageprompt.exe",
+        "Bytes": 238652108
+      },
+      {
+        "Name": "FR_Imageprompt-M11.1-final-win-x64/release-manifest.json",
+        "Bytes": 333
+      }
+    ]
+  },
+  "Safety": {
+    "SyntheticFixturesOnly": true,
+    "ExplicitSettings": true,
+    "RealLibraryModified": false,
+    "SystemClipboardModified": false,
+    "LicenseValidationBypassed": false,
+    "LicensePackaged": false,
+    "PrivateKeyAccessed": false,
+    "DatabaseSchemaChanged": false,
+    "PriorM11PackagePreserved": true
+  },
+  "Limits": [
+    "真实鼠标验证在同一台 3840x2560、150% DPI Windows 主显示器完成；未物理跨显示器验证。",
+    "便签编辑中的 Ctrl+A 所有权经 WPF 焦点/按键路由验证；未发送全局 Ctrl+A 按键。",
+    "混合选择支持共同移动、删除与撤销；图片和便签各自使用原有尺寸编辑，混合选择不提供共同缩放或旋转。",
+    "排版仅移动所选图片；等间距需要至少三张，空间不足时提示并保持原位。",
+    "参考锁定是应用内防误操作功能；外部工具仍可修改文件。",
+    "保留 M11 的待保存内存保护；未模拟断电/强杀、物理跨 DPI 交接或系统文件缓存强制清空。"
+  ],
+  "RawDirectory": ".audit/2026-09-08/m111"
+}

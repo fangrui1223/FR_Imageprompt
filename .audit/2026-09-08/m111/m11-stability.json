@@ -1,0 +1,28 @@
+{
+  "Milestone": "M11",
+  "DataKind": "synthetic",
+  "Passed": true,
+  "Results": {
+    "prewarmWheelSelectionAndCloseIgnored": true,
+    "duplicateRejectedWithoutCancelingTransfer": true,
+    "duplicateHandoffRowsAndPositionRetained": true,
+    "abortedPreparationRestoresSource": true,
+    "rollbackRowsRemainIntact": true,
+    "retryAfterAbortedPreparation": true,
+    "rollbackRetryPositionRetained": true,
+    "mouseCaptureLossEndsWindowDrag": true,
+    "noteFailureReported": true,
+    "switchBlockedAndEditRetained": true,
+    "closeBlocked": true,
+    "applicationExitBlocked": true,
+    "noteRetryPersisted": true,
+    "cropFailureStaysEditable": true,
+    "cropRetryCommitted": true,
+    "failedUndoRetainsStacksAndScene": true,
+    "undoRedoRoundTrip": true,
+    "switchSucceedsAfterRetry": true,
+    "exitPreparationSucceedsAfterRetry": true,
+    "allPendingSavedBeforeExit": true
+  },
+  "Error": null
+}

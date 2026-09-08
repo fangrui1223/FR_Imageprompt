@@ -1,0 +1,59 @@
+{
+  "Milestone": "M8-04-immersive-window-chrome-ui-smoke",
+  "GeneratedAt": "2026-09-08T12:50:29.6650498+08:00",
+  "DataKind": "synthetic",
+  "Display": {
+    "PhysicalWidth": 3840,
+    "PhysicalHeight": 2560,
+    "AppliedDpi": 144,
+    "DpiScale": 1.5
+  },
+  "Chrome": {
+    "DefaultHidden": true,
+    "IntentRevealVisible": true,
+    "PointerEntryRevealVisible": true,
+    "KeyboardRevealTransient": true,
+    "KeyboardToggleHide": true,
+    "ToolbarTextFits": true,
+    "ToolbarTextButtonCount": 10,
+    "TopmostVisualMatched": true,
+    "ActivationZoneHeightDip": 8,
+    "ActivationZoneClearsResizeBorder": true,
+    "ViewportBefore": {
+      "Width": 2573.333333333333,
+      "Height": 1720
+    },
+    "ViewportDuring": {
+      "Width": 2573.333333333333,
+      "Height": 1720
+    },
+    "OverlayDidNotResizeViewport": true,
+    "Borderless": true,
+    "Resizable": true,
+    "Maximized": true,
+    "Restored": true
+  },
+  "Topmost": {
+    "EnabledStateSynchronized": true,
+    "RestoredStateSynchronized": true,
+    "PersistedSetting": false
+  },
+  "Process": {
+    "WorkingSetBytes": 311226368,
+    "PrivateMemoryBytes": 625094656,
+    "HandleCount": 825,
+    "ThreadCount": 33,
+    "Responding": true
+  },
+  "DataSafety": {
+    "SyntheticFixtureOnly": true,
+    "CaptureListeningEnabled": false,
+    "CaptureQuickEditEnabled": false,
+    "OnlineAiEnabled": false,
+    "RealLibraryOpened": false,
+    "ClipboardUsed": false,
+    "NetworkUsed": false,
+    "ApiKeyUsed": false
+  },
+  "Passed": true
+}

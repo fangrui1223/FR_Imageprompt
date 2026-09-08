@@ -1,0 +1,70 @@
+{
+  "Milestone": "M8.5-board-selection-visuals-branding",
+  "GeneratedAt": "2026-09-08T12:50:32.6528651+08:00",
+  "DataKind": "synthetic",
+  "Passed": true,
+  "Display": {
+    "PhysicalWidth": 3840,
+    "PhysicalHeight": 2560,
+    "AppliedDpi": 144,
+    "DpiScale": 1.5,
+    "ActualWidth": 2573.333333333333,
+    "ActualHeight": 1720,
+    "OriginalZoom": 1.12
+  },
+  "SelectionVisuals": {
+    "UnselectedBordersZero": true,
+    "SingleRootBorderZero": true,
+    "SingleCommonOutlineVisible": true,
+    "SingleOutlinePhysicalPixels": 1,
+    "MultiRealizedMemberCount": 2,
+    "MultiMemberBordersVisible": true,
+    "MultiNonMemberBordersZero": true,
+    "MultiMemberPhysicalPixels": [
+      1,
+      1
+    ],
+    "MultiCommonOutlineVisible": true,
+    "ZoomChecks": [
+      {
+        "Zoom": 0.2,
+        "WorldThickness": 3.333333333333333,
+        "PhysicalPixels": 1,
+        "Passed": true
+      },
+      {
+        "Zoom": 2.05,
+        "WorldThickness": 0.3252032520325204,
+        "PhysicalPixels": 1,
+        "Passed": true
+      }
+    ]
+  },
+  "Regression": {
+    "CropOutlinePreserved": true,
+    "CropOutlineDip": 2,
+    "VisualRebuilds": 0,
+    "BitmapRebuilds": 0,
+    "DatabaseWrites": 0,
+    "NotesUnchanged": true,
+    "DatabaseSchemaChanged": false,
+    "GalleryPerformanceLayerTouched": false
+  },
+  "Branding": {
+    "ExactText": true,
+    "StylePreserved": true,
+    "Text": "\u56FE\u7247\u8D44\u4EA7\u5E93 V2.0",
+    "FontSize": 9,
+    "UsesAccentBrush": true
+  },
+  "DataSafety": {
+    "SyntheticFixtureOnly": true,
+    "CaptureListeningEnabled": false,
+    "CaptureQuickEditEnabled": false,
+    "OnlineAiEnabled": false,
+    "RealLibraryOpened": false,
+    "ClipboardUsed": false,
+    "NetworkUsed": false,
+    "ApiKeyUsed": false
+  }
+}

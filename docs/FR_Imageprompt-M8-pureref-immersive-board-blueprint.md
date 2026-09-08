@@ -8,6 +8,8 @@
 > 直接性能基线：`docs/FR_Imageprompt-M7.2-adaptive-fast-browsing-blueprint.md`
 > 当前用户体验包：`publish/FR_Imageprompt-M8-pureref-board-win-x64.zip`
 
+2026-09-08 后续体验收口见 [M11.1 计划与账本](FR_Imageprompt-M11.1-board-selection-reference-layout-plan.md)：修复混合选择后按下成员丢失便签的问题，加入参考锁定、六种图片对齐和双轴等间距。当前完整包为 `publish/FR_Imageprompt-M11.1-final-win-x64.zip`，M8 既有输入与性能基线继续保留。
+
 本文档是 M8 的独立执行账本。目标不是照搬 PureRef 的每一个默认键位或外观细节，而是学习其“画布永远是主角、界面按需出现、相机与对象操作严格分离、同一命令可由右键和快捷键触发”的核心体验，并与 FR_Imageprompt 已有的图库引用、画板持久化、撤销、虚拟化、缩略图缓存和数据安全边界融合。
 
 总蓝图只保留 M8 入口、阶段状态和最终摘要；所有子步骤、真实数据、问题反馈和实施日志统一维护在本文档。新的 Codex 对话不得凭用户截图直接重写画板，必须完整阅读 `AGENTS.md`、`README.md`、总蓝图和本文档，并从本文档总进度中依赖已经完成的第一个未勾选父步骤继续。

@@ -1,0 +1,49 @@
+{
+  "Milestone": "M8.2-transform-crop-window",
+  "Passed": true,
+  "Dpi": 144,
+  "Viewport": {
+    "ActualWidth": 2573.333333333333,
+    "ActualHeight": 1720,
+    "Zoom": 1.12
+  },
+  "Handles": {
+    "Count": 4,
+    "HitDip": 28,
+    "HitTests": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "RoutedResizeChanged": true
+  },
+  "Note": {
+    "RoutedResizeChanged": true,
+    "Width": 337.2633281900702,
+    "Height": 248.98258859227687
+  },
+  "Crop": {
+    "Entered": true,
+    "Updates": {
+      "Count": 120,
+      "P50Ms": 0,
+      "P95Ms": 0.001,
+      "P99Ms": 0.002,
+      "MaximumMs": 0.29
+    },
+    "DatabaseWritesDuringUpdates": 0,
+    "BitmapRebuildsDuringUpdates": 0,
+    "CommittedOnce": true,
+    "CancelRestored": true,
+    "NoCroppedBitmap": true
+  },
+  "WindowPolicy": {
+    "CtrlWindowedMovesWindow": true,
+    "CtrlMaximizedMovesWindow": true,
+    "CtrlNeverPans": true
+  },
+  "ClipboardCaptureEnabled": false,
+  "QuickCaptureEnabled": false,
+  "OnlineAiEnabled": false
+}

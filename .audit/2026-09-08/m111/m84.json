@@ -1,0 +1,59 @@
+{
+  "Milestone": "M8.4-smooth-proportional-image-resize",
+  "GeneratedAt": "2026-09-08T12:50:31.6106366+08:00",
+  "DataKind": "synthetic",
+  "Passed": true,
+  "Display": {
+    "PhysicalWidth": 3840,
+    "PhysicalHeight": 2560,
+    "AppliedDpi": 144,
+    "DpiScale": 1.5,
+    "ActualWidth": 2573.333333333333,
+    "ActualHeight": 1720,
+    "Zoom": 1.12
+  },
+  "Resize": {
+    "Samples": 240,
+    "InputMode": "absolute-pointer-from-fixed-start",
+    "Monotonic": true,
+    "AspectRatioPreserved": true,
+    "GestureLocked": true,
+    "GestureCleared": true,
+    "VisualRebuildsDuringGesture": 0,
+    "BitmapRebuildsDuringGesture": 0,
+    "VisualRebuildsOnCompletion": 0,
+    "BitmapRebuildsOnCompletion": 0,
+    "DatabaseWritesDuringGesture": 0,
+    "UndoRecords": 1,
+    "UpdateP50Ms": 0.006,
+    "UpdateP95Ms": 0.009,
+    "UpdateP99Ms": 0.014,
+    "UpdateMaximumMs": 0.0795,
+    "Before": {
+      "Width": 577.8339509118175,
+      "Height": 2311.33580364727
+    },
+    "After": {
+      "Width": 669.2519730126846,
+      "Height": 2677.0078920507385
+    }
+  },
+  "Regression": {
+    "ShiftFreeResizeCodePathPreserved": true,
+    "AltCenterResizeCodePathPreserved": true,
+    "NotesUnchanged": true,
+    "CropFieldsUnchanged": true,
+    "DatabaseSchemaChanged": false,
+    "GalleryPerformanceLayerTouched": false
+  },
+  "DataSafety": {
+    "SyntheticFixtureOnly": true,
+    "CaptureListeningEnabled": false,
+    "CaptureQuickEditEnabled": false,
+    "OnlineAiEnabled": false,
+    "RealLibraryOpened": false,
+    "ClipboardUsed": false,
+    "NetworkUsed": false,
+    "ApiKeyUsed": false
+  }
+}

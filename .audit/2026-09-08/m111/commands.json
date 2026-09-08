@@ -1,0 +1,86 @@
+{
+  "Milestone": "M8-03-command-context-ui-smoke",
+  "GeneratedAt": "2026-09-08T12:50:27.3324547+08:00",
+  "DataKind": "synthetic",
+  "Display": {
+    "PhysicalWidth": 3840,
+    "PhysicalHeight": 2560,
+    "AppliedDpi": 144,
+    "DpiScale": 1.5
+  },
+  "Menus": {
+    "CanvasMenuBuildMs": 0.3644,
+    "CanvasMenuVisible": true,
+    "CanvasTopLevelCount": 16,
+    "ItemTopLevelCount": 14,
+    "NoteTopLevelCount": 12,
+    "CanvasTitles": [
+      "\u64A4\u9500",
+      "\u91CD\u505A",
+      "\u7C98\u8D34",
+      "\u65B0\u5EFA\u4FBF\u7B7E",
+      "\u5168\u9009\u56FE\u7247\u548C\u4FBF\u7B7E",
+      "\u663E\u793A\u5168\u90E8",
+      "\u6062\u590D 100%",
+      "\u753B\u677F",
+      "\u7A97\u53E3",
+      "\u8BBE\u7F6E",
+      "\u5FEB\u6377\u952E\u8BF4\u660E",
+      "\u53C2\u8003\u9501\u5B9A"
+    ],
+    "ItemTitles": [
+      "\u805A\u7126\u6240\u9009",
+      "\u6253\u5F00\u539F\u56FE",
+      "\u590D\u5236",
+      "\u53D8\u6362",
+      "\u56FE\u7247\u6392\u7248",
+      "\u88C1\u526A",
+      "\u5C42\u7EA7",
+      "\u5206\u7EC4",
+      "\u91CD\u65B0\u5B9A\u4F4D\u7F3A\u5931\u539F\u56FE",
+      "\u5C5E\u6027",
+      "\u4ECE\u753B\u677F\u79FB\u9664",
+      "\u53C2\u8003\u9501\u5B9A"
+    ],
+    "NoteTitles": [
+      "\u7F16\u8F91\u6587\u5B57",
+      "\u9002\u5408\u6587\u5B57\u5185\u5BB9",
+      "\u663E\u793A/\u9690\u85CF\u80CC\u666F",
+      "\u5BF9\u9F50",
+      "\u5E94\u7528\u9884\u8BBE",
+      "\u5C42\u7EA7",
+      "\u590D\u5236\u4FBF\u7B7E",
+      "\u5C5E\u6027",
+      "\u5220\u9664\u4FBF\u7B7E",
+      "\u53C2\u8003\u9501\u5B9A"
+    ]
+  },
+  "Gesture": {
+    "ShortReleaseOpenedMenu": true,
+    "SixDipDragSuppressedMenu": true
+  },
+  "Commands": {
+    "ShortcutCommandChangedTopmost": true,
+    "BoardItemRemoved": true,
+    "OriginalFilePreserved": true,
+    "UndoRestoredBoardItem": true
+  },
+  "Process": {
+    "WorkingSetBytes": 305348608,
+    "PrivateMemoryBytes": 543444992,
+    "HandleCount": 811,
+    "ThreadCount": 30,
+    "Responding": true
+  },
+  "DataSafety": {
+    "SyntheticFixtureOnly": true,
+    "CaptureListeningEnabled": false,
+    "CaptureQuickEditEnabled": false,
+    "OnlineAiEnabled": false,
+    "RealLibraryOpened": false,
+    "ClipboardUsed": false,
+    "NetworkUsed": false,
+    "ApiKeyUsed": false
+  },
+  "Passed": true
+}
