@@ -1027,6 +1027,7 @@ public partial class MainWindow : Window
         }
 
         InvalidateMasonryLayoutIndex();
+        RecordM112StartupSample("apply");
         _rowsScrollViewer ??= FindDescendant<ScrollViewer>(RowsList);
         if (resetScroll) _rowsScrollViewer?.ScrollToTop();
         EmptyGalleryState.Visibility = nextItems.Count == 0

@@ -1,6 +1,8 @@
 using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using PromptVault.Core;
@@ -16,9 +18,29 @@ public partial class BoardWindow
     private bool _boardTopBarKeyboardHeld;
     private bool _pointerInsideTopBar;
     private bool _pointerInsideTopEdge;
+    private bool _boardChromeRetired;
+
+    private bool IsBoardChromeAvailable => !_boardChromeRetired
+        && PresentationSource.FromVisual(this) is HwndSource { IsDisposed: false, RootVisual: not null };
+
+    private void RetireBoardChrome()
+    {
+        _boardChromeRetired = true;
+        _boardTopBarShown = false;
+        _boardTopBarKeyboardHeld = false;
+        _pointerInsideTopBar = false;
+        _pointerInsideTopEdge = false;
+        _boardTopRevealTimer.Stop();
+        _boardTopHideTimer.Stop();
+        _boardStatusHideTimer.Stop();
+        _boardTopRevealTimer.Tick -= BoardTopRevealTimerTick;
+        _boardTopHideTimer.Tick -= BoardTopHideTimerTick;
+        _boardStatusHideTimer.Tick -= BoardStatusHideTimerTick;
+    }
 
     private void InitializeBoardChrome()
     {
+        if (_boardChromeRetired) return;
         _boardTopRevealTimer.Tick -= BoardTopRevealTimerTick;
         _boardTopRevealTimer.Tick += BoardTopRevealTimerTick;
         _boardTopHideTimer.Tick -= BoardTopHideTimerTick;
@@ -83,6 +105,7 @@ public partial class BoardWindow
 
     private void TopEdgeMouseEnter(object sender, MouseEventArgs e)
     {
+        if (!IsBoardChromeAvailable) return;
         if (Mouse.LeftButton == MouseButtonState.Pressed || Mouse.RightButton == MouseButtonState.Pressed
             || Mouse.MiddleButton == MouseButtonState.Pressed) return;
         _pointerInsideTopEdge = true;
@@ -102,6 +125,7 @@ public partial class BoardWindow
 
     private void BoardWindowPreviewMouseMove(object sender, MouseEventArgs e)
     {
+        if (!IsBoardChromeAvailable) return;
         UpdateTopBarPointerIntent(e.GetPosition(BoardRoot),
             e.LeftButton == MouseButtonState.Released && e.RightButton == MouseButtonState.Released
             && e.MiddleButton == MouseButtonState.Released);
@@ -109,6 +133,7 @@ public partial class BoardWindow
 
     private void UpdateTopBarPointerIntent(Point position, bool buttonsReleased)
     {
+        if (!IsBoardChromeAvailable) return;
         var insideSensor = position.X >= 0 && position.X <= BoardRoot.ActualWidth
             && position.Y >= 0 && position.Y <= TopEdgeActivationZone.ActualHeight
             && buttonsReleased;
@@ -134,6 +159,7 @@ public partial class BoardWindow
 
     private void BoardTopBarMouseEnter(object sender, MouseEventArgs e)
     {
+        if (!IsBoardChromeAvailable) return;
         _pointerInsideTopBar = true;
         _boardTopHideTimer.Stop();
     }
@@ -146,6 +172,7 @@ public partial class BoardWindow
 
     private void ScheduleTopBarHide()
     {
+        if (!IsBoardChromeAvailable) return;
         if (!_boardTopBarShown || _boardTopBarKeyboardHeld) return;
         if (_boardTopHideTimer.IsEnabled) return;
         _boardTopHideTimer.Start();
@@ -154,7 +181,7 @@ public partial class BoardWindow
     private void BoardTopRevealTimerTick(object? sender, EventArgs e)
     {
         _boardTopRevealTimer.Stop();
-        var point = CurrentChromePointerPosition();
+        if (!TryGetChromePointerPosition(out var point)) return;
         if (_pointerInsideTopEdge && IsActive && point.X >= 0 && point.X <= BoardRoot.ActualWidth
             && point.Y >= 0 && point.Y <= TopEdgeActivationZone.ActualHeight
             && System.Windows.Forms.Control.MouseButtons == System.Windows.Forms.MouseButtons.None)
@@ -163,6 +190,11 @@ public partial class BoardWindow
 
     private void BoardTopHideTimerTick(object? sender, EventArgs e)
     {
+        if (!IsBoardChromeAvailable)
+        {
+            _boardTopHideTimer.Stop();
+            return;
+        }
         _pointerInsideTopBar = IsPointerInsideTopBar();
         if (_boardTopBarKeyboardHeld || _pointerInsideTopBar
             || IsPointerInsideTopSafeCorridor()
@@ -176,7 +208,7 @@ public partial class BoardWindow
 
     private bool IsPointerInsideTopBar()
     {
-        if (!BoardTopBar.IsVisible || !BoardTopBar.IsHitTestVisible) return false;
+        if (!IsBoardChromeAvailable || !BoardTopBar.IsVisible || !BoardTopBar.IsHitTestVisible) return false;
         var point = Mouse.GetPosition(BoardTopBar);
         return point.X >= 0 && point.Y >= 0
             && point.X <= BoardTopBar.ActualWidth
@@ -185,25 +217,29 @@ public partial class BoardWindow
 
     private bool IsPointerInsideTopSafeCorridor()
     {
-        var point = CurrentChromePointerPosition();
+        if (!TryGetChromePointerPosition(out var point)) return false;
         return point.X >= 0
             && point.X <= BoardRoot.ActualWidth
             && point.Y >= 0
             && point.Y <= BoardTopBar.Margin.Top + BoardTopBar.ActualHeight + 8;
     }
 
-    private Point CurrentChromePointerPosition()
+    private bool TryGetChromePointerPosition(out Point position)
     {
+        position = default;
+        // IsLoaded can remain true after HWND destruction; the presentation source is authoritative.
+        if (!IsBoardChromeAvailable) return false;
         var point = System.Windows.Forms.Cursor.Position;
-        return PointFromScreen(new Point(point.X, point.Y));
+        position = PointFromScreen(new Point(point.X, point.Y));
+        return true;
     }
 
     private void HandleChromePointerMessage(int message)
     {
         // WindowChrome owns the outer 8 DIP resize band, so WPF mouse events alone miss it.
         if (message is not (0x00A0 or 0x02A2)) return; // WM_NCMOUSEMOVE / WM_NCMOUSELEAVE
-        if (!IsLoaded) return;
-        UpdateTopBarPointerIntent(CurrentChromePointerPosition(),
+        if (!TryGetChromePointerPosition(out var position)) return;
+        UpdateTopBarPointerIntent(position,
             System.Windows.Forms.Control.MouseButtons == System.Windows.Forms.MouseButtons.None);
         if (message == 0x00A0 && _keyboardMessageSource is not null)
         {
@@ -232,6 +268,7 @@ public partial class BoardWindow
 
     private void ShowBoardTopBar(bool focusKeyboard)
     {
+        if (!IsBoardChromeAvailable) return;
         _boardTopRevealTimer.Stop();
         _boardTopHideTimer.Stop();
         _boardTopBarShown = true;
@@ -265,7 +302,7 @@ public partial class BoardWindow
 
     private void ShowTopBarFromKeyboard(bool isRepeat = false)
     {
-        if (isRepeat) return;
+        if (isRepeat || !IsBoardChromeAvailable) return;
         if (_boardTopBarShown)
         {
             HideBoardTopBar();
@@ -292,6 +329,7 @@ public partial class BoardWindow
 
     private void ShowStatusOverlay()
     {
+        if (_boardChromeRetired) return;
         BoardStatusOverlay.Opacity = 1;
         _boardStatusHideTimer.Stop();
         BoardStatusOverlay.IsHitTestVisible = _saveError is not null;

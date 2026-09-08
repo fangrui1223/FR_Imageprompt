@@ -33,9 +33,15 @@
      <Border x:Name="GalleryKeyboardFocusTarget" Width="1" Height="1" HorizontalAlignment="Left" VerticalAlignment="Top"
       Focusable="True" IsHitTestVisible="False" Opacity="0"/>
      <ListBox x:Name="RowsList" ItemsSource="{Binding Rows}" Background="Transparent" BorderThickness="0" Focusable="True" PreviewMouseWheel="RowsListPreviewMouseWheel"
-      ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="False"
+      ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Visible" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="False"
       ScrollViewer.ScrollChanged="RowsListScrollChanged" VirtualizingPanel.ScrollUnit="Pixel" VirtualizingPanel.CacheLength="2,2"
       VirtualizingPanel.CacheLengthUnit="Page" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+      <!-- Reserve the scroll gutter before the first cards arrive, keeping both layout passes identical. -->
+      <ListBox.Resources>
+       <Style TargetType="ScrollBar" BasedOn="{StaticResource {x:Type ScrollBar}}">
+        <Style.Triggers><Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0"/></Trigger></Style.Triggers>
+       </Style>
+      </ListBox.Resources>
       <ListBox.ItemsPanel><ItemsPanelTemplate><local:VirtualizingMasonryPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
       <ListBox.ItemContainerStyle>
        <Style TargetType="ListBoxItem">

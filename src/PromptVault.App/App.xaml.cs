@@ -206,7 +206,15 @@ public partial class App : System.Windows.Application
             var window = CreateMainWindow(false, null);
             MainWindow = window;
             _tray = new TrayService(window, () => _ = RequestExitAsync());
+            var m112Report = GetOptionValue(e.Args, "--m112-smoke");
+            if (m112Report is not null) window.BeginM112StartupSampling();
             window.Show();
+            if (m112Report is not null)
+            {
+                var passed = await RunM112SmokeAsync(window, m112Report);
+                Shutdown(passed ? 0 : 2);
+                return;
+            }
             if (GetOptionValue(e.Args, "--board-m111-smoke") is { } m111Report)
             {
                 var passed = await RunM111BoardSmokeAsync(m111Report);
@@ -223,7 +231,8 @@ public partial class App : System.Windows.Application
             {
                 var passed = await RunM102TransparentHandoffStressAsync(
                     m102TransparentHandoffSmokeReport,
-                    _settings);
+                    _settings,
+                    e.Args.Contains("--short-handoff-smoke", StringComparer.OrdinalIgnoreCase) ? 3 : 20);
                 Shutdown(passed ? 0 : 2);
                 return;
             }
@@ -499,7 +508,8 @@ public partial class App : System.Windows.Application
 
     private async Task<bool> RunM102TransparentHandoffStressAsync(
         string reportPath,
-        AppSettings settings)
+        AppSettings settings,
+        int cyclesPerDirection = 20)
     {
         reportPath = Path.GetFullPath(reportPath);
         var samples = new List<M102HandoffStressSample>(160);
@@ -514,7 +524,7 @@ public partial class App : System.Windows.Application
         {
             foreach (var position in positions)
             {
-                for (var cycle = 1; cycle <= 20; cycle++)
+                for (var cycle = 1; cycle <= cyclesPerDirection; cycle++)
                 {
                     foreach (var targetTransparent in new[] { true, false })
                     {
@@ -543,6 +553,9 @@ public partial class App : System.Windows.Application
                             validation));
                         if (!validation.Passed)
                             throw new InvalidOperationException("M10.2 窗口交接状态验证失败。");
+                        source = null!;
+                        replacement = null!;
+                        snapshot = null!;
                         // Real users leave an idle turn between toggles. Give WPF the
                         // same opportunity to retire the old HwndSource before the
                         // stress loop starts the next replacement transaction.
@@ -563,10 +576,10 @@ public partial class App : System.Windows.Application
             .GroupBy(sample => sample.Direction)
             .ToDictionary(group => group.Key, group => group.Count());
         var handoffsPassed = failure is null
-            && samples.Count == 160
+            && samples.Count == positions.Length * 2 * cyclesPerDirection
             && samples.All(sample => sample.Validation.Passed)
-            && directionCounts.GetValueOrDefault("normal-to-transparent") == 80
-            && directionCounts.GetValueOrDefault("transparent-to-normal") == 80;
+            && directionCounts.GetValueOrDefault("normal-to-transparent") == positions.Length * cyclesPerDirection
+            && directionCounts.GetValueOrDefault("transparent-to-normal") == positions.Length * cyclesPerDirection;
         var elapsed = samples.Select(sample => sample.ElapsedMilliseconds).Order().ToArray();
         process.Refresh();
         var workingSetBeforeCollection = process.WorkingSet64;
@@ -580,6 +593,20 @@ public partial class App : System.Windows.Application
         process.Refresh();
         var retiredWindowsAliveAfterCollection = retiredWindows.Count(reference =>
             reference.TryGetTarget(out _));
+        var retirementCounts = new List<int> { retiredWindowsAliveAfterCollection };
+        // WPF weak-event cleanup runs on the dispatcher after collection. Collect again
+        // after those deferred releases, keeping the original <= 1 live-window gate.
+        for (var attempt = 0; retiredWindowsAliveAfterCollection > 1 && attempt < 5; attempt++)
+        {
+            await Task.Delay(500);
+            await Dispatcher.InvokeAsync(static () => { }, DispatcherPriority.ContextIdle);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            retiredWindowsAliveAfterCollection = retiredWindows.Count(reference => reference.TryGetTarget(out _));
+            retirementCounts.Add(retiredWindowsAliveAfterCollection);
+        }
+        process.Refresh();
         var allPassed = handoffsPassed && retiredWindowsAliveAfterCollection <= 1;
         var report = new
         {
@@ -590,8 +617,8 @@ public partial class App : System.Windows.Application
             Matrix = new
             {
                 ScrollPositions = positions,
-                CyclesPerDirectionPerPosition = 20,
-                ExpectedHandoffs = 160,
+                CyclesPerDirectionPerPosition = cyclesPerDirection,
+                ExpectedHandoffs = positions.Length * 2 * cyclesPerDirection,
                 ActualHandoffs = samples.Count,
                 DirectionCounts = directionCounts,
                 PassedHandoffs = samples.Count(sample => sample.Validation.Passed),
@@ -631,6 +658,9 @@ public partial class App : System.Windows.Application
                 PrivateMemoryAfterCollection = process.PrivateMemorySize64,
                 RetiredWindowReferences = retiredWindows.Count,
                 RetiredWindowsAliveAfterCollection = retiredWindowsAliveAfterCollection,
+                RetirementCounts = retirementCounts,
+                RetiredWindowStates = retiredWindows.Select(reference => reference.TryGetTarget(out var retired)
+                    ? retired.DescribeRetiredWindowForDiagnostics() : null).Where(state => state is not null).ToArray(),
                 process.HandleCount,
                 ThreadCount = process.Threads.Count,
                 process.Responding

@@ -28,9 +28,7 @@ public partial class BoardWindow
 
     protected override void OnClosed(EventArgs e)
     {
-        _boardTopRevealTimer.Stop();
-        _boardTopHideTimer.Stop();
-        _boardStatusHideTimer.Stop();
+        RetireBoardChrome();
         _inspectorCloseTimer.Stop();
         Activated -= BoardWindowActivatedForHotKey;
         Deactivated -= BoardWindowDeactivatedForHotKey;

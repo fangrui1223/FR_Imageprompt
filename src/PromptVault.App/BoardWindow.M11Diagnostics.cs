@@ -31,6 +31,9 @@ public partial class BoardWindow
             OnClosing(closing);
             await WaitForLayoutAsync();
             result["closeBlocked"] = closing.Cancel && !_closeApproved && IsVisible;
+            ShowBoardTopBar(focusKeyboard: false);
+            result["cancelledCloseKeepsChromeUsable"] = !_boardChromeRetired
+                && IsBoardChromeAvailable && _boardTopBarShown;
             result["applicationExitBlocked"] = !await PrepareForApplicationExitAsync();
         }
         finally { await M11SqlAsync("DROP TRIGGER IF EXISTS m11_reject_notes;"); }

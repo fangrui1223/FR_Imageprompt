@@ -37,7 +37,7 @@ public partial class App
             board.Close();
         }
         catch (Exception ex) { error = ex.ToString(); }
-        var passed = error is null && results.Count == 20 && results.Values.All(value => value);
+        var passed = error is null && results.Count == 21 && results.Values.All(value => value);
         var path = Path.GetFullPath(reportPath);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         await File.WriteAllTextAsync(path, JsonSerializer.Serialize(new { Milestone = "M11", DataKind = "synthetic", Passed = passed, Results = results, Error = error }, new JsonSerializerOptions { WriteIndented = true }));

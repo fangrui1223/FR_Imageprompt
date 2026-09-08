@@ -1645,6 +1645,7 @@ public partial class BoardWindow : Window
     {
         if (!_closeApproved) e.Cancel = true;
         base.OnClosing(e);
+        if (!e.Cancel) RetireBoardChrome();
         if (!_closeApproved && !_boardBoundaryActive) _ = CloseAfterSavingAsync();
     }
 
